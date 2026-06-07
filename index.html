@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>江氏族譜 · Kong Family Zupu</title>
+<meta name="description" content="An interactive, crowdsourced 族譜 (zupu) for the Kong (江) family — a Hakka Christian lineage from Guangdong to Sabah." />
+
+<!-- D3 for the lineage tree -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<!-- MapLibre for the ancestral / diaspora map -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.js"></script>
+<!-- Supabase client for auth + data -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header class="site-header">
+  <div class="brand">
+    <span class="seal">江</span>
+    <div class="brand-text">
+      <h1>江氏族譜</h1>
+      <p>The Kong Family Zupu · Hakka Christian lineage · 廣東 → 沙巴</p>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="tree">族譜 Tree</button>
+    <button class="tab" data-view="map">地圖 Map</button>
+    <button class="tab" data-view="contribute">貢獻 Contribute</button>
+    <button class="tab" data-view="review" id="tab-review" style="display:none">審核 Review</button>
+    <button class="tab" data-view="about">關於 About</button>
+  </nav>
+  <div class="header-tools">
+    <input id="search" type="search" placeholder="Search name / 名…" autocomplete="off" />
+    <button id="auth-status" class="auth-status" title="Sign in">Sign in</button>
+  </div>
+</header>
+
+<main id="main">
+  <!-- TREE ------------------------------------------------------- -->
+  <section id="view-tree" class="view active">
+    <div class="tree-toolbar">
+      <label><input type="checkbox" id="toggle-daughters" checked /> Show daughters &amp; married-in</label>
+      <label><input type="checkbox" id="toggle-pinyin" checked /> Romanization</label>
+      <button id="btn-expand">Expand all</button>
+      <button id="btn-fit">Fit</button>
+      <span class="legend">
+        <i class="dot male"></i> son line
+        <i class="dot female"></i> daughter
+        <i class="dot spouse"></i> married-in
+        <i class="dot low"></i> needs verification
+      </span>
+    </div>
+    <div id="tree-canvas"></div>
+  </section>
+
+  <!-- MAP ------------------------------------------------------- -->
+  <section id="view-map" class="view">
+    <div class="map-toolbar">
+      <label><input type="checkbox" class="layer-toggle" data-group="origin" checked /> 祖籍 Origin (Fujian/GD)</label>
+      <label><input type="checkbox" class="layer-toggle" data-group="residence" checked /> 遷居 Migration stops</label>
+      <label><input type="checkbox" class="layer-toggle" data-group="grave" checked /> 墓 Graves</label>
+      <label><input type="checkbox" class="layer-toggle" data-group="hall" checked /> 祠堂 Ancestral halls</label>
+      <label><input type="checkbox" class="layer-toggle" data-group="church_grave" checked /> 教會墳場 Church grounds</label>
+      <label><input type="checkbox" class="layer-toggle" data-group="diaspora" checked /> 沙巴 Diaspora (Sabah)</label>
+      <span class="muted">Pins marked “approx.” are town-level — replace with exact GPS via Contribute.</span>
+    </div>
+    <div id="map-canvas"></div>
+  </section>
+
+  <!-- CONTRIBUTE ------------------------------------------------ -->
+  <section id="view-contribute" class="view">
+    <div class="contrib-wrap">
+      <h2>Add or correct a record</h2>
+      <p class="muted">Every submission is reviewed before it appears on the tree. In demo mode (no database connected) your entry downloads as a JSON file you can send to the keeper. Once Supabase is connected, it submits live.</p>
+      <form id="contrib-form"></form>
+    </div>
+  </section>
+
+  <!-- REVIEW (admin only) --------------------------------------- -->
+  <section id="view-review" class="view">
+    <div class="review-wrap" id="review-wrap"></div>
+  </section>
+
+  <!-- ABOUT ----------------------------------------------------- -->
+  <section id="view-about" class="view">
+    <div class="about-wrap" id="about-wrap"></div>
+  </section>
+</main>
+
+<!-- Sign-in modal -->
+<div id="signin-scrim" class="modal-scrim"></div>
+<div id="signin-modal" class="modal" role="dialog" aria-modal="true" aria-label="Sign in">
+  <button id="signin-close" class="drawer-close" aria-label="Close">×</button>
+  <h2>登入 · Sign in</h2>
+  <p class="muted">Family members sign in to add photos, see living-member details, and contribute. Your email is never shown publicly.</p>
+  <label class="signin-label">Email
+    <input id="signin-email" type="email" placeholder="you@example.com" autocomplete="email" />
+  </label>
+  <button id="signin-magic" class="primary signin-btn">Email me a magic link</button>
+  <div class="signin-or"><span>or</span></div>
+  <button id="signin-google" class="signin-btn google">Continue with Google</button>
+  <div id="signin-msg" class="signin-msg"></div>
+</div>
+
+<!-- Person detail drawer -->
+<aside id="drawer" class="drawer">
+  <button id="drawer-close" class="drawer-close" aria-label="Close">×</button>
+  <div id="drawer-body"></div>
+</aside>
+<div id="drawer-scrim" class="drawer-scrim"></div>
+
+<!-- App config: fill these in to switch from demo mode to live Supabase -->
+<script>
+window.APP_CONFIG = {
+  SUPABASE_URL: "https://pefnwwlbjfksyaenapgv.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlZm53d2xiamZrc3lhZW5hcGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDg1MTksImV4cCI6MjA5NjM4NDUxOX0.t4DLf1wPQqjtehFPfJIHT0WezbKAm-0zSGgYAqqrxm4", // public anon key — safe in client; RLS protects data
+  MODERATED: true        // contributions land in a pending queue
+};
+</script>
+<script src="data/lineage.js"></script>
+<script src="data/overrides.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/map.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/contribute.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

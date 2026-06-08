@@ -32,15 +32,21 @@ git remote add origin https://github.com/<your-username>/kong-zupu.git
 git push -u origin main
 ```
 
-### Enable GitHub Pages
-On github.com → your repo → **Settings → Pages**:
-- **Source:** Deploy from a branch
-- **Branch:** `main`  /  **Folder:** `/ (root)`
-- Save. After ~1 min the site is live at
-  `https://<your-username>.github.io/kong-zupu/`
+### Enable GitHub Pages (auto-deploy via Actions)
+The repo includes `.github/workflows/deploy.yml`, which publishes the site automatically
+on every push to `main`. To switch it on once:
 
-`.nojekyll` is already included so GitHub serves the files untouched.
-The original book scans (`*.pdf`) are git-ignored and will **not** be published.
+On github.com → your repo → **Settings → Pages** → **Source: GitHub Actions**.
+
+That's it. From now on, every `git push` triggers a deploy (watch progress under the
+repo's **Actions** tab). After the first run the site is live at
+`https://<your-username>.github.io/kong-zupu/`.
+
+> Use **GitHub Actions** as the source, *not* "Deploy from a branch" — the workflow
+> handles deployment. `.nojekyll` is included so files are served untouched, and the
+> original book scans (`*.pdf`) are git-ignored and will **not** be published.
+
+To deploy manually any time: repo **Actions** tab → **Deploy to GitHub Pages** → **Run workflow**.
 
 ---
 
@@ -149,7 +155,53 @@ approve/reject contributions.
 - **★ Review tab** (admins only): triage the `contributions` queue — Approve / Reject.
 - Header shows your name + sign-out; the sign-in modal offers magic-link and Google.
 
-> Still static-tree by design: approving a contribution marks it `approved` in the
-> database; it doesn't yet auto-appear on the tree (the tree renders from
-> `data/lineage.js`). Promoting approved entries onto the live tree is the next
-> milestone — wiring the tree to read from the `persons` table.
+---
+
+## 5. Live tree + photo uploads (schema v2)
+
+Run **`supabase/migration_v2.sql`** once (SQL Editor → paste → Run). It's safe because
+the data tables are still empty — it recreates `persons`/`places` with **text slug ids**
+(so a live row can point at a seed ancestor, e.g. a new child's `father_id = "k_hanqiang"`)
+and adds a **`media`** table for photos.
+
+How it works after that:
+
+- **Hybrid data model.** The historical spine stays in `data/lineage.js` (version-controlled,
+  precious). The app loads it, then **merges any database rows on top** — additions and
+  edits live in Supabase, the transcription stays in git. Best of both.
+- **Approve → appears on the tree.** In the ★ Review tab, approving an *add child* / *add
+  spouse* contribution inserts a `persons` row linked to the chosen relative; the tree
+  refreshes and the new person shows up. (Reject just marks it rejected.)
+- **Photos.** Any signed-in member opens a person → **＋ Add a photo** → it uploads to the
+  `photos` Storage bucket and creates a `media` row. New photos are **pending** (visible
+  only to the uploader and admins) until an admin clicks **Approve** on the photo in the
+  drawer. Photos of living members sit in the member tier (signed-in only); minors stay
+  hidden by the same RLS as everywhere else.
+
+- **Contributed map pins.** Approving an *add a location* contribution inserts a `places`
+  row (with the submitter's place type, name, and GPS) and the map redraws to show the new
+  pin immediately. The Contribute form now has a **Place type** + **Place name** field for this.
+
+Still on the roadmap (say the word): member self-service contact info, linking a contributed
+pin to a specific person's grave/residence, and richer per-photo captions / cover-photo selection.
+
+---
+
+## 6. Bilingual UI + mainland China access
+
+- **中文 / English.** The interface auto-detects the visitor's browser language (Chinese →
+  中文, otherwise English) and a **中文 / EN** button in the header lets anyone switch; the
+  choice is remembered. Genealogical content (names, biographies) stays in the original
+  Chinese; only the interface chrome is translated. Strings live in `js/i18n.js`.
+- **Reading needs no login**, so mainland relatives can browse the whole public tree and map.
+- **Mainland-friendly assets.** Fonts use only system CJK fonts (Songti/SimSun/Han Serif) —
+  no Google Fonts (which is blocked in China). `supabase-js` loads from unpkg (Cloudflare-
+  backed, more reliable there than jsdelivr); d3 + MapLibre load from cdnjs (Cloudflare).
+- **Known China caveats:**
+  - **Google sign-in won't work in mainland China** (Google is blocked) — magic-link email is
+    the fallback, if the reader's email is reachable. Reading doesn't require sign-in at all.
+  - **GitHub Pages and the OpenStreetMap tiles can be slow** behind the Great Firewall. If
+    access becomes a real problem, the next step is mirroring the site to a China-reachable
+    host and switching map tiles — ask and I'll set it up.
+  - For maximum resilience you can **self-host** d3/MapLibre/supabase-js in a `vendor/` folder
+    instead of CDNs (removes all third-party dependencies); ask if you want that.

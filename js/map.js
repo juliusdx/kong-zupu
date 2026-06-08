@@ -63,11 +63,16 @@
   function setLayer(group, visible) {
     markers.filter(m => m.group === group).forEach(m => m.el.style.display = visible ? "" : "none");
   }
+  function clearPins() { markers.forEach(m => m.marker.remove()); markers = []; }
+  function refresh() {            // redraw pins after live data merges new places
+    if (!built) return;
+    clearPins(); drawPins(); fit();
+  }
   function fit() {
     const b = new maplibregl.LngLatBounds();
     LINEAGE.places.forEach(p => b.extend([p.lng, p.lat]));
     map.fitBounds(b, { padding: 60, duration: 0 });
   }
 
-  window.MapView = { init, setLayer };
+  window.MapView = { init, setLayer, refresh };
 })();

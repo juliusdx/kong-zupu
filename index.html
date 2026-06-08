@@ -11,8 +11,8 @@
 <!-- MapLibre for the ancestral / diaspora map -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.js"></script>
-<!-- Supabase client for auth + data -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase client for auth + data (unpkg = Cloudflare-backed, more reliable in mainland China than jsdelivr) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -22,19 +22,20 @@
     <span class="seal">江</span>
     <div class="brand-text">
       <h1>江氏族譜</h1>
-      <p>The Kong Family Zupu · Hakka Christian lineage · 廣東 → 沙巴</p>
+      <p data-i18n="brand_tag">The Kong Family Zupu · Hakka Christian lineage · 廣東 → 沙巴</p>
     </div>
   </div>
   <nav class="tabs">
-    <button class="tab active" data-view="tree">族譜 Tree</button>
-    <button class="tab" data-view="map">地圖 Map</button>
-    <button class="tab" data-view="contribute">貢獻 Contribute</button>
-    <button class="tab" data-view="review" id="tab-review" style="display:none">審核 Review</button>
-    <button class="tab" data-view="about">關於 About</button>
+    <button class="tab active" data-view="tree" data-i18n="tab_tree">族譜 Tree</button>
+    <button class="tab" data-view="map" data-i18n="tab_map">地圖 Map</button>
+    <button class="tab" data-view="contribute" data-i18n="tab_contribute">貢獻 Contribute</button>
+    <button class="tab" data-view="review" id="tab-review" style="display:none" data-i18n="tab_review">審核 Review</button>
+    <button class="tab" data-view="about" data-i18n="tab_about">關於 About</button>
   </nav>
   <div class="header-tools">
-    <input id="search" type="search" placeholder="Search name / 名…" autocomplete="off" />
-    <button id="auth-status" class="auth-status" title="Sign in">Sign in</button>
+    <input id="search" type="search" placeholder="Search name / 名…" data-i18n-ph="search_ph" autocomplete="off" />
+    <button id="lang-toggle" class="auth-status" title="中文 / English">中文</button>
+    <button id="auth-status" class="auth-status" data-i18n="auth_signin">Sign in</button>
   </div>
 </header>
 
@@ -42,15 +43,15 @@
   <!-- TREE ------------------------------------------------------- -->
   <section id="view-tree" class="view active">
     <div class="tree-toolbar">
-      <label><input type="checkbox" id="toggle-daughters" checked /> Show daughters &amp; married-in</label>
-      <label><input type="checkbox" id="toggle-pinyin" checked /> Romanization</label>
-      <button id="btn-expand">Expand all</button>
-      <button id="btn-fit">Fit</button>
+      <label><input type="checkbox" id="toggle-daughters" checked /> <span data-i18n="tt_daughters">Show daughters &amp; married-in</span></label>
+      <label><input type="checkbox" id="toggle-pinyin" checked /> <span data-i18n="tt_romanization">Romanization</span></label>
+      <button id="btn-expand" data-i18n="tt_expand">Expand all</button>
+      <button id="btn-fit" data-i18n="tt_fit">Fit</button>
       <span class="legend">
-        <i class="dot male"></i> son line
-        <i class="dot female"></i> daughter
-        <i class="dot spouse"></i> married-in
-        <i class="dot low"></i> needs verification
+        <i class="dot male"></i> <span data-i18n="legend_son">son line</span>
+        <i class="dot female"></i> <span data-i18n="legend_daughter">daughter</span>
+        <i class="dot spouse"></i> <span data-i18n="legend_spouse">married-in</span>
+        <i class="dot low"></i> <span data-i18n="legend_low">needs verification</span>
       </span>
     </div>
     <div id="tree-canvas"></div>
@@ -59,13 +60,13 @@
   <!-- MAP ------------------------------------------------------- -->
   <section id="view-map" class="view">
     <div class="map-toolbar">
-      <label><input type="checkbox" class="layer-toggle" data-group="origin" checked /> 祖籍 Origin (Fujian/GD)</label>
-      <label><input type="checkbox" class="layer-toggle" data-group="residence" checked /> 遷居 Migration stops</label>
-      <label><input type="checkbox" class="layer-toggle" data-group="grave" checked /> 墓 Graves</label>
-      <label><input type="checkbox" class="layer-toggle" data-group="hall" checked /> 祠堂 Ancestral halls</label>
-      <label><input type="checkbox" class="layer-toggle" data-group="church_grave" checked /> 教會墳場 Church grounds</label>
-      <label><input type="checkbox" class="layer-toggle" data-group="diaspora" checked /> 沙巴 Diaspora (Sabah)</label>
-      <span class="muted">Pins marked “approx.” are town-level — replace with exact GPS via Contribute.</span>
+      <label><input type="checkbox" class="layer-toggle" data-group="origin" checked /> <span data-i18n="mt_origin">祖籍 Origin (Fujian/GD)</span></label>
+      <label><input type="checkbox" class="layer-toggle" data-group="residence" checked /> <span data-i18n="mt_residence">遷居 Migration stops</span></label>
+      <label><input type="checkbox" class="layer-toggle" data-group="grave" checked /> <span data-i18n="mt_grave">墓 Graves</span></label>
+      <label><input type="checkbox" class="layer-toggle" data-group="hall" checked /> <span data-i18n="mt_hall">祠堂 Ancestral halls</span></label>
+      <label><input type="checkbox" class="layer-toggle" data-group="church_grave" checked /> <span data-i18n="mt_church">教會墳場 Church grounds</span></label>
+      <label><input type="checkbox" class="layer-toggle" data-group="diaspora" checked /> <span data-i18n="mt_diaspora">沙巴 Diaspora (Sabah)</span></label>
+      <span class="muted" data-i18n="mt_note">Pins marked “approx.” are town-level — replace with exact GPS via Contribute.</span>
     </div>
     <div id="map-canvas"></div>
   </section>
@@ -73,8 +74,8 @@
   <!-- CONTRIBUTE ------------------------------------------------ -->
   <section id="view-contribute" class="view">
     <div class="contrib-wrap">
-      <h2>Add or correct a record</h2>
-      <p class="muted">Every submission is reviewed before it appears on the tree. In demo mode (no database connected) your entry downloads as a JSON file you can send to the keeper. Once Supabase is connected, it submits live.</p>
+      <h2 data-i18n="c_h">Add or correct a record</h2>
+      <p class="muted" id="contrib-intro">Every submission is reviewed before it appears on the tree.</p>
       <form id="contrib-form"></form>
     </div>
   </section>
@@ -94,14 +95,14 @@
 <div id="signin-scrim" class="modal-scrim"></div>
 <div id="signin-modal" class="modal" role="dialog" aria-modal="true" aria-label="Sign in">
   <button id="signin-close" class="drawer-close" aria-label="Close">×</button>
-  <h2>登入 · Sign in</h2>
-  <p class="muted">Family members sign in to add photos, see living-member details, and contribute. Your email is never shown publicly.</p>
-  <label class="signin-label">Email
+  <h2 data-i18n="s_h">登入 · Sign in</h2>
+  <p class="muted" data-i18n="s_desc">Family members sign in to add photos, see living-member details, and contribute. Your email is never shown publicly.</p>
+  <label class="signin-label"><span data-i18n="s_email">Email</span>
     <input id="signin-email" type="email" placeholder="you@example.com" autocomplete="email" />
   </label>
-  <button id="signin-magic" class="primary signin-btn">Email me a magic link</button>
-  <div class="signin-or"><span>or</span></div>
-  <button id="signin-google" class="signin-btn google">Continue with Google</button>
+  <button id="signin-magic" class="primary signin-btn" data-i18n="s_magic">Email me a magic link</button>
+  <div class="signin-or"><span data-i18n="s_or">or</span></div>
+  <button id="signin-google" class="signin-btn google" data-i18n="s_google">Continue with Google</button>
   <div id="signin-msg" class="signin-msg"></div>
 </div>
 
@@ -120,6 +121,7 @@ window.APP_CONFIG = {
   MODERATED: true        // contributions land in a pending queue
 };
 </script>
+<script src="js/i18n.js"></script>
 <script src="data/lineage.js"></script>
 <script src="data/overrides.js"></script>
 <script src="js/tree.js"></script>

@@ -11,7 +11,10 @@
   --spouse:#8a7a4a;
   --low:#c47a2c;
   --shadow:0 6px 24px rgba(60,40,20,.18);
-  --font-cn:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+  /* CJK stack uses only system / widely-available fonts (no Google Fonts) so it
+     renders well in mainland China: Songti/STSong (mac), SimSun (win),
+     Source/Noto Han Serif (linux/android), with sans fallbacks. */
+  --font-cn:"Noto Serif SC","Source Han Serif SC","Noto Serif CJK SC","Songti SC","STSong","SimSun","Microsoft YaHei","PingFang SC",serif;
   --font:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
 }
 *{box-sizing:border-box}
@@ -207,6 +210,14 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .cc-actions button{padding:.4rem .9rem;border-radius:7px;font:inherit;font-weight:700;cursor:pointer}
 .cc-actions .primary{background:var(--seal);color:#fff;border:1px solid var(--seal)}
 .cc-actions .ghost{background:transparent;color:#8a3a35;border:1px solid #cdb6a0}
+
+/* photo gallery in drawer */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:.5rem;margin-top:.5rem}
+.photo{margin:0;position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--rule,#d8cdb5)}
+.photo img{width:100%;height:84px;object-fit:cover;display:block}
+.photo .pending{position:absolute;left:0;right:0;bottom:0;background:rgba(43,33,24,.78);color:#f3e9d6;
+  font-size:.62rem;text-align:center;padding:2px}
+.photo .pending button{font-size:.62rem;padding:1px 5px;border:none;border-radius:4px;background:#c9a24a;color:#2b2118;cursor:pointer}
 
 @media (max-width:720px){
   #contrib-form{grid-template-columns:1fr}

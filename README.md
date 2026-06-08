@@ -1,5 +1,7 @@
 # 江氏族譜 · The Kong Family Zupu
 
+[![Deploy to GitHub Pages](https://github.com/juliusdx/kong-zupu/actions/workflows/deploy.yml/badge.svg)](https://github.com/juliusdx/kong-zupu/actions/workflows/deploy.yml)
+
 An interactive, crowdsourced **族譜 (zupu)** for the Kong (江) family — a Hakka Christian
 lineage of the **巴色會 (Basel Mission)** that migrated from Guangdong (長樂 / 今五華縣,
 and 東莞 樟坑徑) to Sabah, Malaysia (古達 Kudat, 山打根 Sandakan, 吧巴 Papar).

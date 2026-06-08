@@ -155,10 +155,22 @@ create policy "photos_owner_delete" on storage.objects for delete to authenticat
 -- ----------------------------------------------------------------------------
 
 -- ---- auto-create a profile when a user signs up ---------------------------
-create or replace function handle_new_user() returns trigger language plpgsql security definer as $$
+-- NOTE: `set search_path = public` is REQUIRED. Without it the security-definer
+-- function can't resolve `profiles` in the auth trigger context, which surfaces
+-- to the client as "Database error saving new user" and blocks all sign-ups.
+create or replace function public.handle_new_user()
+  returns trigger
+  language plpgsql
+  security definer
+  set search_path = public
+as $$
 begin
-  insert into profiles (id, full_name) values (new.id, new.raw_user_meta_data->>'full_name');
+  insert into public.profiles (id, full_name)
+  values (new.id, new.raw_user_meta_data->>'full_name')
+  on conflict (id) do nothing;
   return new;
 end; $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
-  for each row execute function handle_new_user();
+  for each row execute function public.handle_new_user();

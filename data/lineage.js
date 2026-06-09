@@ -325,7 +325,45 @@ window.LINEAGE = {
     { id: "n8_zaogu",    gen: 21, father: "n8_chengliang", name: "灶姑", pinyin: "Zao Gu", gender: "f", relation: "二十一世", confidence: "low" },
     { id: "n8_xiangxin", gen: 21, father: "n8_chengliang", name: "祥新", pinyin: "Xiang Xin", gender: "m", relation: "二十一世", confidence: "low" },
     { id: "n8_xiangzhen", gen: 21, father: "n8_chengliang", name: "祥禎", pinyin: "Xiang Zhen", gender: "m", relation: "二十一世", confidence: "low" },
-    { id: "n8_xiangyong", gen: 21, father: "n8_chengliang", name: "祥永", pinyin: "Xiang Yong", gender: "m", relation: "二十一世", confidence: "low" }
+    { id: "n8_xiangyong", gen: 21, father: "n8_chengliang", name: "祥永", pinyin: "Xiang Yong", gender: "m", relation: "二十一世", confidence: "low" },
+
+    // ===== 起瀾公 五大房 — 紹泗公's four brothers (pt2 pp.61–66) =====
+    // Sons of 起瀾公 (a18); siblings of the direct ancestor 紹泗公 (a20). Pages label
+    // these 十九世 but kept at gen 20 to match the entry-numbered direct line (紹泗=20,
+    // 承續=21) — same 1825 合譜 ±1 seam noted on a20. All confidence low.
+    // — 長房 通漢公 —
+    { id: "f5_tonghan",  gen: 20, father: "a18", name: "通漢公", pinyin: "Tonghan", gender: "m", relation: "二十世 · 長房 (大伯祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_chengtong", gen: 21, father: "f5_tonghan", name: "承統公", pinyin: "Cheng Tong", gender: "m", relation: "二十一世", confidence: "low", note: "妣李氏。" },
+    { id: "f5_dachang",  gen: 22, father: "f5_chengtong", name: "大昌公", pinyin: "Da Chang", formalName: "國學名 清輝", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_dakuan",   gen: 22, father: "f5_chengtong", name: "大寬公", pinyin: "Da Kuan", gender: "m", relation: "二十二世", confidence: "low", note: "妣廖氏。" },
+    { id: "f5_dazhen",   gen: 22, father: "f5_chengtong", name: "大振公", pinyin: "Da Zhen", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "f5_jigong",   gen: 23, father: "f5_dachang", name: "集恭", pinyin: "Ji Gong", gender: "m", relation: "二十三世", confidence: "low", note: "妻凌氏。" },
+    { id: "f5_yongfa",   gen: 23, father: "f5_dakuan", name: "永發", pinyin: "Yong Fa", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "f5_yongji",   gen: 23, father: "f5_dakuan", name: "永吉", pinyin: "Yong Ji", gender: "m", relation: "二十三世", confidence: "low", note: "妣曾氏。" },
+    { id: "f5_yonghe",   gen: 23, father: "f5_dakuan", name: "永合", pinyin: "Yong He", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "f5_yonghui",  gen: 23, father: "f5_dakuan", name: "永輝", pinyin: "Yong Hui", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "f5_jizhen",   gen: 24, father: "f5_yongji", name: "集珍", pinyin: "Ji Zhen", gender: "m", relation: "二十四世", confidence: "low" },
+    // — 次房 通澤公 (一名通洋) —
+    { id: "f5_tongze",   gen: 20, father: "a18", name: "通澤公", pinyin: "Tongze", aka: "一名 通洋", gender: "m", relation: "二十世 · 次房 (二伯祖)", confidence: "low", note: "妣梁氏。以紹淮公次子承球公為継嗣。" },
+    { id: "f5_chengqiu", gen: 21, father: "f5_tongze", name: "承球公", pinyin: "Cheng Qiu", gender: "m", relation: "二十一世 (継嗣)", confidence: "low", note: "紹淮公次子，過繼通澤公為嗣。" },
+    { id: "f5_daan",     gen: 22, father: "f5_chengqiu", name: "大安公", pinyin: "Da An", gender: "m", relation: "二十二世", confidence: "low", note: "妣林氏。" },
+    { id: "f5_dachangB", gen: 23, father: "f5_daan", name: "大常公", pinyin: "Da Chang", gender: "m", relation: "二十三世", confidence: "low", note: "妣黃氏。" },
+    { id: "f5_yongqing", gen: 23, father: "f5_daan", name: "永清", pinyin: "Yong Qing", gender: "m", relation: "二十三世", confidence: "low", note: "妻劉氏。生光緒十二年秋月。" },
+    { id: "f5_yongfeng", gen: 24, father: "f5_dachangB", name: "永鳳", pinyin: "Yong Feng", gender: "m", relation: "二十四世", confidence: "low" },
+    { id: "f5_yonghuang", gen: 24, father: "f5_dachangB", name: "永凰", pinyin: "Yong Huang", gender: "m", relation: "二十四世", confidence: "low" },
+    // — 三房 紹淮公 —
+    { id: "f5_shaohuai", gen: 20, father: "a18", name: "紹淮公", pinyin: "Shaohuai", gender: "m", relation: "二十世 · 三房 (三伯祖)", confidence: "low", note: "妣曾氏。生承基、承球(過繼通澤)、承謀、承訓。" },
+    { id: "f5_chengji",  gen: 21, father: "f5_shaohuai", name: "承基", pinyin: "Cheng Ji", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "f5_chengmou", gen: 21, father: "f5_shaohuai", name: "承謀", pinyin: "Cheng Mou", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "f5_chengxun", gen: 21, father: "f5_shaohuai", name: "承訓公", pinyin: "Cheng Xun", gender: "m", relation: "二十一世", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_dawen",    gen: 22, father: "f5_chengxun", name: "大文公", pinyin: "Da Wen", gender: "m", relation: "二十二世", confidence: "low", note: "妣宗氏。" },
+    { id: "f5_jinfu",    gen: 23, father: "f5_dawen", name: "金福", pinyin: "Jin Fu", gender: "m", relation: "二十三世", confidence: "low" },
+    // — 五房 紹淡公 —
+    { id: "f5_shaodan",  gen: 20, father: "a18", name: "紹淡公", pinyin: "Shaodan", gender: "m", relation: "二十世 · 五房 (五叔祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_chengguo", gen: 21, father: "f5_shaodan", name: "承國公", pinyin: "Cheng Guo", gender: "m", relation: "二十一世", confidence: "low", note: "妣曾氏。" },
+    { id: "f5_dake",     gen: 22, father: "f5_chengguo", name: "大可公", pinyin: "Da Ke", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_yongwei",  gen: 23, father: "f5_dake", name: "永威", pinyin: "Yong Wei", gender: "m", relation: "二十三世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_yuanfa",   gen: 24, father: "f5_yongwei", name: "元發", pinyin: "Yuan Fa", gender: "m", relation: "二十四世", confidence: "low", note: "往金山 (overseas)." }
   ],
 
   // --- ERAS / SWIM LANES ----------------------------------------------------

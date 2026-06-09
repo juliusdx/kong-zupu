@@ -32,6 +32,8 @@
       <label>${T("f_name")}<input name="name" placeholder="例：漢明" /></label>
       <label>${T("f_pinyin")}<input name="pinyin" placeholder="Han Ming" /></label>
       <label>${T("f_ritual")}<input name="ritualName" /></label>
+      <label>${T("f_milk")}<input name="milkName" /></label>
+      <label>${T("f_aka")}<input name="aka" placeholder="字 / 號 / 洗禮名 / 綽號…" /></label>
       <label>${T("f_gender")}
         <select name="gender"><option value="m">${T("f_male")}</option><option value="f">${T("f_female")}</option></select>
       </label>

@@ -11,7 +11,7 @@
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
-      tt_expand: "Expand all", tt_fit: "Fit",
+      tt_expand: "Expand all", tt_fit: "Fit", tt_swim: "Place · era lanes",
       legend_son: "son line", legend_daughter: "daughter",
       legend_spouse: "married-in", legend_low: "needs verification",
 
@@ -28,7 +28,8 @@
       f_opt_edit: "Correct / enrich an existing person", f_opt_add_place: "Add / fix a location (祠堂 / grave)",
       f_relatedto: "Relative this connects to", f_section_person: "Person details",
       f_name: "Name 名 (Chinese)", f_pinyin: "Romanization / English",
-      f_ritual: "Ritual / baptism name 禮名", f_gender: "Gender",
+      f_ritual: "Ritual / baptism name 禮名", f_milk: "Milk name 乳名",
+      f_aka: "Other names (字 / 號 / nickname)", f_gender: "Gender",
       f_male: "Male 男", f_female: "Female 女", f_gen: "Generation 世 (number)",
       f_living: "Living?", f_living_yes: "Living", f_living_no: "Deceased",
       f_birth: "Birth date", f_place: "Birth or current place",
@@ -50,7 +51,8 @@
 
       d_generation: "Generation", d_romanization: "Romanization", d_role: "Role",
       d_style: "字/號 Style name", d_ritual: "禮名 Ritual name", d_formal: "名 Formal name",
-      d_hao: "號 Style name", d_gender: "Gender", d_male: "男 Male", d_female: "女 Female",
+      d_hao: "號 Style name", d_milk: "乳名 Milk name", d_aka: "別名 Also known as",
+      d_gender: "Gender", d_male: "男 Male", d_female: "女 Female",
       d_born: "Born", d_lifespan: "Lifespan", d_faith: "Faith", d_marriedout: "Married out",
       d_birthplace: "Birth place", d_residence: "Residence", d_burial: "Burial",
       d_badge_low: "⚠ needs verification", d_family: "Family", d_father: "Father",
@@ -97,7 +99,7 @@
       auth_signout_confirm: "登出？", lang_switch: "EN",
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
-      tt_expand: "全部展開", tt_fit: "置中",
+      tt_expand: "全部展開", tt_fit: "置中", tt_swim: "遷徙年代帶（地點・年代）",
       legend_son: "男系", legend_daughter: "女兒",
       legend_spouse: "配偶", legend_low: "待考證",
 
@@ -114,7 +116,7 @@
       f_opt_edit: "修正／補充現有人物", f_opt_add_place: "新增／修正地點（祠堂／墳墓）",
       f_relatedto: "關聯的親屬", f_section_person: "人物資料",
       f_name: "姓名 名（中文）", f_pinyin: "羅馬拼音／英文",
-      f_ritual: "禮名／洗禮名", f_gender: "性別",
+      f_ritual: "禮名／洗禮名", f_milk: "乳名", f_aka: "其他名字（字／號／綽號）", f_gender: "性別",
       f_male: "男", f_female: "女", f_gen: "世代 世（數字）",
       f_living: "在世？", f_living_yes: "在世", f_living_no: "已故",
       f_birth: "出生日期", f_place: "出生或現居地",
@@ -136,7 +138,7 @@
 
       d_generation: "世代", d_romanization: "羅馬拼音", d_role: "稱謂",
       d_style: "字／號", d_ritual: "禮名", d_formal: "名",
-      d_hao: "號", d_gender: "性別", d_male: "男", d_female: "女",
+      d_hao: "號", d_milk: "乳名", d_aka: "別名", d_gender: "性別", d_male: "男", d_female: "女",
       d_born: "生於", d_lifespan: "享壽", d_faith: "信仰", d_marriedout: "外嫁",
       d_birthplace: "出生地", d_residence: "居所", d_burial: "葬於",
       d_badge_low: "⚠ 待考證", d_family: "親屬", d_father: "父",

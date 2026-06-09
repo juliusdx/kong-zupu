@@ -157,6 +157,12 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 /* tree candidate flag */
 .cand-flag{fill:var(--seal);font-size:13px;cursor:pointer}
 
+/* swim lanes (location + era) */
+.swim-lane{pointer-events:none}
+.swim-label{pointer-events:none}
+.swim-place{font-family:var(--font-cn);font-size:13px;font-weight:600;fill:rgba(80,60,35,.66)}
+.swim-era{font-family:var(--font);font-size:11px;fill:rgba(120,95,55,.55)}
+
 /* candidate ancestor chooser */
 .cand-list{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem}
 .cand{border:1px solid var(--rule,#d8cdb5);border-radius:8px;padding:.55rem .7rem;background:rgba(255,255,255,.45)}

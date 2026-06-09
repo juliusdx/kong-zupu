@@ -292,6 +292,8 @@
     if (p.ritualName) row(T("d_ritual"), p.ritualName + (p.ritualPinyin ? " (" + p.ritualPinyin + ")" : ""));
     if (p.formalName) row(T("d_formal"), p.formalName);
     if (p.hao) row(T("d_hao"), p.hao);
+    if (p.milkName) row(T("d_milk"), p.milkName);
+    if (p.aka) row(T("d_aka"), p.aka);
     row(T("d_gender"), p.gender === "f" ? T("d_female") : T("d_male"));
     row(T("d_born"), p.birthYear);
     row(T("d_lifespan"), p.lifespan);
@@ -381,10 +383,9 @@
   function search(q) {
     q = q.trim().toLowerCase();
     if (!q) return;
-    const hit = LINEAGE.persons.find(p =>
-      (p.name && p.name.includes(q)) ||
-      (p.pinyin && p.pinyin.toLowerCase().includes(q)) ||
-      (p.ritualName && p.ritualName.includes(q)));
+    const allNames = p => [p.name, p.pinyin, p.ritualName, p.ritualPinyin, p.style,
+      p.formalName, p.hao, p.milkName, p.aka].filter(Boolean).join(" ").toLowerCase();
+    const hit = LINEAGE.persons.find(p => allNames(p).includes(q));
     if (hit) { show("tree"); Tree.focus(hit.id); openPerson(hit.id); }
   }
 
@@ -432,6 +433,7 @@
       Contribute.build();
       buildAbout();
       refreshAdminBar();
+      Tree.setOptions({});   // refresh swim-lane / band labels to the new language
       if ($("#view-review").classList.contains("active")) buildReview();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
     });
@@ -441,6 +443,7 @@
     $("#drawer-scrim").onclick = closeDrawer;
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });
     $("#toggle-pinyin").onchange = e => Tree.setOptions({ pinyin: e.target.checked });
+    $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();
     $("#search").addEventListener("keydown", e => { if (e.key === "Enter") search(e.target.value); });

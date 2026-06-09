@@ -1,8 +1,8 @@
 /* Lineage tree — top-down, generation-banded, collapsible. D3 v7. */
 (function () {
   const NODE_W = 132, NODE_H = 50, H_GAP = 26, V_GAP = 110, SPOUSE_DX = 92;
-  let svg, g, gLinks, gNodes, gBands, zoom;
-  let opts = { daughters: true, pinyin: true };
+  let svg, g, gLinks, gNodes, gBands, gSwim, zoom;
+  let opts = { daughters: true, pinyin: true, swim: true };
   let collapsed = new Set();
   let onSelect = () => {};
 
@@ -45,6 +45,7 @@
     const W = el.clientWidth, H = el.clientHeight;
     svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
     const root = svg.append("g");
+    gSwim = root.append("g").attr("class", "swim");   // behind everything
     gBands = root.append("g").attr("class", "bands");
     gLinks = root.append("g");
     gNodes = root.append("g");
@@ -74,6 +75,30 @@
       d3.select(this).select("text").attr("x", minX + 6).attr("y", y - NODE_H/2 - 18).text("第 " + gen + " 世  ·  Gen " + gen);
     });
     band.exit().remove();
+
+    // swim lanes — location + era bands behind everything
+    gSwim.selectAll("*").remove();
+    if (opts.swim && Array.isArray(LINEAGE.eras)) {
+      const lang = (window.I18N && I18N.getLang) ? I18N.getLang() : "en";
+      const laneLeft = minX - 300;
+      LINEAGE.eras.forEach(e => {
+        const ns = nodes.filter(d => d.data.gen >= e.fromGen && d.data.gen <= e.toGen);
+        if (!ns.length) return;
+        const ys = ns.map(d => d.y);
+        const top = Math.min(...ys) - NODE_H / 2 - 26;
+        const bot = Math.max(...ys) + NODE_H / 2 + 16;
+        gSwim.append("rect").attr("class", "swim-lane")
+          .attr("x", laneLeft).attr("y", top)
+          .attr("width", maxX - laneLeft).attr("height", bot - top)
+          .attr("fill", e.color || "#00000010");
+        const place = lang === "zh" ? (e.place || e.placeEn) : (e.placeEn || e.place);
+        const era   = lang === "zh" ? (e.era   || e.eraEn)   : (e.eraEn   || e.era);
+        const cy = (top + bot) / 2;
+        const label = gSwim.append("text").attr("class", "swim-label").attr("y", cy - 4);
+        label.append("tspan").attr("class", "swim-place").attr("x", laneLeft + 14).text(place);
+        label.append("tspan").attr("class", "swim-era").attr("x", laneLeft + 14).attr("dy", "1.45em").text(era);
+      });
+    }
 
     // links
     const linkGen = d3.linkVertical().x(d => d.x).y(d => d.y);

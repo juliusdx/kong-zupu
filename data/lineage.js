@@ -232,6 +232,87 @@ window.LINEAGE = {
     { id: "k_hanxian",   gen: 26, father: "k_qichang", name: "漢賢",  pinyin: "Han Xian", gender: "m", relation: "四子", birthYear: "民國廿三年 / 1934", confidence: "low" },
     { id: "k_ruizhu",    gen: 26, father: "k_qichang", name: "瑞珠",  pinyin: "Rui Zhu", gender: "f", relation: "五女", birthYear: "民國廿二年", confidence: "low" },
     { id: "k_hanneng",   gen: 26, father: "k_qifang", name: "漢能",  pinyin: "Han Neng", gender: "m", relation: "子", birthYear: "民國廿一年 / 1932", confidence: "low" },
-    { id: "k_runzhu",    gen: 26, father: "k_qifang", name: "潤珠",  pinyin: "Run Zhu", gender: "f", relation: "女", birthYear: "民國廿三年 / 1934", confidence: "low" }
+    { id: "k_runzhu",    gen: 26, father: "k_qifang", name: "潤珠",  pinyin: "Run Zhu", gender: "f", relation: "女", birthYear: "民國廿三年 / 1934", confidence: "low" },
+
+    // ===== COLLATERAL — 九房 起瀨公 house (pt2 pp.53–58) =====
+    // Brother of 起瀾公; all confidence low (cursive handwriting). 起瀨/起清/起瀾
+    // are sons of the gen-17 龍-generation ancestor (a17). Verify against the book.
+    { id: "n9_qilai",  gen: 18, father: "a17", name: "起瀨公", pinyin: "Qilai", gender: "m", relation: "十八世 · 九房 (行居十二，喚細晚)", confidence: "low", note: "起瀾公之兄弟。妣鄭氏。生紹洋、紹湘、紹瀨、紹汜。" },
+    { id: "n9_qilai_w", gen: 18, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "n9_qilai", confidence: "low" },
+
+    { id: "n9_shaoyang", gen: 19, father: "n9_qilai", name: "紹洋公", pinyin: "Shaoyang", gender: "m", relation: "十九世", confidence: "low", note: "妣曾氏。生承楫、承就、承鐵。" },
+    { id: "n9_shaoxiang", gen: 19, father: "n9_qilai", name: "紹湘公", pinyin: "Shaoxiang", gender: "m", relation: "十九世", confidence: "low", note: "妻邱氏。生承開、承提。" },
+    { id: "n9_shaolai",  gen: 19, father: "n9_qilai", name: "紹瀨公", pinyin: "Shaolai", gender: "m", relation: "十九世", confidence: "low", note: "妻謝氏。生承秀、承住、承彩、承溏。" },
+    { id: "n9_shaosi",   gen: 19, father: "n9_qilai", name: "紹汜公", pinyin: "Shaosi", gender: "m", relation: "十九世", confidence: "low", note: "妻李氏。生承晃、承敬。" },
+
+    // 紹洋 line
+    { id: "n9_chengji",  gen: 20, father: "n9_shaoyang", name: "承楫", pinyin: "Cheng Ji", gender: "m", relation: "二十世", confidence: "low", note: "妻袁氏。" },
+    { id: "n9_chengjiu", gen: 20, father: "n9_shaoyang", name: "承就", pinyin: "Cheng Jiu", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n9_chengtie", gen: 20, father: "n9_shaoyang", name: "承鐵", pinyin: "Cheng Tie", gender: "m", relation: "二十世", confidence: "low", note: "妻卓氏。" },
+    { id: "n9_dahong",   gen: 21, father: "n9_chengji", name: "大鴻", pinyin: "Da Hong", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_daju",     gen: 21, father: "n9_chengji", name: "大巨", pinyin: "Da Ju", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_ya4",      gen: 21, father: "n9_chengji", name: "亞四", pinyin: "Ya Si", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_ya5",      gen: 21, father: "n9_chengji", name: "亞五", pinyin: "Ya Wu", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_dasheng",  gen: 21, father: "n9_chengji", name: "大升", pinyin: "Da Sheng", gender: "m", relation: "二十一世", confidence: "low", note: "妻羅氏。（房序待考）" },
+    { id: "n9_dahai",    gen: 21, father: "n9_chengji", name: "大海", pinyin: "Da Hai", gender: "m", relation: "二十一世", confidence: "low", note: "妻羅氏。（房序待考）" },
+    { id: "n9_shifu",    gen: 22, father: "n9_dahong", name: "士福", pinyin: "Shi Fu", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n9_dahongB",  gen: 21, father: "n9_chengjiu", name: "大宏", pinyin: "Da Hong", gender: "m", relation: "二十一世", confidence: "low", note: "妻劉氏。" },
+    { id: "n9_dajin",    gen: 21, father: "n9_chengjiu", name: "大晉", pinyin: "Da Jin", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_xiangjiao", gen: 22, father: "n9_dahongB", name: "祥嬌", pinyin: "Xiang Jiao", gender: "f", relation: "二十二世", confidence: "low" },
+    { id: "n9_dafu",     gen: 21, father: "n9_chengtie", name: "大馥", pinyin: "Da Fu", gender: "m", relation: "二十一世", confidence: "low", note: "妻李氏。" },
+
+    // 紹湘 line
+    { id: "n9_chengkai", gen: 20, father: "n9_shaoxiang", name: "承開", pinyin: "Cheng Kai", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n9_chengti",  gen: 20, father: "n9_shaoxiang", name: "承提", pinyin: "Cheng Ti", gender: "m", relation: "二十世", confidence: "low", note: "妻鄧氏。" },
+    { id: "n9_dachi",    gen: 21, father: "n9_chengkai", name: "大池", pinyin: "Da Chi", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_yafa",     gen: 22, father: "n9_dachi", name: "亞發", pinyin: "Ya Fa", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n9_yangjie",  gen: 21, father: "n9_chengti", name: "楊姐", pinyin: "Yang Jie", gender: "f", relation: "二十一世", confidence: "low" },
+
+    // 紹瀨 line
+    { id: "n9_chengxiu", gen: 20, father: "n9_shaolai", name: "承秀", pinyin: "Cheng Xiu", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n9_chengzhu", gen: 20, father: "n9_shaolai", name: "承住", pinyin: "Cheng Zhu", gender: "m", relation: "二十世", confidence: "low", note: "妻何氏。" },
+    { id: "n9_chengcai", gen: 20, father: "n9_shaolai", name: "承彩", pinyin: "Cheng Cai", gender: "m", relation: "二十世", confidence: "low", note: "妻戴氏。" },
+    { id: "n9_chengtang", gen: 20, father: "n9_shaolai", name: "承溏", pinyin: "Cheng Tang", gender: "m", relation: "二十世", confidence: "low", note: "妻鄒氏。" },
+    { id: "n9_zhaoshou", gen: 21, father: "n9_chengxiu", name: "照壽", pinyin: "Zhao Shou", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_dashou",   gen: 21, father: "n9_chengxiu", name: "大壽", pinyin: "Da Shou", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_daguan",   gen: 21, father: "n9_chengxiu", name: "大官", pinyin: "Da Guan", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_daji",     gen: 21, father: "n9_chengxiu", name: "大集", pinyin: "Da Ji", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_dadan",    gen: 21, father: "n9_chengzhu", name: "大旦", pinyin: "Da Dan", gender: "m", relation: "二十一世", confidence: "low", note: "或作大昌，待考。" },
+    { id: "n9_guanfu",   gen: 21, father: "n9_chengcai", name: "官福", pinyin: "Guan Fu", gender: "m", relation: "二十一世", confidence: "low", note: "妻曾氏。" },
+    { id: "n9_dayou",    gen: 21, father: "n9_chengtang", name: "大猷", pinyin: "Da You", gender: "m", relation: "二十一世", confidence: "low", note: "妻李氏。" },
+    { id: "n9_yunxiu",   gen: 21, father: "n9_chengtang", name: "運秀", pinyin: "Yun Xiu", gender: "m", relation: "二十一世", confidence: "low" },
+
+    // 紹汜 line
+    { id: "n9_chenghuang", gen: 20, father: "n9_shaosi", name: "承晃", pinyin: "Cheng Huang", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n9_chengjing",  gen: 20, father: "n9_shaosi", name: "承敬", pinyin: "Cheng Jing", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n9_daxiang",  gen: 21, father: "n9_chenghuang", name: "大香", pinyin: "Da Xiang", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_yasan",    gen: 21, father: "n9_chenghuang", name: "亞三", pinyin: "Ya San", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_daheng",   gen: 21, father: "n9_chenghuang", name: "大亨", pinyin: "Da Heng", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_dagui",    gen: 21, father: "n9_chengjing", name: "大貴", pinyin: "Da Gui", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n9_dagen",    gen: 21, father: "n9_chengjing", name: "大根", pinyin: "Da Gen", gender: "m", relation: "二十一世", confidence: "low" }
+  ],
+
+  // --- ERAS / SWIM LANES ----------------------------------------------------
+  // Each band groups consecutive generations by WHERE they lived and WHEN.
+  // Dates are approximate (the deep generations are undated); edit freely.
+  eras: [
+    { fromGen: 1,  toGen: 3,  place: "上杭 三坪鄉（福建汀州）", placeEn: "Shanghang, Fujian",
+      era: "宋末–元（約1200s–1300s）", eraEn: "Song–Yuan (c. 1200s–1300s)", color: "#b0883322",
+      note: "始祖 江八郎 由寧化石壁遷此開基。" },
+    { fromGen: 4,  toGen: 6,  place: "永定 烏坭坪（溪南里）", placeEn: "Yongding, Fujian",
+      era: "元–明（約1300s–1500s）", eraEn: "Yuan–Ming (c. 1300s–1500s)", color: "#2d6b4f1c",
+      note: "桂花樹下；六九郎(貴七)一系。" },
+    { fromGen: 7,  toGen: 10, place: "惠州 永安・海豐", placeEn: "Yong'an & Haifeng, Huizhou",
+      era: "明（約1500s–1600s）", eraEn: "Ming (c. 1500s–1600s)", color: "#3d6b8e1c",
+      note: "下義約、蛋家田、羊屎坑等。" },
+    { fromGen: 11, toGen: 19, place: "永安 → 長樂 遷徙（李朗支於此分出）", placeEn: "Yong'an → Changle (Lilang branch diverged)",
+      era: "明末–清（約1600s–1700s）", eraEn: "late Ming–Qing (c. 1600s–1700s)", color: "#7a4fa31c",
+      note: "約1569年遷長樂；朝湧／朝鴻一支遷新安李朗（今深圳）—— 旁支。" },
+    { fromGen: 20, toGen: 22, place: "長樂 彰村・元坑（今五華）", placeEn: "Changle: Changcun (now Wuhua)",
+      era: "清（約1700s–1800s）", eraEn: "Qing (c. 1700s–1800s)", color: "#9e2b251c",
+      note: "紹泗 → 承續 → 大信；巴色會入信。" },
+    { fromGen: 23, toGen: 26, place: "長樂 → 沙巴（古達・山打根・吧巴）", placeEn: "Changle → Sabah (Kudat · Sandakan · Papar)",
+      era: "清末–民國（約1860s–1940s）", eraEn: "late Qing–Republic (c. 1860s–1940s)", color: "#2d6b4f26",
+      note: "巴色會客家信徒移民英屬北婆羅洲。" }
   ]
 };

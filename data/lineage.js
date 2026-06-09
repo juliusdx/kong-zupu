@@ -289,7 +289,43 @@ window.LINEAGE = {
     { id: "n9_yasan",    gen: 21, father: "n9_chenghuang", name: "亞三", pinyin: "Ya San", gender: "m", relation: "二十一世", confidence: "low" },
     { id: "n9_daheng",   gen: 21, father: "n9_chenghuang", name: "大亨", pinyin: "Da Heng", gender: "m", relation: "二十一世", confidence: "low" },
     { id: "n9_dagui",    gen: 21, father: "n9_chengjing", name: "大貴", pinyin: "Da Gui", gender: "m", relation: "二十一世", confidence: "low" },
-    { id: "n9_dagen",    gen: 21, father: "n9_chengjing", name: "大根", pinyin: "Da Gen", gender: "m", relation: "二十一世", confidence: "low" }
+    { id: "n9_dagen",    gen: 21, father: "n9_chengjing", name: "大根", pinyin: "Da Gen", gender: "m", relation: "二十一世", confidence: "low" },
+
+    // ===== COLLATERAL — 八房 起清公 house (pt2 pp.51–53) =====
+    // Brother of 起瀾公 & 起瀨公 (sons of gen-17 a17). All confidence low.
+    // NOTE: the 承夏/承周/紹潇/承富/大成/大全/承貴/大參/大旭 cluster on pt2 pp.49–50
+    // belongs to an earlier house whose divider I haven't re-read yet — deferred to
+    // avoid a wrong parent link.
+    { id: "n8_qiqing",  gen: 18, father: "a17", name: "起清公", pinyin: "Qiqing", gender: "m", relation: "十八世 · 八房 (行十)", confidence: "low", note: "妣文氏。生紹穎、紹江、紹泗、紹汪。" },
+    { id: "n8_qiqing_w", gen: 18, name: "文氏", pinyin: "Madam Wen", gender: "f", spouseOf: "n8_qiqing", confidence: "low" },
+
+    { id: "n8_shaoying", gen: 19, father: "n8_qiqing", name: "紹穎公", pinyin: "Shaoying", gender: "m", relation: "十九世", confidence: "low" },
+    { id: "n8_shaojiang", gen: 19, father: "n8_qiqing", name: "紹江公", pinyin: "Shaojiang", gender: "m", relation: "十九世", confidence: "low", note: "妻孫氏。生承見、承趫。" },
+    { id: "n8_shaosi",   gen: 19, father: "n8_qiqing", name: "紹泗公", pinyin: "Shaosi", gender: "m", relation: "十九世 (八房之紹泗，與直系紹泗不同人)", confidence: "low", note: "妻卓氏、何氏。生承奕、承超、承漢、承招。" },
+    { id: "n8_shaowang", gen: 19, father: "n8_qiqing", name: "紹汪公", pinyin: "Shaowang", gender: "m", relation: "十九世", confidence: "low", note: "妻溫氏。生承魁、承滔、承良。" },
+
+    // 紹江 line
+    { id: "n8_chengjian", gen: 20, father: "n8_shaojiang", name: "承見", pinyin: "Cheng Jian", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chengqiao", gen: 20, father: "n8_shaojiang", name: "承趫", pinyin: "Cheng Qiao", gender: "m", relation: "二十世", confidence: "low" },
+
+    // 紹泗 line (八房)
+    { id: "n8_chengyi",  gen: 20, father: "n8_shaosi", name: "承奕", pinyin: "Cheng Yi", aka: "職員名 潤珠", gender: "m", relation: "二十世", confidence: "low", note: "妻張氏。" },
+    { id: "n8_chengchao", gen: 20, father: "n8_shaosi", name: "承超", pinyin: "Cheng Chao", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chenghan", gen: 20, father: "n8_shaosi", name: "承漢", pinyin: "Cheng Han", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chengzhao", gen: 20, father: "n8_shaosi", name: "承招", pinyin: "Cheng Zhao", gender: "m", relation: "二十世", confidence: "low", note: "妻潘氏。" },
+    { id: "n8_daqian",   gen: 21, father: "n8_chengyi", name: "大乾", pinyin: "Da Qian", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。" },
+    { id: "n8_yongkui",  gen: 22, father: "n8_daqian", name: "永魁", pinyin: "Yong Kui", gender: "m", relation: "二十二世", confidence: "low", note: "妻李氏。" },
+    { id: "n8_yonggong", gen: 22, father: "n8_daqian", name: "永恭", pinyin: "Yong Gong", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n8_damao",    gen: 21, father: "n8_chengzhao", name: "大茂", pinyin: "Da Mao", gender: "m", relation: "二十一世", confidence: "low" },
+
+    // 紹汪 line
+    { id: "n8_chengkui", gen: 20, father: "n8_shaowang", name: "承魁", pinyin: "Cheng Kui", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chengtao", gen: 20, father: "n8_shaowang", name: "承滔", pinyin: "Cheng Tao", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chengliang", gen: 20, father: "n8_shaowang", name: "承良", pinyin: "Cheng Liang", gender: "m", relation: "二十世", confidence: "low", note: "妻傅氏。" },
+    { id: "n8_zaogu",    gen: 21, father: "n8_chengliang", name: "灶姑", pinyin: "Zao Gu", gender: "f", relation: "二十一世", confidence: "low" },
+    { id: "n8_xiangxin", gen: 21, father: "n8_chengliang", name: "祥新", pinyin: "Xiang Xin", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n8_xiangzhen", gen: 21, father: "n8_chengliang", name: "祥禎", pinyin: "Xiang Zhen", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n8_xiangyong", gen: 21, father: "n8_chengliang", name: "祥永", pinyin: "Xiang Yong", gender: "m", relation: "二十一世", confidence: "low" }
   ],
 
   // --- ERAS / SWIM LANES ----------------------------------------------------

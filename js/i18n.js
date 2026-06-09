@@ -12,6 +12,9 @@
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
       tt_expand: "Expand all", tt_fit: "Fit", tt_swim: "Place · era lanes",
+      tt_verify: "To verify", vp_title: "⚠ Needs verification",
+      vp_none: "Nothing flagged. 🎉",
+      vp_hint: "Click a name to jump to it on the tree, then confirm or fix via Contribute.",
       legend_son: "son line", legend_daughter: "daughter",
       legend_spouse: "married-in", legend_low: "needs verification",
 
@@ -100,6 +103,9 @@
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
       tt_expand: "全部展開", tt_fit: "置中", tt_swim: "遷徙年代帶（地點・年代）",
+      tt_verify: "待考證", vp_title: "⚠ 待考證清單",
+      vp_none: "沒有待考證項目。🎉",
+      vp_hint: "點選跳至族譜該人，再透過「貢獻」確認或修正。",
       legend_son: "男系", legend_daughter: "女兒",
       legend_spouse: "配偶", legend_low: "待考證",
 

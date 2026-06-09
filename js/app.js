@@ -42,6 +42,8 @@
     openPerson(id);                       // refresh the drawer
     Tree.focus(id);
     refreshAdminBar();
+    updateVerifyCount();
+    if ($("#verify-panel").classList.contains("open")) buildVerifyList();
   }
   function downloadOverrides() {
     const merged = Object.assign({}, window.LINEAGE_OVERRIDES || {}, pending);
@@ -249,6 +251,7 @@
       (md.data || []).forEach(m => (mediaByPerson[m.person_id] = mediaByPerson[m.person_id] || []).push(m));
       Tree.render("#tree-canvas", openPerson);   // re-index + redraw with merged data
       if (window.MapView && MapView.refresh) MapView.refresh();
+      updateVerifyCount();
     } catch (e) { console.warn("live data load failed", e); }
   }
 
@@ -379,6 +382,29 @@
     $("#drawer-scrim").classList.remove("open");
   }
 
+  /* ---- Needs-verification list ---- */
+  function updateVerifyCount() {
+    const n = LINEAGE.persons.filter(p => p.confidence === "low").length;
+    const el = $("#verify-count"); if (el) el.textContent = "(" + n + ")";
+  }
+  function buildVerifyList() {
+    const T = I18N.t, body = $("#verify-body");
+    const low = LINEAGE.persons.filter(p => p.confidence === "low")
+      .sort((a, b) => (a.gen || 0) - (b.gen || 0));
+    if (!low.length) { body.innerHTML = `<h2>${T("vp_title")}</h2><p class="muted">${T("vp_none")}</p>`; return; }
+    body.innerHTML = `<h2>${T("vp_title")} <span class="muted">(${low.length})</span></h2>` +
+      `<p class="muted">${T("vp_hint")}</p>` +
+      low.map(p => {
+        const f = p.father ? personById(p.father) : null;
+        const alt = [p.style, p.ritualName, p.formalName, p.hao, p.milkName, p.aka].filter(Boolean).join(" · ");
+        const meta = "第" + p.gen + "世" + (f ? " · " + T("d_father") + " " + f.name : "") + (alt ? " · " + alt : "");
+        return `<button class="verify-item" data-go="${p.id}"><span class="vn">⚠ ${p.name}</span><span class="vg">${meta}</span></button>`;
+      }).join("");
+    body.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { openPerson(b.dataset.go); Tree.focus(b.dataset.go); });
+  }
+  function openVerify() { buildVerifyList(); $("#verify-panel").classList.add("open"); }
+  function closeVerify() { $("#verify-panel").classList.remove("open"); }
+
   /* ---- Search ---- */
   function search(q) {
     q = q.trim().toLowerCase();
@@ -434,6 +460,8 @@
       buildAbout();
       refreshAdminBar();
       Tree.setOptions({});   // refresh swim-lane / band labels to the new language
+      updateVerifyCount();
+      if ($("#verify-panel").classList.contains("open")) buildVerifyList();
       if ($("#view-review").classList.contains("active")) buildReview();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
     });
@@ -446,6 +474,9 @@
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();
+    $("#btn-verify").onclick = openVerify;
+    $("#verify-close").onclick = closeVerify;
+    updateVerifyCount();
     $("#search").addEventListener("keydown", e => { if (e.key === "Enter") search(e.target.value); });
 
     // place links inside drawer

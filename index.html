@@ -48,6 +48,7 @@
       <label><input type="checkbox" id="toggle-swim" checked /> <span data-i18n="tt_swim">Place · era lanes</span></label>
       <button id="btn-expand" data-i18n="tt_expand">Expand all</button>
       <button id="btn-fit" data-i18n="tt_fit">Fit</button>
+      <button id="btn-verify">⚠ <span data-i18n="tt_verify">To verify</span> <span id="verify-count"></span></button>
       <span class="legend">
         <i class="dot male"></i> <span data-i18n="legend_son">son line</span>
         <i class="dot female"></i> <span data-i18n="legend_daughter">daughter</span>
@@ -106,6 +107,12 @@
   <button id="signin-google" class="signin-btn google" data-i18n="s_google">Continue with Google</button>
   <div id="signin-msg" class="signin-msg"></div>
 </div>
+
+<!-- Needs-verification list panel -->
+<aside id="verify-panel" class="verify-panel">
+  <button id="verify-close" class="drawer-close" aria-label="Close">×</button>
+  <div id="verify-body"></div>
+</aside>
 
 <!-- Person detail drawer -->
 <aside id="drawer" class="drawer">

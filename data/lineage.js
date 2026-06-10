@@ -363,7 +363,154 @@ window.LINEAGE = {
     { id: "f5_chengguo", gen: 21, father: "f5_shaodan", name: "承國公", pinyin: "Cheng Guo", gender: "m", relation: "二十一世", confidence: "low", note: "妣曾氏。" },
     { id: "f5_dake",     gen: 22, father: "f5_chengguo", name: "大可公", pinyin: "Da Ke", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
     { id: "f5_yongwei",  gen: 23, father: "f5_dake", name: "永威", pinyin: "Yong Wei", gender: "m", relation: "二十三世", confidence: "low", note: "妣張氏。" },
-    { id: "f5_yuanfa",   gen: 24, father: "f5_yongwei", name: "元發", pinyin: "Yuan Fa", gender: "m", relation: "二十四世", confidence: "low", note: "往金山 (overseas)." }
+    { id: "f5_yuanfa",   gen: 24, father: "f5_yongwei", name: "元發", pinyin: "Yuan Fa", gender: "m", relation: "二十四世", confidence: "low", note: "往金山 (overseas)." },
+
+    // ==========================================
+    // 七房 (起章公) - pt2 pp.44-50
+    // ==========================================
+    { id: "n7_qizhang", gen: 18, father: "a17", name: "起章公", pinyin: "Qizhang", gender: "m", relation: "十八世 · 七房祖", confidence: "low", note: "起瀾公之兄弟。生紹污、紹濂、紹顯、紹门、紹芳等（據世系表與家譜推斷）。" },
+
+    { id: "n7_shaowu", gen: 19, father: "n7_qizhang", name: "紹污公", pinyin: "Shaowu", gender: "m", relation: "十九世", confidence: "low", note: "妻陳氏。生承賢、承禎、承猷、承紀、承立、承運。" },
+    { id: "n7_shaowu_w", gen: 19, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "n7_shaowu", confidence: "low" },
+    
+    { id: "n7_chengxian", gen: 20, father: "n7_shaowu", name: "承賢公", pinyin: "Chengxian", gender: "m", relation: "二十世", confidence: "low", note: "妻凌氏。生大元、大軒、大蔣。" },
+    { id: "n7_chengxian_w", gen: 20, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "n7_chengxian", confidence: "low" },
+    { id: "n7_dayuan", gen: 21, father: "n7_chengxian", name: "大元", pinyin: "Dayuan", gender: "m", relation: "二十一世", confidence: "low", note: "妻劉氏。生旭新、旭彰。" },
+    { id: "n7_dayuan_w", gen: 21, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "n7_dayuan", confidence: "low" },
+    { id: "n7_xuxin", gen: 22, father: "n7_dayuan", name: "旭新", pinyin: "Xuxin", gender: "m", relation: "二十二世", confidence: "low", note: "妻凌氏。生下雕福。" },
+    { id: "n7_xuxin_w", gen: 22, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "n7_xuxin", confidence: "low" },
+    { id: "n7_diaofu", gen: 23, father: "n7_xuxin", name: "雕福", pinyin: "Diaofu", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "n7_xuzhang", gen: 22, father: "n7_dayuan", name: "旭彰", pinyin: "Xuzhang", gender: "m", relation: "二十二世", confidence: "low" },
+    
+    { id: "n7_daxuan", gen: 21, father: "n7_chengxian", name: "大軒", pinyin: "Daxuan", gender: "m", relation: "二十一世", confidence: "low", note: "妻俞氏。生旭初。" },
+    { id: "n7_daxuan_w", gen: 21, name: "俞氏", pinyin: "Madam Yu", gender: "f", spouseOf: "n7_daxuan", confidence: "low" },
+    { id: "n7_xuchu", gen: 22, father: "n7_daxuan", name: "旭初", pinyin: "Xuchu", gender: "m", relation: "二十二世", confidence: "low" },
+    
+    { id: "n7_dajiang", gen: 21, father: "n7_chengxian", name: "大蔣", pinyin: "Dajiang", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。" },
+    { id: "n7_dajiang_w", gen: 21, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n7_dajiang", confidence: "low" },
+
+    { id: "n7_chengzhen", gen: 20, father: "n7_shaowu", name: "承禎公", pinyin: "Chengzhen", formalName: "國學名 澄珠", hao: "號 鑒川", gender: "m", relation: "二十世", confidence: "low", note: "妻廖氏、續伍氏。生大欽。" },
+    { id: "n7_chengzhen_w1", gen: 20, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n7_chengzhen", confidence: "low" },
+    { id: "n7_chengzhen_w2", gen: 20, name: "伍氏", pinyin: "Madam Wu", gender: "f", spouseOf: "n7_chengzhen", confidence: "low" },
+    { id: "n7_daqin", gen: 21, father: "n7_chengzhen", name: "大欽", pinyin: "Daqin", gender: "m", relation: "二十一世", confidence: "low", note: "妻葉氏。生旭謙、旭濂。" },
+    { id: "n7_daqin_w", gen: 21, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "n7_daqin", confidence: "low" },
+    { id: "n7_xuqian", gen: 22, father: "n7_daqin", name: "旭謙", pinyin: "Xuqian", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_xulian", gen: 22, father: "n7_daqin", name: "旭濂", pinyin: "Xulian", gender: "m", relation: "二十二世", confidence: "low" },
+
+    { id: "n7_chengyou", gen: 20, father: "n7_shaowu", name: "承猷公", pinyin: "Chengyou", gender: "m", relation: "二十世", confidence: "low", note: "妻戴氏。生大業、大威、大茂。" },
+    { id: "n7_chengyou_w", gen: 20, name: "戴氏", pinyin: "Madam Dai", gender: "f", spouseOf: "n7_chengyou", confidence: "low" },
+    { id: "n7_daye", gen: 21, father: "n7_chengyou", name: "大業", pinyin: "Daye", gender: "m", relation: "二十一世", confidence: "low", note: "妻何氏。生旭標、旭煥。" },
+    { id: "n7_daye_w", gen: 21, name: "何氏", pinyin: "Madam He", gender: "f", spouseOf: "n7_daye", confidence: "low" },
+    { id: "n7_xubiao", gen: 22, father: "n7_daye", name: "旭標", pinyin: "Xubiao", gender: "m", relation: "二十二世", confidence: "low", note: "妻鄭氏。" },
+    { id: "n7_xubiao_w", gen: 22, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "n7_xubiao", confidence: "low" },
+    { id: "n7_xuhuan2", gen: 22, father: "n7_daye", name: "旭煥", pinyin: "Xuhuan", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_dawei", gen: 21, father: "n7_chengyou", name: "大威", pinyin: "Dawei", gender: "m", relation: "二十一世", confidence: "low", note: "妻刁氏。" },
+    { id: "n7_dawei_w", gen: 21, name: "刁氏", pinyin: "Madam Diao", gender: "f", spouseOf: "n7_dawei", confidence: "low" },
+    { id: "n7_damao", gen: 21, father: "n7_chengyou", name: "大茂", pinyin: "Damao", gender: "m", relation: "二十一世", confidence: "low" },
+
+    { id: "n7_chengji", gen: 20, father: "n7_shaowu", name: "承紀公", pinyin: "Chengji", gender: "m", relation: "二十世", confidence: "low", note: "妻廖氏。生大雍、大英。" },
+    { id: "n7_chengji_w", gen: 20, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n7_chengji", confidence: "low" },
+    { id: "n7_dayong", gen: 21, father: "n7_chengji", name: "大雍", pinyin: "Dayong", gender: "m", relation: "二十一世", confidence: "low", note: "妻葉氏。生旭臨、旭茂。" },
+    { id: "n7_dayong_w", gen: 21, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "n7_dayong", confidence: "low" },
+    { id: "n7_xulin", gen: 22, father: "n7_dayong", name: "旭臨", pinyin: "Xulin", gender: "m", relation: "二十二世", confidence: "low", note: "妻曾氏。" },
+    { id: "n7_xulin_w", gen: 22, name: "曾氏", pinyin: "Madam Zeng", gender: "f", spouseOf: "n7_xulin", confidence: "low" },
+    { id: "n7_xumao", gen: 22, father: "n7_dayong", name: "旭茂", pinyin: "Xumao", gender: "m", relation: "二十二世", confidence: "low", note: "妻吳氏，早喪。" },
+    { id: "n7_xumao_w", gen: 22, name: "吳氏", pinyin: "Madam Wu", gender: "f", spouseOf: "n7_xumao", confidence: "low", note: "早喪" },
+    
+    { id: "n7_daying", gen: 21, father: "n7_chengji", name: "大英", pinyin: "Daying", gender: "m", relation: "二十一世", confidence: "low", note: "妻萬氏。生水秀、金秀。" },
+    { id: "n7_daying_w", gen: 21, name: "萬氏", pinyin: "Madam Wan", gender: "f", spouseOf: "n7_daying", confidence: "low" },
+    { id: "n7_shuixiu", gen: 22, father: "n7_daying", name: "水秀", pinyin: "Shuixiu", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_jinxiu", gen: 22, father: "n7_daying", name: "金秀", pinyin: "Jinxiu", gender: "m", relation: "二十二世", confidence: "low" },
+
+    { id: "n7_chengli", gen: 20, father: "n7_shaowu", name: "承立公", pinyin: "Chengli", hao: "號 卓然", gender: "m", relation: "二十世", confidence: "low", note: "妻李氏、續劉氏。生大錦、大釗、大鈺。" },
+    { id: "n7_chengli_w1", gen: 20, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "n7_chengli", confidence: "low" },
+    { id: "n7_chengli_w2", gen: 20, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "n7_chengli", confidence: "low" },
+    { id: "n7_dajin", gen: 21, father: "n7_chengli", name: "大錦", pinyin: "Dajin", hao: "號 繡卿", gender: "m", relation: "二十一世", confidence: "low", note: "妻凌氏。生旭亮、旭明、旭熙、旭開。" },
+    { id: "n7_dajin_w", gen: 21, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "n7_dajin", confidence: "low" },
+    { id: "n7_xuliang", gen: 22, father: "n7_dajin", name: "旭亮", pinyin: "Xuliang", gender: "m", relation: "二十二世", confidence: "low", note: "妻張氏。" },
+    { id: "n7_xuliang_w", gen: 22, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_xuliang", confidence: "low" },
+    { id: "n7_xuming", gen: 22, father: "n7_dajin", name: "旭明", pinyin: "Xuming", gender: "m", relation: "二十二世", confidence: "low", note: "妻賴氏。" },
+    { id: "n7_xuming_w", gen: 22, name: "賴氏", pinyin: "Madam Lai", gender: "f", spouseOf: "n7_xuming", confidence: "low" },
+    { id: "n7_xuxi", gen: 22, father: "n7_dajin", name: "旭熙", pinyin: "Xuxi", gender: "m", relation: "二十二世", confidence: "low", note: "妻劉氏。" },
+    { id: "n7_xuxi_w", gen: 22, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "n7_xuxi", confidence: "low" },
+    { id: "n7_xukai", gen: 22, father: "n7_dajin", name: "旭開", pinyin: "Xukai", gender: "m", relation: "二十二世", confidence: "low" },
+    
+    { id: "n7_dazhao", gen: 21, father: "n7_chengli", name: "大釗", pinyin: "Dazhao", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "n7_dayu", gen: 21, father: "n7_chengli", name: "大鈺", pinyin: "Dayu", gender: "m", relation: "二十一世", confidence: "low" },
+
+    { id: "n7_chengyun", gen: 20, father: "n7_shaowu", name: "承運公", pinyin: "Chengyun", gender: "m", relation: "二十世", confidence: "low" },
+    
+    // --- Unclear parentage (p.48) ---
+    { id: "n7_chengxia", gen: 20, name: "承夏", pinyin: "Chengxia", gender: "m", relation: "二十世", confidence: "low", note: "（房序待考。見於七房紹濂公之前，父名缺）妻〇氏、妾邱氏。生大来。" },
+    { id: "n7_chengxia_w1", gen: 20, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_chengxia", confidence: "low" },
+    { id: "n7_chengxia_w2", gen: 20, name: "邱氏", pinyin: "Madam Qiu", gender: "f", spouseOf: "n7_chengxia", confidence: "low", note: "妾" },
+    { id: "n7_dalai", gen: 21, father: "n7_chengxia", name: "大来", pinyin: "Dalai", gender: "m", relation: "二十一世", confidence: "low", note: "妻曾氏。" },
+    { id: "n7_dalai_w", gen: 21, name: "曾氏", pinyin: "Madam Zeng", gender: "f", spouseOf: "n7_dalai", confidence: "low" },
+    
+    { id: "n7_chengzhou", gen: 20, name: "承周", pinyin: "Chengzhou", gender: "m", relation: "二十世", confidence: "low", note: "（房序待考。見於七房紹濂公之前，父名缺）妻張氏。生大芳。" },
+    { id: "n7_chengzhou_w", gen: 20, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_chengzhou", confidence: "low" },
+    { id: "n7_dafang", gen: 21, father: "n7_chengzhou", name: "大芳", pinyin: "Dafang", gender: "m", relation: "二十一世", confidence: "low", note: "妻鄭氏。生瑞蘭。" },
+    { id: "n7_dafang_w", gen: 21, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "n7_dafang", confidence: "low" },
+    { id: "n7_ruilan", gen: 22, father: "n7_dafang", name: "瑞蘭", pinyin: "Ruilan", gender: "m", relation: "二十二世", confidence: "low", note: "妻張氏。" },
+    { id: "n7_ruilan_w", gen: 22, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_ruilan", confidence: "low" },
+
+    // --- 紹濂公 branch (p.48-49) ---
+    { id: "n7_shaolian", gen: 19, father: "n7_qizhang", name: "紹濂公", pinyin: "Shaolian", gender: "m", relation: "十九世", confidence: "low", note: "妻梁氏。生承富、承貴。" },
+    { id: "n7_shaolian_w", gen: 19, name: "梁氏", pinyin: "Madam Liang", gender: "f", spouseOf: "n7_shaolian", confidence: "low" },
+    
+    { id: "n7_chengfu", gen: 20, father: "n7_shaolian", name: "承富公", pinyin: "Chengfu", gender: "m", relation: "二十世", confidence: "low", note: "妻馮氏。生大成、大全。" },
+    { id: "n7_chengfu_w", gen: 20, name: "馮氏", pinyin: "Madam Feng", gender: "f", spouseOf: "n7_chengfu", confidence: "low" },
+    
+    { id: "n7_dacheng", gen: 21, father: "n7_chengfu", name: "大成", pinyin: "Dacheng", gender: "m", relation: "二十一世", confidence: "low", note: "妻朱氏。生亞夀、亞蓮。" },
+    { id: "n7_dacheng_w", gen: 21, name: "朱氏", pinyin: "Madam Zhu", gender: "f", spouseOf: "n7_dacheng", confidence: "low" },
+    { id: "n7_yashou", gen: 22, father: "n7_dacheng", name: "亞夀", pinyin: "Yashou", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_yalian", gen: 22, father: "n7_dacheng", name: "亞蓮", pinyin: "Yalian", gender: "m", relation: "二十二世", confidence: "low" },
+
+    { id: "n7_daquan", gen: 21, father: "n7_chengfu", name: "大全", pinyin: "Daquan", gender: "m", relation: "二十一世", confidence: "low", note: "妻李氏。生亞色、色三、亞養、亞卜。" },
+    { id: "n7_daquan_w", gen: 21, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "n7_daquan", confidence: "low" },
+    { id: "n7_yase", gen: 22, father: "n7_daquan", name: "亞色", pinyin: "Yase", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_sesan", gen: 22, father: "n7_daquan", name: "色三", pinyin: "Sesan", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_yasyang", gen: 22, father: "n7_daquan", name: "亞養", pinyin: "Yayang", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "n7_yabo", gen: 22, father: "n7_daquan", name: "亞卜", pinyin: "Yabo", gender: "m", relation: "二十二世", confidence: "low" },
+
+    { id: "n7_chenggui", gen: 20, father: "n7_shaolian", name: "承貴公", pinyin: "Chenggui", gender: "m", relation: "二十世", confidence: "low", note: "妻劉氏。生大參、大旭。" },
+    { id: "n7_chenggui_w", gen: 20, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "n7_chenggui", confidence: "low" },
+    { id: "n7_dacan", gen: 21, father: "n7_chenggui", name: "大參", pinyin: "Dacan", gender: "m", relation: "二十一世", confidence: "low", note: "妻〇氏、續吳氏。生瑞亭、亞生、亞順。本身並子孫俱奉耶穌教（瑞亭原傳道職也）。" },
+    { id: "n7_dacan_w1", gen: 21, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_dacan", confidence: "low" },
+    { id: "n7_ruiting", gen: 22, father: "n7_dacan", name: "瑞亭", pinyin: "Ruiting", gender: "m", relation: "二十二世", confidence: "low", note: "大參妻〇氏生。原傳道職也。妻羅氏，生茂仁、道平、榮齊、清和，又生五女。" },
+    { id: "n7_ruiting_w", gen: 22, name: "羅氏", pinyin: "Madam Luo", gender: "f", spouseOf: "n7_ruiting", confidence: "low", note: "生茂仁、道平、榮齊、清和，又生五女。" },
+    { id: "n7_maoren", gen: 23, father: "n7_ruiting", name: "茂仁", pinyin: "Maoren", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "n7_daoping", gen: 23, father: "n7_ruiting", name: "道平", pinyin: "Daoping", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "n7_rongqi", gen: 23, father: "n7_ruiting", name: "榮齊", pinyin: "Rongqi", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "n7_qinghe", gen: 23, father: "n7_ruiting", name: "清和", pinyin: "Qinghe", gender: "m", relation: "二十三世", confidence: "low" },
+    
+    { id: "n7_dacan_w2", gen: 21, name: "吳氏", pinyin: "Madam Wu", gender: "f", spouseOf: "n7_dacan", confidence: "low" },
+    { id: "n7_yasheng", gen: 22, father: "n7_dacan", name: "亞生", pinyin: "Yasheng", gender: "m", relation: "二十二世", confidence: "low", note: "大參續妻吳氏生。" },
+    { id: "n7_yashun", gen: 22, father: "n7_dacan", name: "亞順", pinyin: "Yashun", gender: "m", relation: "二十二世", confidence: "low", note: "大參續妻吳氏生。" },
+    
+    { id: "n7_daxu", gen: 21, father: "n7_chenggui", name: "大旭", pinyin: "Daxu", gender: "m", relation: "二十一世", confidence: "low" },
+
+    // --- 紹顯公 branch (p.50) ---
+    { id: "n7_shaoxian", gen: 19, father: "n7_qizhang", name: "紹顯公", pinyin: "Shaoxian", gender: "m", relation: "十九世", confidence: "low" },
+    
+    // --- 紹门公 branch (p.50) ---
+    { id: "n7_shaomen", gen: 19, father: "n7_qizhang", name: "紹门公", pinyin: "Shaomen", gender: "m", relation: "十九世", confidence: "low", note: "妻張氏。生承冕、承冠。" },
+    { id: "n7_shaomen_w", gen: 19, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_shaomen", confidence: "low" },
+    { id: "n7_chengmian", gen: 20, father: "n7_shaomen", name: "承冕", pinyin: "Chengmian", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n7_chengguan", gen: 20, father: "n7_shaomen", name: "承冠", pinyin: "Chengguan", gender: "m", relation: "二十世", confidence: "low" },
+
+    // --- 紹芳公 branch (p.50) ---
+    { id: "n7_shaofang", gen: 19, father: "n7_qizhang", name: "紹芳公", pinyin: "Shaofang", gender: "m", relation: "十九世", confidence: "low", note: "妻卓氏。生承奕。" },
+    { id: "n7_shaofang_w", gen: 19, name: "卓氏", pinyin: "Madam Zhuo", gender: "f", spouseOf: "n7_shaofang", confidence: "low" },
+    { id: "n7_chengyi", gen: 20, father: "n7_shaofang", name: "承奕", pinyin: "Chengyi", aka: "職員名 潤珠", gender: "m", relation: "二十世", confidence: "low", note: "妻張氏。生大乾。" },
+    { id: "n7_chengyi_w", gen: 20, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_chengyi", confidence: "low" },
+    { id: "n7_daqian", gen: 21, father: "n7_chengyi", name: "大乾", pinyin: "Daqian", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。生永魁、永恭。" },
+    { id: "n7_daqian_w", gen: 21, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n7_daqian", confidence: "low" },
+    { id: "n7_yongkui", gen: 22, father: "n7_daqian", name: "永魁", pinyin: "Yongkui", gender: "m", relation: "二十二世", confidence: "low", note: "妻李氏、妾〇氏。" },
+    { id: "n7_yongkui_w1", gen: 22, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "n7_yongkui", confidence: "low" },
+    { id: "n7_yongkui_w2", gen: 22, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_yongkui", confidence: "low", note: "妾" },
+    { id: "n7_yonggong", gen: 22, father: "n7_daqian", name: "永恭", pinyin: "Yonggong", gender: "m", relation: "二十二世", confidence: "low", note: "妻〇氏。" },
+    { id: "n7_yonggong_w", gen: 22, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_yonggong", confidence: "low" },
   ],
 
   // --- ERAS / SWIM LANES ----------------------------------------------------

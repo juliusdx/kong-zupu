@@ -100,14 +100,49 @@ window.LINEAGE = {
     { id: "a02",  gen: 2, father: "a01", name: "江萬頃", pinyin: "Wanqing", style: "十二郎 名伯古崖", gender: "m", relation: "二世祖 (direct line)", spousePlace: "p_shanghang", bio: "宋朝明經鄉舉，授翰林院中書、戶部左侍郎、知南劍州。", confidence: "med" },
     { id: "a02w", gen: 2, name: "錢氏九娘", pinyin: "Madam Qian", gender: "f", spouseOf: "a02", burialPlace: "p_shanghang", note: "合塋上杭三坪鄉.", confidence: "low" },
 
-    { id: "a04",  gen: 4, father: "a02", name: "百三郎", pinyin: "Baisanlang", gender: "m", relation: "四世祖 (direct line)", burialPlace: "p_yongding", bio: "雙塋于永定縣溪南里。所生二子：長六九郎(貴七)、次六三郎(貴六)。", note: "Gen-3 link is via the 'five great branches' split (三世分為五大支) — the individual gen-3 ancestor is not separately identified.", confidence: "low" },
+    { id: "a01w2", gen: 1, name: "邱氏", pinyin: "Madam Qiu", gender: "f", spouseOf: "a01", note: "生錩 (待考).", confidence: "low" },
+    { id: "a02b_w", gen: 2, name: "白氏", pinyin: "Madam Bai", gender: "f", spouseOf: "a02b", note: "封為一品夫人.", confidence: "low" },
+    { id: "a02b_c1", gen: 3, father: "a02b", name: "錫", pinyin: "Xi", gender: "m", relation: "長子", confidence: "low" },
+    { id: "a02b_c2", gen: 3, father: "a02b", name: "鑄", pinyin: "Zhu", gender: "m", relation: "次子", confidence: "low" },
+    { id: "a02b_c3", gen: 3, father: "a02b", name: "鏜", pinyin: "Tang", gender: "m", relation: "三子", confidence: "low" },
+    { id: "a02c_w", gen: 2, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "a02c", confidence: "low" },
+    { id: "a02c_c1", gen: 3, father: "a02c", name: "鑰", pinyin: "Yue", gender: "m", relation: "長子", confidence: "low" },
+    { id: "a02c_c2", gen: 3, father: "a02c", name: "鉦", pinyin: "Zheng", gender: "m", relation: "次子", confidence: "low" },
+    { id: "a03", gen: 3, father: "a02", name: "念三郎", pinyin: "Niansanlang", gender: "m", relation: "三世祖 (direct line)", confidence: "med" },
+    { id: "a03b", gen: 3, father: "a02", name: "念一郎", pinyin: "Nianyilang", gender: "m", relation: "三世", confidence: "low" },
+    { id: "a03c", gen: 3, father: "a02", name: "念二郎", pinyin: "Nian'erlang", gender: "m", relation: "三世 (二叔祖)", confidence: "low" },
+    { id: "a03c_w", gen: 3, name: "薛氏", pinyin: "Madam Xue", gender: "f", spouseOf: "a03c", confidence: "low" },
+    { id: "a03c_c1", gen: 4, father: "a03c", name: "潤新", pinyin: "Runxin", style: "法名三十六郎", gender: "m", relation: "長子", confidence: "low" },
+    { id: "a03c_c2", gen: 4, father: "a03c", name: "三千七郎", pinyin: "Sanqianqilang", gender: "m", relation: "次子", confidence: "low" },
+    { id: "a03c_c2w", gen: 4, name: "吳氏七娘", pinyin: "Madam Wu", gender: "f", spouseOf: "a03c_c2", confidence: "low" },
+    { id: "a03d", gen: 3, father: "a02", name: "念五郎", pinyin: "Nianwulang", gender: "m", relation: "三世", confidence: "low" },
+
+
+    { id: "a04",  gen: 4, father: "a03", name: "百三郎", pinyin: "Baisanlang", gender: "m", relation: "四世祖 (direct line)", burialPlace: "p_yongding", bio: "雙塋于永定縣溪南里。所生二子：長六九郎(貴七)、次六三郎(貴六)。", note: "Gen-3 link is via the 'five great branches' split (三世分為五大支) — the individual gen-3 ancestor is not separately identified.", confidence: "low" },
     { id: "a04w", gen: 4, name: "徐氏妙祥", pinyin: "Madam Xu", gender: "f", spouseOf: "a04", burialPlace: "p_yongding", confidence: "low" },
+
+    { id: "a04b", gen: 4, father: "a03", name: "百八郎", pinyin: "Baibalang", gender: "m", relation: "伯祖", confidence: "low" },
+    { id: "a04b_w", gen: 4, name: "周氏二娘妙蓮", pinyin: "Madam Zhou", gender: "f", spouseOf: "a04b", confidence: "low" },
+    { id: "a04b_c1", gen: 5, father: "a04b", name: "魁公", pinyin: "Kui", gender: "m", relation: "長子", confidence: "low" },
+    { id: "a04b_c1w", gen: 5, name: "謝氏", pinyin: "Madam Xie", gender: "f", spouseOf: "a04b_c1", confidence: "low" },
+    { id: "a04c", gen: 4, father: "a03", name: "四六郎", pinyin: "Siliulang", gender: "m", relation: "叔祖", confidence: "low" },
+    { id: "a04c_w", gen: 4, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "a04c", confidence: "low" },
+
 
     { id: "a05",  gen: 5, father: "a04", name: "六九郎", pinyin: "Liujiulang", style: "諱貴七公", gender: "m", relation: "五世祖", burialPlace: "p_yongding", bio: "塋在福建汀州府永定縣烏坭坪溪南里。所生二子：長千一郎(文通)、次千二郎(斌通)。", note: "新安老族譜舊以賴氏/貴七為始祖；道光五年(1825)合譜接上更早之祖.", confidence: "med" },
     { id: "a05w", gen: 5, name: "賴氏", pinyin: "Madam Lai", gender: "f", spouseOf: "a05", burialPlace: "p_yongding", confidence: "med" },
 
+    { id: "a05b", gen: 5, father: "a04", name: "六三郎", pinyin: "Liusanlang", style: "諱貴六", gender: "m", relation: "叔祖", confidence: "low" },
+    { id: "a05b_w1", gen: 5, name: "王氏", pinyin: "Madam Wang", gender: "f", spouseOf: "a05b", confidence: "low" },
+    { id: "a05b_w2", gen: 5, name: "賴氏", pinyin: "Madam Lai", gender: "f", spouseOf: "a05b", confidence: "low" },
+
+
     { id: "a06",  gen: 6, father: "a05", name: "千一郎", pinyin: "Qianyilang", style: "諱文通", gender: "m", relation: "六世祖", burialPlace: "p_yongding", bio: "葬于永定縣溪南。一房住長樂縣五名赤瀝。", confidence: "med" },
     { id: "a06w", gen: 6, name: "瑪氏", pinyin: "Madam Ma", gender: "f", spouseOf: "a06", confidence: "low" },
+
+    { id: "a06b", gen: 6, father: "a05", name: "千二郎", pinyin: "Qian'erlang", style: "諱斌通", gender: "m", relation: "叔祖", confidence: "low" },
+    { id: "a06b_w", gen: 6, name: "鍾氏", pinyin: "Madam Zhong", gender: "f", spouseOf: "a06b", confidence: "low" },
+
 
     { id: "a07",  gen: 7, father: "a06", name: "東山公", pinyin: "Dongshan", gender: "m", relation: "七世祖", burialPlace: "p_haifeng", bio: "塋于惠州海豐縣。生子 受寧四郎。", confidence: "low" },
 
@@ -124,6 +159,11 @@ window.LINEAGE = {
     { id: "a11w", gen: 11, name: "鄭氏大娘", pinyin: "Madam Zheng", gender: "f", spouseOf: "a11", confidence: "low" },
 
     { id: "a12",  gen: 12, father: "a11", name: "元珠公", pinyin: "Yuanzhu", gender: "m", relation: "十二世 (direct line)", note: "Brothers 元珊/元玉/元珍. 元珊/元珠 descendants moved to 增城/廣府.", confidence: "low" },
+
+    { id: "a12b", gen: 12, father: "a11", name: "元珊公", pinyin: "Yuanshan", gender: "m", relation: "十二世", confidence: "low" },
+    { id: "a12c", gen: 12, father: "a11", name: "元玉公", pinyin: "Yuanyu", gender: "m", relation: "十二世", confidence: "low" },
+    { id: "a12d", gen: 12, father: "a11", name: "元珍公", pinyin: "Yuanzhen", gender: "m", relation: "十二世", confidence: "low" },
+
 
     // ===== RECONSTRUCTED MID-LINE: Gen 13–18 (from master charts pt1 pp.1–3 + 起瀾公 entry pt2) =====
     // Topology now traced: 元珠 → 川 → 道 → 日 → 朝 → 龍 → 起瀾公 → 紹泗.

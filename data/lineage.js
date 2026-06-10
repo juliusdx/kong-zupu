@@ -29,6 +29,233 @@
  *
  * Data shape matches /supabase/schema.sql so this can be swapped for a live DB.
  */
+
+// ==========================================
+// 李朗 (Shenzhen Lilang) Branch
+// Branch tracing from Gen 16: 朝陽 (Chao Yang)
+// ==========================================
+const ll_chaoyang = [
+  { id: "ll_a16", gen: 16, name: "朝陽", pinyin: "Chaoyang", gender: "m", note: "叔九公. 生于惠州永安下義龍舟寨 自康熙年間 始來新安李朗. 偕祖妣文太李氏開基五業. Often misread as 朝鴻 or 朝湧.", confidence: "med" },
+  { id: "ll_a16_w1", gen: 16, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_a16", note: "壬戌生", confidence: "low" },
+  
+  // Gen 17
+  { id: "ll_17_1", gen: 17, father: "ll_a16", name: "龍球", pinyin: "Longqiu", gender: "m", relation: "長房", confidence: "low" },
+  { id: "ll_17_1w", gen: 17, name: "袁氏", pinyin: "Madam Yuan", gender: "f", spouseOf: "ll_17_1", confidence: "low" },
+  { id: "ll_17_2", gen: 17, father: "ll_a16", name: "龍雲", pinyin: "Longyun", gender: "m", relation: "二房", confidence: "low" },
+  { id: "ll_17_2w", gen: 17, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_17_2", confidence: "low" },
+  { id: "ll_17_3", gen: 17, father: "ll_a16", name: "龍振", pinyin: "Longzhen", gender: "m", relation: "三房", confidence: "low" },
+  { id: "ll_17_4", gen: 17, father: "ll_a16", name: "龍彩", pinyin: "Longcai", gender: "m", relation: "四房", confidence: "low" },
+  { id: "ll_17_4w", gen: 17, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_17_4", confidence: "low" },
+
+  // Gen 18 (龍球's sons)
+  { id: "ll_18_q1", gen: 18, father: "ll_17_1", name: "起漢", pinyin: "Qihan", gender: "m", confidence: "low" },
+  { id: "ll_18_q1w", gen: 18, name: "邱氏", pinyin: "Madam Qiu", gender: "f", spouseOf: "ll_18_q1", confidence: "low" },
+  { id: "ll_18_q2", gen: 18, father: "ll_17_1", name: "起清", pinyin: "Qiqing", gender: "m", confidence: "low" },
+
+  // Gen 18 (龍雲's sons)
+  { id: "ll_18_y1", gen: 18, father: "ll_17_2", name: "起滄", pinyin: "Qicang", gender: "m", confidence: "low" },
+  { id: "ll_18_y1w", gen: 18, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "ll_18_y1", confidence: "low" },
+  { id: "ll_18_y2", gen: 18, father: "ll_17_2", name: "起泮", pinyin: "Qipan", gender: "m", confidence: "low" },
+  { id: "ll_18_y2w", gen: 18, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_18_y2", confidence: "low" },
+
+  // Gen 18 (龍彩's sons)
+  { id: "ll_18_c1", gen: 18, father: "ll_17_4", name: "起煥", pinyin: "Qihuan", gender: "m", confidence: "low" },
+  { id: "ll_18_c2", gen: 18, father: "ll_17_4", name: "起通", pinyin: "Qitong", gender: "m", confidence: "low" },
+  { id: "ll_18_c2w", gen: 18, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_18_c2", confidence: "low" },
+
+  // Gen 19 (起漢's sons)
+  { id: "ll_19_qh1", gen: 19, father: "ll_18_q1", name: "紹富", pinyin: "Shaofu", gender: "m", confidence: "low" },
+  { id: "ll_19_qh1w", gen: 19, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_19_qh1", confidence: "low" },
+  { id: "ll_19_qh2", gen: 19, father: "ll_18_q1", name: "紹貴", pinyin: "Shaogui", gender: "m", confidence: "low" },
+  { id: "ll_19_qh3", gen: 19, father: "ll_18_q1", name: "紹廷", pinyin: "Shaoting", gender: "m", confidence: "low" },
+  { id: "ll_19_qh3w", gen: 19, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_19_qh3", confidence: "low" },
+
+  // Gen 19 (起滄's sons)
+  { id: "ll_19_yc1", gen: 19, father: "ll_18_y1", name: "紹基", pinyin: "Shaoji", gender: "m", confidence: "low" },
+  { id: "ll_19_yc1w", gen: 19, name: "宋氏", pinyin: "Madam Song", gender: "f", spouseOf: "ll_19_yc1", confidence: "low" },
+  { id: "ll_19_yc2", gen: 19, father: "ll_18_y1", name: "紹寬", pinyin: "Shaokuan", gender: "m", confidence: "low" },
+  { id: "ll_19_yc2w", gen: 19, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_19_yc2", confidence: "low" },
+
+  // Gen 19 (起泮's sons)
+  { id: "ll_19_yp1", gen: 19, father: "ll_18_y2", name: "紹禮", pinyin: "Shaoli", gender: "m", confidence: "low" },
+  { id: "ll_19_yp1w", gen: 19, name: "古氏", pinyin: "Madam Gu", gender: "f", spouseOf: "ll_19_yp1", confidence: "low" },
+  { id: "ll_19_yp2", gen: 19, father: "ll_18_y2", name: "紹智", pinyin: "Shaozhi", gender: "m", confidence: "low" },
+  { id: "ll_19_yp3", gen: 19, father: "ll_18_y2", name: "紹信", pinyin: "Shaoxin", gender: "m", confidence: "low" },
+
+  // Gen 19 (起通's sons)
+  { id: "ll_19_ct1", gen: 19, father: "ll_18_c2", name: "紹現", pinyin: "Shaoxian", gender: "m", confidence: "low" },
+  { id: "ll_19_ct2", gen: 19, father: "ll_18_c2", name: "紹珍", pinyin: "Shaozhen", gender: "m", confidence: "low" },
+  { id: "ll_19_ct2w", gen: 19, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_19_ct2", confidence: "low" },
+  { id: "ll_19_ct3", gen: 19, father: "ll_18_c2", name: "紹璔", pinyin: "Shaozeng", gender: "m", note: "國學名耀宗號榮祖. 此公子孫有奉耶穌教者 (Descendants include Christians).", confidence: "low" },
+  { id: "ll_19_ct3w1", gen: 19, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "ll_19_ct3", confidence: "low" },
+
+  // Gen 20 (紹富's sons)
+  { id: "ll_20_sf1", gen: 20, father: "ll_19_qh1", name: "承文", pinyin: "Chengwen", gender: "m", confidence: "low" },
+  { id: "ll_20_sf1w", gen: 20, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_20_sf1", confidence: "low" },
+  { id: "ll_20_sf2", gen: 20, father: "ll_19_qh1", name: "承行", pinyin: "Chengxing", gender: "m", confidence: "low" },
+  { id: "ll_20_sf3", gen: 20, father: "ll_19_qh1", name: "承忠", pinyin: "Chengzhong", gender: "m", confidence: "low" },
+  { id: "ll_20_sf4", gen: 20, father: "ll_19_qh1", name: "承信", pinyin: "Chengxin", gender: "m", confidence: "low" },
+  { id: "ll_20_sf4w1", gen: 20, name: "羅氏", pinyin: "Madam Luo", gender: "f", spouseOf: "ll_20_sf4", confidence: "low" },
+  { id: "ll_20_sf4w2", gen: 20, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "ll_20_sf4", confidence: "low" },
+
+  // Gen 20 (紹廷's sons)
+  { id: "ll_20_st1", gen: 20, father: "ll_19_qh3", name: "承元", pinyin: "Chengyuan", gender: "m", confidence: "low" },
+  { id: "ll_20_st1w", gen: 20, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_20_st1", confidence: "low" },
+  { id: "ll_20_st2", gen: 20, father: "ll_19_qh3", name: "承亨", pinyin: "Chengheng", gender: "m", confidence: "low" },
+  { id: "ll_20_st2w", gen: 20, name: "黃氏", pinyin: "Madam Huang", gender: "f", spouseOf: "ll_20_st2", confidence: "low" },
+  { id: "ll_20_st3", gen: 20, father: "ll_19_qh3", name: "承端", pinyin: "Chengduan", gender: "m", confidence: "low" },
+  { id: "ll_20_st4", gen: 20, father: "ll_19_qh3", name: "承綉", pinyin: "Chengxiu", gender: "m", confidence: "low" },
+
+  // Gen 20 (紹基's sons)
+  { id: "ll_20_sj1", gen: 20, father: "ll_19_yc1", name: "承堯", pinyin: "Chengyao", gender: "m", confidence: "low" },
+  { id: "ll_20_sj1w", gen: 20, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_20_sj1", confidence: "low" },
+  { id: "ll_20_sj2", gen: 20, father: "ll_19_yc1", name: "承舜", pinyin: "Chengshun", gender: "m", note: "早逝", confidence: "low" },
+
+  // Gen 20 (紹寬's sons)
+  { id: "ll_20_sk1", gen: 20, father: "ll_19_yc2", name: "承浚", pinyin: "Chengjun", gender: "m", confidence: "low" },
+  { id: "ll_20_sk1w", gen: 20, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "ll_20_sk1", confidence: "low" },
+  { id: "ll_20_sk2", gen: 20, father: "ll_19_yc2", name: "承寵", pinyin: "Chengchong", gender: "m", confidence: "low" },
+  { id: "ll_20_sk2w", gen: 20, name: "鄧氏", pinyin: "Madam Deng", gender: "f", spouseOf: "ll_20_sk2", confidence: "low" },
+  { id: "ll_20_sk3", gen: 20, father: "ll_19_yc2", name: "承恩", pinyin: "Chengen", gender: "m", confidence: "low" },
+  { id: "ll_20_sk3w", gen: 20, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_20_sk3", confidence: "low" },
+  { id: "ll_20_sk4", gen: 20, father: "ll_19_yc2", name: "承添", pinyin: "Chengtian", gender: "m", confidence: "low" },
+
+  // Gen 20 (紹禮's sons)
+  { id: "ll_20_sl1", gen: 20, father: "ll_19_yp1", name: "承煒", pinyin: "Chengwei", gender: "m", confidence: "low" },
+  { id: "ll_20_sl2", gen: 20, father: "ll_19_yp1", name: "承裕", pinyin: "Chengyu", gender: "m", confidence: "low" },
+  { id: "ll_20_sl2w", gen: 20, name: "黎氏", pinyin: "Madam Li", gender: "f", spouseOf: "ll_20_sl2", confidence: "low" },
+  { id: "ll_20_sl3", gen: 20, father: "ll_19_yp1", name: "承聰", pinyin: "Chengcong", gender: "m", confidence: "low" },
+  { id: "ll_20_sl3w", gen: 20, name: "鄧氏", pinyin: "Madam Deng", gender: "f", spouseOf: "ll_20_sl3", confidence: "low" },
+
+  // Gen 20 (紹珍's sons)
+  { id: "ll_20_sz1", gen: 20, father: "ll_19_ct2", name: "承東", pinyin: "Chengdong", gender: "m", confidence: "low" },
+  { id: "ll_20_sz1w", gen: 20, name: "徐氏", pinyin: "Madam Xu", gender: "f", spouseOf: "ll_20_sz1", confidence: "low" },
+  { id: "ll_20_sz2", gen: 20, father: "ll_19_ct2", name: "承謙", pinyin: "Chengqian", gender: "m", confidence: "low" },
+
+  // Gen 20 (紹璔's sons)
+  { id: "ll_20_szeng1", gen: 20, father: "ll_19_ct3", name: "承發", pinyin: "Chengfa", gender: "m", confidence: "low" },
+  { id: "ll_20_szeng1w1", gen: 20, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "ll_20_szeng1", confidence: "low" },
+  { id: "ll_20_szeng1w2", gen: 20, name: "曾氏", pinyin: "Madam Zeng", gender: "f", spouseOf: "ll_20_szeng1", confidence: "low" },
+  { id: "ll_20_szeng2", gen: 20, father: "ll_19_ct3", name: "承波", pinyin: "Chengbo", gender: "m", confidence: "low" },
+  { id: "ll_20_szeng2w", gen: 20, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "ll_20_szeng2", confidence: "low" },
+  { id: "ll_20_szeng3", gen: 20, father: "ll_19_ct3", name: "承協", pinyin: "Chengxie", gender: "m", confidence: "low" },
+  { id: "ll_20_szeng3w", gen: 20, name: "吳氏", pinyin: "Madam Wu", gender: "f", spouseOf: "ll_20_szeng3", confidence: "low" },
+  { id: "ll_20_szeng4", gen: 20, father: "ll_19_ct3", name: "承晉", pinyin: "Chengjin", gender: "m", confidence: "low" },
+  { id: "ll_20_szeng4w1", gen: 20, name: "曾氏", pinyin: "Madam Zeng", gender: "f", spouseOf: "ll_20_szeng4", confidence: "low" },
+  { id: "ll_20_szeng4w2", gen: 20, name: "凌氏", pinyin: "Madam Ling", gender: "f", spouseOf: "ll_20_szeng4", confidence: "low" },
+  { id: "ll_20_szeng5", gen: 20, father: "ll_19_ct3", name: "承森", pinyin: "Chengsen", gender: "m", relation: "第五房", confidence: "low" },
+  { id: "ll_20_szeng5w", gen: 20, name: "鄔氏", pinyin: "Madam Wu", gender: "f", spouseOf: "ll_20_szeng5", confidence: "low" },
+
+  // Gen 21 (承文's sons)
+  { id: "ll_21_cw1", gen: 21, father: "ll_20_sf1", name: "士賢", pinyin: "Shixian", gender: "m", relation: "長子", confidence: "low" },
+  { id: "ll_21_cw1w", gen: 21, name: "姚氏", pinyin: "Madam Yao", gender: "f", spouseOf: "ll_21_cw1", confidence: "low" },
+  { id: "ll_21_cw2", gen: 21, father: "ll_20_sf1", name: "亞二", pinyin: "Ya'er", gender: "m", relation: "次子", note: "早喪", confidence: "low" },
+  { id: "ll_21_cw3", gen: 21, father: "ll_20_sf1", name: "士和", pinyin: "Shihe", gender: "m", relation: "三子", confidence: "low" },
+  { id: "ll_21_cw3w", gen: 21, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_21_cw3", confidence: "low" },
+  { id: "ll_21_cw4", gen: 21, father: "ll_20_sf1", name: "士業", pinyin: "Shiye", gender: "m", relation: "四子", confidence: "low" },
+  { id: "ll_21_cw4w", gen: 21, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "ll_21_cw4", confidence: "low" },
+  { id: "ll_21_cw5", gen: 21, father: "ll_20_sf1", name: "士釗", pinyin: "Shizhao", gender: "m", relation: "五子", confidence: "low" },
+  { id: "ll_21_cw5w", gen: 21, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "ll_21_cw5", note: "早喪無嗣妻適人", confidence: "low" },
+  { id: "ll_21_cw6", gen: 21, father: "ll_20_sf1", name: "士欽", pinyin: "Shiqin", gender: "m", relation: "六子", confidence: "low" },
+  { id: "ll_21_cw6w", gen: 21, name: "梁氏", pinyin: "Madam Liang", gender: "f", spouseOf: "ll_21_cw6", note: "早喪無嗣妻適人", confidence: "low" },
+  { id: "ll_21_cw7", gen: 21, father: "ll_20_sf1", name: "士粦", pinyin: "Shilin", gender: "m", relation: "七子", confidence: "low" },
+  { id: "ll_21_cw7w", gen: 21, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "ll_21_cw7", note: "往金山無回妻適人", confidence: "low" },
+
+  // Gen 21 (承信's sons)
+  { id: "ll_21_cx1", gen: 21, father: "ll_20_sf4", name: "士才", pinyin: "Shicai", gender: "m", confidence: "low" },
+  { id: "ll_21_cx2", gen: 21, father: "ll_20_sf4", name: "士發", pinyin: "Shifa", gender: "m", confidence: "low" },
+
+  // Gen 21 (承元's sons)
+  { id: "ll_21_cy1", gen: 21, father: "ll_20_st1", name: "士昌", pinyin: "Shichang", gender: "m", confidence: "low" },
+  { id: "ll_21_cy2", gen: 21, father: "ll_20_st1", name: "士成", pinyin: "Shicheng", gender: "m", confidence: "low" },
+
+  // Gen 21 (承亨's sons)
+  { id: "ll_21_ch1", gen: 21, father: "ll_20_st2", name: "士成", pinyin: "Shicheng", gender: "m", note: "Name duplicated with cousin", confidence: "low" },
+  { id: "ll_21_ch2", gen: 21, father: "ll_20_st2", name: "士哥", pinyin: "Shige", gender: "m", confidence: "low" },
+
+  // Gen 21 (承堯's sons)
+  { id: "ll_21_cyo1", gen: 21, father: "ll_20_sj1", name: "士楷", pinyin: "Shikai", gender: "m", confidence: "low" },
+  { id: "ll_21_cyo1w", gen: 21, name: "黃氏", pinyin: "Madam Huang", gender: "f", spouseOf: "ll_21_cyo1", confidence: "low" },
+  { id: "ll_21_cyo2", gen: 21, father: "ll_20_sj1", name: "士模", pinyin: "Shimo", gender: "m", confidence: "low" },
+  { id: "ll_21_cyo2w", gen: 21, name: "曾氏", pinyin: "Madam Zeng", gender: "f", spouseOf: "ll_21_cyo2", confidence: "low" },
+
+  // Gen 21 (承浚's sons)
+  { id: "ll_21_cj1", gen: 21, father: "ll_20_sk1", name: "亞運", pinyin: "Yayun", gender: "m", confidence: "low" },
+
+  // Gen 21 (承寵's sons)
+  { id: "ll_21_cc1", gen: 21, father: "ll_20_sk2", name: "家小", pinyin: "Jiaxiao", gender: "m", confidence: "low" },
+
+  // Gen 21 (承恩's sons)
+  { id: "ll_21_ce1", gen: 21, father: "ll_20_sk3", name: "木秀", pinyin: "Muxiu", gender: "m", confidence: "low" },
+
+  // Gen 21 (承裕's sons)
+  { id: "ll_21_cyu1", gen: 21, father: "ll_20_sl2", name: "士僯", pinyin: "Shilin", gender: "m", confidence: "low" },
+  { id: "ll_21_cyu1w", gen: 21, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "ll_21_cyu1", confidence: "low" },
+
+  // Gen 21 (承聰's sons)
+  { id: "ll_21_cco1", gen: 21, father: "ll_20_sl3", name: "士元", pinyin: "Shiyuan", gender: "m", confidence: "low" },
+
+  // Gen 21 (承東's sons)
+  { id: "ll_21_cd1", gen: 21, father: "ll_20_sz1", name: "士錦", pinyin: "Shijin", gender: "m", confidence: "low" },
+  { id: "ll_21_cd1w", gen: 21, name: "黃氏", pinyin: "Madam Huang", gender: "f", spouseOf: "ll_21_cd1", note: "通人 (remarried?)", confidence: "low" },
+  { id: "ll_21_cd2", gen: 21, father: "ll_20_sz1", name: "士鈺", pinyin: "Shiyu", gender: "m", confidence: "low" },
+  { id: "ll_21_cd2w", gen: 21, name: "劉氏", pinyin: "Madam Liu", gender: "f", spouseOf: "ll_21_cd2", confidence: "low" },
+  { id: "ll_21_cd3", gen: 21, father: "ll_20_sz1", name: "士鈞", pinyin: "Shijun", gender: "m", confidence: "low" },
+  { id: "ll_21_cd3w", gen: 21, name: "洪氏", pinyin: "Madam Hong", gender: "f", spouseOf: "ll_21_cd3", confidence: "low" },
+
+  // Gen 21 (承發's sons)
+  { id: "ll_21_cfa1", gen: 21, father: "ll_20_szeng1", name: "士茂", pinyin: "Shimao", gender: "m", note: "無嗣", confidence: "low" },
+  { id: "ll_21_cfa1w", gen: 21, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "ll_21_cfa1", note: "適人 (remarried)", confidence: "low" },
+  { id: "ll_21_cfa2", gen: 21, father: "ll_20_szeng1", name: "士盛", pinyin: "Shisheng", gender: "m", confidence: "low" },
+  { id: "ll_21_cfa2w1", gen: 21, name: "彭氏", pinyin: "Madam Peng", gender: "f", spouseOf: "ll_21_cfa2", note: "早喪", confidence: "low" },
+  { id: "ll_21_cfa2w2", gen: 21, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_21_cfa2", confidence: "low" },
+
+  // Gen 21 (承波's sons)
+  { id: "ll_21_cbo1", gen: 21, father: "ll_20_szeng2", name: "士榮", pinyin: "Shirong", gender: "m", confidence: "low" },
+  { id: "ll_21_cbo1w", gen: 21, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "ll_21_cbo1", confidence: "low" },
+  { id: "ll_21_cbo2", gen: 21, father: "ll_20_szeng2", name: "天佑", pinyin: "Tianyou", gender: "m", confidence: "low" },
+  { id: "ll_21_cbo2w", gen: 21, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_21_cbo2", confidence: "low" },
+
+  // Gen 21 (承協's sons)
+  { id: "ll_21_cxi1", gen: 21, father: "ll_20_szeng3", name: "士芳", pinyin: "Shifang", gender: "m", confidence: "low" },
+  { id: "ll_21_cxi1w", gen: 21, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "ll_21_cxi1", confidence: "low" },
+  { id: "ll_21_cxi2", gen: 21, father: "ll_20_szeng3", name: "士芬", pinyin: "Shifen", gender: "m", note: "早喪為虎所害", confidence: "low" },
+  { id: "ll_21_cxi3", gen: 21, father: "ll_20_szeng3", name: "士芹", pinyin: "Shiqin", gender: "m", confidence: "low" },
+  { id: "ll_21_cxi3w", gen: 21, name: "沈氏", pinyin: "Madam Shen", gender: "f", spouseOf: "ll_21_cxi3", confidence: "low" },
+
+  // Gen 21 (承晉's sons)
+  { id: "ll_21_cji1", gen: 21, father: "ll_20_szeng4", name: "天福", pinyin: "Tianfu", gender: "m", confidence: "low" },
+
+  // Gen 21 (承森's sons)
+  { id: "ll_21_cse1", gen: 21, father: "ll_20_szeng5", name: "成保", pinyin: "Chengbao", gender: "m", confidence: "low" },
+
+  // Gen 22 (士賢's sons)
+  { id: "ll_22_sx1", gen: 22, father: "ll_21_cw1", name: "國恭", pinyin: "Guogong", gender: "m", confidence: "low" },
+  { id: "ll_22_sx1w", gen: 22, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "ll_22_sx1", confidence: "low" },
+  { id: "ll_22_sx2", gen: 22, father: "ll_21_cw1", name: "榮瑞", pinyin: "Rongrui", gender: "m", confidence: "low" },
+
+  // Gen 22 (士楷's sons)
+  { id: "ll_22_sk1", gen: 22, father: "ll_21_cyo1", name: "國興", pinyin: "Guoxing", gender: "m", confidence: "low" },
+  { id: "ll_22_sk2", gen: 22, father: "ll_21_cyo1", name: "國麟", pinyin: "Guolin", gender: "m", confidence: "low" },
+  { id: "ll_22_sk3", gen: 22, father: "ll_21_cyo1", name: "國鳳", pinyin: "Guofeng", gender: "m", confidence: "low" },
+
+  // Gen 22 (士模's sons)
+  { id: "ll_22_sm1", gen: 22, father: "ll_21_cyo2", name: "國富", pinyin: "Guofu", gender: "m", confidence: "low" },
+
+  // Gen 22 (士榮's sons)
+  { id: "ll_22_sr1", gen: 22, father: "ll_21_cbo1", name: "恩賜", pinyin: "Enci", gender: "m", confidence: "low" },
+
+  // Gen 22 (天佑's sons)
+  { id: "ll_22_ty1", gen: 22, father: "ll_21_cbo2", name: "國安", pinyin: "Guoan", gender: "m", confidence: "low" },
+
+  // Gen 22 (士芳's sons)
+  { id: "ll_22_sf1", gen: 22, father: "ll_21_cxi1", name: "國君", pinyin: "Guojun", gender: "m", confidence: "low" },
+
+  // Gen 23 (國恭's sons)
+  { id: "ll_23_gg1", gen: 23, father: "ll_22_sx1", name: "亞二", pinyin: "Ya'er", gender: "m", note: "早喪", confidence: "low" },
+];
+
+
 window.LINEAGE = {
 
   generationPoem: {
@@ -90,6 +317,7 @@ window.LINEAGE = {
 
   // --- PERSONS --------------------------------------------------------------
   persons: [
+    ...ll_chaoyang,
 
     // ===== DEEP ANCESTRY (Gen 1–12) — pt1 pp.18–27 =====
     { id: "a01",  gen: 1, name: "江八郎", pinyin: "Baliang", style: "字文明", gender: "m", relation: "始祖 Founding ancestor", residencePlace: "p_shanghang", bio: "由寧化石壁移來上杭三坪鄉開基五業。所生三大房：長萬里、次萬戴、三萬頃。", confidence: "med" },

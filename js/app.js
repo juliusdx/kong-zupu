@@ -7,6 +7,7 @@
 
   let mapReady = false;
   let currentPersonId = null;
+  let currentPlaceId = null;
 
   /* ---- Overrides + Admin mode ---------------------------------------------
    * Admin mode is enabled with ?admin=1 in the URL (optionally gated by a
@@ -356,7 +357,7 @@
   function openPerson(id) {
     const p = personById(id);
     if (!p) return;
-    currentPersonId = id;
+    currentPersonId = id; currentPlaceId = null;
     const sp = Tree.spouseFor(id);
     const father = p.father ? personById(p.father) : null;
     const kids = LINEAGE.persons.filter(k => k.father === id && !k.spouseOf);
@@ -465,6 +466,7 @@
   function openPlace(id) {
     const pl = placeById(id);
     if (!pl) return;
+    currentPlaceId = id; currentPersonId = null;
     const T = I18N.t, me = Auth.state();
     const who = LINEAGE.persons.filter(pp => [pp.birthPlace,pp.burialPlace,pp.residencePlace].includes(pl.id));
     const rows = [];
@@ -619,11 +621,14 @@
       Contribute.build();
       buildAbout();
       refreshAdminBar();
-      Tree.setOptions({});   // refresh swim-lane / band labels to the new language
+      try { Tree.setOptions({}); }   // refresh swim-lane / band labels to the new language
+      catch (e) { console.warn("tree relabel skipped", e); }   // never let it block the map/drawer relabel
       updateVerifyCount();
+      if (window.MapView && MapView.relabel) MapView.relabel();   // rebuild map popups in the new language
       if ($("#verify-panel").classList.contains("open")) buildVerifyList();
       if ($("#view-review").classList.contains("active")) buildReview();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
+      if ($("#drawer").classList.contains("open") && currentPlaceId) openPlace(currentPlaceId);
     });
 
     $$(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
@@ -632,6 +637,8 @@
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });
     $("#toggle-pinyin").onchange = e => Tree.setOptions({ pinyin: e.target.checked });
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
+    // map layer filters (祖籍 / 遷居 / 墓 / 祠堂 / 教會墳場 / 沙巴)
+    $$(".layer-toggle").forEach(c => c.onchange = () => MapView.setLayer(c.dataset.group, c.checked));
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();
     $("#btn-verify").onclick = openVerify;

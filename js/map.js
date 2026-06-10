@@ -1,6 +1,7 @@
 /* Ancestral + diaspora map. MapLibre GL + free OSM raster tiles. */
 (function () {
   let map, built = false, ready = false, markers = [];
+  const layerVisible = {};   // group -> bool; undefined means visible. Persists across redraws.
   const COLORS = { origin:"#9e2b25", grave:"#5b3a1a", church_grave:"#b08833", diaspora:"#2d6b4f", residence:"#3d6b8e", hall:"#7a4fa3" };
 
   function init() {
@@ -16,7 +17,12 @@
       center: [113, 15], zoom: 3.2
     });
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.on("load", () => { ready = true; drawMigration(); drawPins(); fit(); });
+    // Draw on first ready. Listen to BOTH load and idle so a slow/blocked tile
+    // server (e.g. behind the Great Firewall) can't stop pins from appearing —
+    // the inline style loads regardless of tiles.
+    const onReady = () => { if (ready) return; ready = true; drawMigration(); drawPins(); fit(); };
+    map.on("load", onReady);
+    map.once("idle", onReady);
   }
 
   function drawMigration() {
@@ -46,6 +52,7 @@
       const elc = document.createElement("div");
       elc.style.cssText = `width:16px;height:16px;border-radius:50%;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4);background:${COLORS[pl.type]||"#555"}`;
       elc.dataset.group = pl.type;
+      if (layerVisible[pl.type] === false) elc.style.display = "none";   // keep filter state across redraws
       const who = LINEAGE.persons.filter(pp => [pp.birthPlace,pp.burialPlace,pp.residencePlace].includes(pl.id));
       const T = k => (window.I18N ? I18N.t(k) : k);
       const html = `<div class="map-pin"><h4>${pl.name}</h4>
@@ -71,12 +78,17 @@
   }
 
   function setLayer(group, visible) {
+    layerVisible[group] = visible;
     markers.filter(m => m.group === group).forEach(m => m.el.style.display = visible ? "" : "none");
   }
   function clearPins() { markers.forEach(m => m.marker.remove()); markers = []; }
   function refresh() {            // redraw pins after live data merges new places
     if (!built) return;
     clearPins(); drawPins(); fit();
+  }
+  function relabel() {            // rebuild popups in the current language (no refit)
+    if (!built || !markers.length) return;
+    clearPins(); drawPins();
   }
   function fit() {
     const b = new maplibregl.LngLatBounds();
@@ -135,9 +147,11 @@
         saveBtn.onclick = () => { const ll = marker.getLngLat(); cleanup(); resolve({ lat: ll.lat, lng: ll.lng }); };
         banner.querySelector(".pick-cancel").onclick = () => { cleanup(); resolve(null); };
       };
-      if (ready) start(); else map.once("load", start);
+      // start() only flies/drops a marker/listens for clicks — none of which need
+      // the style fully loaded — so run it as soon as the map object exists.
+      start();
     });
   }
 
-  window.MapView = { init, setLayer, refresh, pickLocation };
+  window.MapView = { init, setLayer, refresh, relabel, pickLocation };
 })();

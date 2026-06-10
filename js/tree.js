@@ -102,7 +102,7 @@
 
     // links
     const linkGen = d3.linkVertical().x(d => d.x).y(d => d.y);
-    const link = gLinks.selectAll("path.link").data(links, d => d.target.data.id);
+    const link = gLinks.selectAll("path.link").data(links, d => (d && d.target) ? d.target.data.id : null);
     link.enter().append("path").attr("class", "link").merge(link)
       .attr("d", d => linkGen({ source: { x: d.source.x, y: d.source.y + NODE_H/2 }, target: { x: d.target.x, y: d.target.y - NODE_H/2 } }));
     link.exit().remove();

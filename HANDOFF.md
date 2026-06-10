@@ -10,8 +10,8 @@ app-building history. Everything below is current as of this handoff.
 
 - The app is **built and deployed** (GitHub Pages + Supabase). The only file you edit to
   add people is **`data/lineage.js`** (the `persons` array on `window.LINEAGE`).
-- The tree currently has **177 people** (direct spine gens 1–26 + collateral cousins).
-  0 broken links, 0 duplicates. ~149 are flagged `confidence:"low"` (⚠) for verification.
+- The tree currently has **467 people** (direct spine + collateral cousins + Sabah branch + Lilang branch + 7/8/9房).
+  0 broken links, 0 duplicates. ~433 are flagged `confidence:"low"` (⚠) for verification.
 - Remaining work is **adding more named people from the book**, flagged low, with correct
   `father` links — then validate, then `git push` (auto-deploys).
 - Relatives can also verify/add through the live app (⚠ "To verify" filter + Contribute
@@ -104,23 +104,19 @@ label, and add a `note` if they conflict. The tree positions by depth, so gen ga
 - **pt1 pp.1–3** — master 世系 charts (authoritative topology; cross-check against these).
 - **pt1 pp.4–12** — preface essays / 源流 / 祠堂對聯 (prose; few discrete entries).
 - **pt1 pp.18–27** — deep ancestry gens 1–12 (the direct chain + a few siblings).
-- **pt2 pp.48–58** — 八房 起清公 + 九房 起瀨公 houses → `n8_*`, `n9_*`.
+- **pt2 pp.48–58** — 七房, 八房, 九房 (n7_*, n8_*, n9_*) houses are done.
 - **pt2 pp.60–69** — 起瀾公 五大房 (通漢/通澤/紹淮/紹淡 + 紹泗 direct) → `f5_*`; confirmed the
   Sabah generations (永/俊/耀/其/漢, the `k_*` ids) are already richly captured.
+- **pt2 pp.70–84** — Sabah generations swept for missing descendants and missing siblings.
+- **Shenzhen / Lilang Branch** — (ll_*) fully mapped from 朝陽.
+- **Sabah Branch Deep Connection** — Master tree Gen 14-18 accurately connected (`a15` 日輝, `a16` 朝滔, `a17` 龍見).
 
 ## What remains (priority order)
 
-1. **七房 cluster — pt2 pp.49–50.** Re-read pt2 **pp.44–50** to find the house-divider that
-   owns 承夏 / 承周 / 紹潇 / 承富 / 大成 / 大全 / 承貴 / 大參 / 大旭 (and their wives/children),
-   then attach them. Deferred to avoid a wrong parent.
-2. **Deep-ancestry siblings, gens 1–12 — pt1 pp.13–46.** Add the brothers/wives/children
+1. **Deep-ancestry siblings, gens 1–12 — pt1 pp.13–46.** Add the brothers/wives/children
    the direct chain skipped (e.g. 百八郎/百六郎, 六三郎=貴六, 千二郎=斌通, the 念X郎 gen-3 set,
    the 元-generation brothers 元珊/元玉/元珍, etc.). Cross-check the pt1 charts.
-3. **李朗 / Shenzhen branch.** The sibling line that split at the 朝 generation:
-   朝湧/朝鴻 → 龍 → 起 → 紹 → 承 → 士 → 國. Find its pages (scan pt1 & pt2 for the 李朗 section)
-   and add under a new `ll_*` prefix. NB: this is the OTHER branch, not the Sabah line.
-4. **Unread pt2 pages 1–47 and 70–84** — sweep for any remaining named houses; pp.70–84
-   continue the Sabah generations and may add more siblings to the `k_*` people.
+2. **Unread pt2 pages 1–47** — sweep for any remaining named houses, isolated branches, or stray cousins.
 
 ---
 
@@ -162,8 +158,7 @@ GitHub Actions auto-publishes to `https://juliusdx.github.io/kong-zupu/`.
 > generation-numbering seam, and what's left. The only file to edit is
 > `kong-zupu/data/lineage.js` (the `persons` array). Source scans are
 > `Kong_Family_book_pt1.pdf` and `Kong_Family_book_pt2.pdf` in the parent folder.
-> Start with task #1 in HANDOFF.md (the 七房 cluster, pt2 pp.44–50): read those pages,
-> find the house-divider, and add the people with correct `father` links, every name
+> Start with task #1 in HANDOFF.md (Deep-ancestry siblings, gens 1-12): cross-check pt1 pp.13-46 against the master charts on pt1 pp.1-3 and add the brothers/wives/children the direct chain skipped. Add the people with correct `father` links, every name
 > variant captured, all `confidence:"low"`. Validate with the integrity script in
 > HANDOFF.md (broken=0, dupes=0) before moving on. Work one branch at a time and tell me
 > the count after each.

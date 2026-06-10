@@ -1,6 +1,6 @@
 /* Ancestral + diaspora map. MapLibre GL + free OSM raster tiles. */
 (function () {
-  let map, built = false, markers = [];
+  let map, built = false, ready = false, markers = [];
   const COLORS = { origin:"#9e2b25", grave:"#5b3a1a", church_grave:"#b08833", diaspora:"#2d6b4f", residence:"#3d6b8e", hall:"#7a4fa3" };
 
   function init() {
@@ -16,7 +16,7 @@
       center: [113, 15], zoom: 3.2
     });
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.on("load", () => { drawMigration(); drawPins(); fit(); });
+    map.on("load", () => { ready = true; drawMigration(); drawPins(); fit(); });
   }
 
   function drawMigration() {
@@ -42,19 +42,29 @@
 
   function drawPins() {
     LINEAGE.places.forEach(pl => {
+      if (typeof pl.lng !== "number" || typeof pl.lat !== "number" || isNaN(pl.lng) || isNaN(pl.lat)) return;
       const elc = document.createElement("div");
       elc.style.cssText = `width:16px;height:16px;border-radius:50%;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4);background:${COLORS[pl.type]||"#555"}`;
       elc.dataset.group = pl.type;
       const who = LINEAGE.persons.filter(pp => [pp.birthPlace,pp.burialPlace,pp.residencePlace].includes(pl.id));
+      const T = k => (window.I18N ? I18N.t(k) : k);
       const html = `<div class="map-pin"><h4>${pl.name}</h4>
         <div>${pl.nameEn||""}</div>
-        ${pl.approximate?'<div class="approx">⚠ approx. location — needs exact GPS</div>':""}
-        ${pl.note?`<div style="margin-top:.4rem">${pl.note}</div>`:""}
-        ${who.length?`<div style="margin-top:.4rem;font-size:.72rem">Linked: ${who.map(w=>w.name).join("、")}</div>`:""}
+        ${pl.modern?`<div style="font-size:.72rem;color:#7a6a4e">${T("pl_modern")}: ${pl.modern}</div>`:""}
+        ${pl.approximate?`<div class="approx">⚠ ${T("pl_approx_warn")}</div>`:""}
+        ${who.length?`<div style="margin-top:.4rem;font-size:.72rem">${T("pl_linked")}: ${who.map(w=>w.name).join("、")}</div>`:""}
+        <div style="margin-top:.5rem"><a class="pin-details" data-place="${pl.id}" style="color:#3d6b8e;cursor:pointer;font-size:.78rem">${T("m_details")}</a></div>
       </div>`;
+      const popup = new maplibregl.Popup({ offset: 14 }).setHTML(html);
+      // The "Details & photos" link carries data-place; app.js's global handler
+      // opens the place drawer. We just dismiss the popup behind it.
+      popup.on("open", () => {
+        const a = popup.getElement().querySelector(".pin-details");
+        if (a) a.addEventListener("click", () => popup.remove());
+      });
       const m = new maplibregl.Marker({ element: elc })
         .setLngLat([pl.lng, pl.lat])
-        .setPopup(new maplibregl.Popup({ offset: 14 }).setHTML(html))
+        .setPopup(popup)
         .addTo(map);
       markers.push({ marker: m, group: pl.type, el: elc });
     });
@@ -70,9 +80,64 @@
   }
   function fit() {
     const b = new maplibregl.LngLatBounds();
-    LINEAGE.places.forEach(p => b.extend([p.lng, p.lat]));
-    map.fitBounds(b, { padding: 60, duration: 0 });
+    LINEAGE.places.forEach(p => {
+      if (typeof p.lng === "number" && typeof p.lat === "number" && !isNaN(p.lng) && !isNaN(p.lat)) {
+        b.extend([p.lng, p.lat]);
+      }
+    });
+    if (!b.isEmpty()) map.fitBounds(b, { padding: 60, duration: 0 });
   }
 
-  window.MapView = { init, setLayer, refresh };
+  /* Interactive pin-correction: let the visitor click/drag a marker to suggest
+     an exact GPS for `place`. Resolves to {lat,lng} on save, or null on cancel. */
+  function pickLocation(place) {
+    const T = k => (window.I18N ? I18N.t(k) : k);
+    return new Promise(resolve => {
+      init();
+      const start = () => {
+        // clear any stray banner from a prior, abandoned pick
+        document.querySelectorAll(".pick-banner").forEach(b => b.remove());
+        if (typeof place.lng === "number" && typeof place.lat === "number" && !isNaN(place.lng)) {
+          map.flyTo({ center: [place.lng, place.lat], zoom: Math.max(map.getZoom(), 11) });
+        }
+        map.getCanvas().style.cursor = "crosshair";
+        let marker = null;
+
+        const banner = document.createElement("div");
+        banner.className = "pick-banner";
+        banner.innerHTML =
+          `<div class="pick-msg"><span>${T("pick_hint")} <b>${place.name}</b></span>` +
+          `<span class="pick-sub">${T("pick_drag")}</span></div>` +
+          `<div class="pick-btns">` +
+          `<button class="pick-save" disabled>${T("pick_save")}</button>` +
+          `<button class="pick-cancel">${T("pick_cancel")}</button></div>`;
+        document.getElementById("map-canvas").appendChild(banner);
+        const saveBtn = banner.querySelector(".pick-save");
+
+        const onClick = e => {
+          const { lng, lat } = e.lngLat;
+          if (!marker) {
+            const el = document.createElement("div");
+            el.className = "pick-marker";
+            marker = new maplibregl.Marker({ element: el, draggable: true, anchor: "bottom" })
+              .setLngLat([lng, lat]).addTo(map);
+          } else marker.setLngLat([lng, lat]);
+          saveBtn.disabled = false;
+        };
+        map.on("click", onClick);
+
+        const cleanup = () => {
+          map.off("click", onClick);
+          map.getCanvas().style.cursor = "";
+          if (marker) marker.remove();
+          banner.remove();
+        };
+        saveBtn.onclick = () => { const ll = marker.getLngLat(); cleanup(); resolve({ lat: ll.lat, lng: ll.lng }); };
+        banner.querySelector(".pick-cancel").onclick = () => { cleanup(); resolve(null); };
+      };
+      if (ready) start(); else map.once("load", start);
+    });
+  }
+
+  window.MapView = { init, setLayer, refresh, pickLocation };
 })();

@@ -35,7 +35,7 @@
 // Branch tracing from Gen 16: 朝陽 (Chao Yang)
 // ==========================================
 const ll_chaoyang = [
-  { id: "ll_a16", gen: 16, father: "a15_riming", name: "朝陽", pinyin: "Chaoyang", gender: "m", note: "叔九公. 生于惠州永安下義龍舟寨 自康熙年間 始來新安李朗. 偕祖妣文太李氏開基五業. Often misread as 朝鴻 or 朝湧.", confidence: "med" },
+  { id: "ll_a16", gen: 16, father: "a15_riming", name: "朝陽", pinyin: "Chaoyang", gender: "m", birthPlace: "p_yongan", residencePlace: "p_lilang", note: "叔九公. 生于惠州永安下義龍舟寨 自康熙年間 始來新安李朗. 偕祖妣文太李氏開基五業. Often misread as 朝鴻 or 朝湧.", confidence: "med" },
   { id: "ll_a16_w1", gen: 16, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_a16", note: "壬戌生", confidence: "low" },
   
   // Gen 17
@@ -289,19 +289,21 @@ window.LINEAGE = {
   // --- PLACES ---------------------------------------------------------------
   places: [
     // origins & ancestral seats
-    { id: "p_ninghua",   type: "origin", name: "寧化石壁",            nameEn: "Ninghua Shibi, Fujian — Hakka dispersal point", lat: 26.253, lng: 116.766, approximate: true,  note: "始祖 八郎 migrated FROM here to 上杭." },
-    { id: "p_shanghang", type: "origin", name: "上杭 三坪鄉",          nameEn: "Sanping, Shanghang, Fujian", lat: 25.050, lng: 116.420, approximate: true,  note: "始祖 八郎 opened the estate (開基). Gen 1–3 buried here." },
-    { id: "p_yongding",  type: "origin", name: "永定 溪南里 烏坭坪",    nameEn: "Wunipping, Xinan, Yongding, Fujian", lat: 24.720, lng: 116.730, approximate: true,  note: "'桂花樹下' — gens 4–5+ born/buried; 賴氏(貴七公妻) buried here." },
-    { id: "p_zhangzhou", type: "residence", name: "汀州府",            nameEn: "Tingzhou (Changting), Fujian", lat: 25.842, lng: 116.360, approximate: true,  note: "原居 汀州府 before移 to Guangdong." },
+    { id: "p_ninghua",   type: "origin", name: "寧化石壁",            nameEn: "Ninghua Shibi, Fujian — Hakka dispersal point", modern: "福建三明寧化縣石壁鎮", lat: 26.3620, lng: 116.5500, approximate: false, confidence: "med", note: "始祖 八郎 migrated FROM here to 上杭. 客家祖地 / 公祠 at Shibi village, ~22km west of Ninghua town." },
+    { id: "p_shanghang", type: "origin", name: "上杭 三坪鄉",          nameEn: "Sanping, Shanghang, Fujian", modern: "福建龍岩上杭縣 (三坪為村級)", lat: 25.0497, lng: 116.4204, approximate: true,  confidence: "low", note: "始祖 八郎 opened the estate (開基). Gen 1–3 buried here. Coord is the Shanghang county seat — 三坪鄉 is a village within it, exact site to verify." },
+    { id: "p_yongding",  type: "origin", name: "永定 溪南里 烏坭坪",    nameEn: "Wunipping, Xinan, Yongding, Fujian", modern: "福建龍岩永定區 (溪南/下洋一帶)", lat: 24.6300, lng: 116.8300, approximate: true,  confidence: "low", note: "'桂花樹下' — gens 4–5+ born/buried; 賴氏(貴七公妻) buried here. 溪南里 is SE Yongding (下洋/湖坑) — village-level, verify." },
+    { id: "p_zhangzhou", type: "residence", name: "汀州府",            nameEn: "Tingzhou (Changting), Fujian", modern: "福建龍岩長汀縣", lat: 25.8333, lng: 116.3600, approximate: false, confidence: "high", note: "原居 汀州府 before移 to Guangdong. 汀州府治 = today's Changting county seat (note: id slug reads p_zhangzhou but this is 汀州/長汀, not 漳州)." },
     // Guangdong stops
-    { id: "p_yongan",    type: "residence", name: "惠州府 永安縣",      nameEn: "Yong'an (today Zijin), Heyuan, Guangdong", lat: 23.635, lng: 115.183, approximate: true,  note: "下義約; gens 8–10 born/buried (蛋家田, 羊屎坑)." },
-    { id: "p_haifeng",   type: "grave",   name: "海豐縣",              nameEn: "Haifeng, Shanwei, Guangdong", lat: 22.967, lng: 115.330, approximate: true,  note: "Gen 9 六郎公 & others buried here (海陽/海豐)." },
-    { id: "p_changle",   type: "origin",  name: "長樂 (今五華縣)",      nameEn: "Changle (now Wuhua), Meizhou, Guangdong", lat: 23.924, lng: 115.778, approximate: true,  note: "彰村 / 元坑 / 雙頭. Sabah branch's home county." },
-    { id: "p_zhangkeng", type: "residence", name: "東莞 樟坑徑",        nameEn: "Zhangkengjing (Dongguan/Shenzhen border)", lat: 22.690, lng: 114.030, approximate: true,  note: "Some gen-24 births '在東莞樟坑徑 / 長山口'." },
-    { id: "p_lilang",    type: "residence", name: "新安 李朗",          nameEn: "Lilang, today Shenzhen", lat: 22.650, lng: 114.120, approximate: true,  note: "朝鴻/朝湧 settled here early Qing (鹽田→李朗). 李朗 branch home; 江氏書室." },
-    { id: "p_zengcheng", type: "residence", name: "增城 / 廣府",        nameEn: "Zengcheng / Guangzhou prefecture", lat: 23.290, lng: 113.810, approximate: true,  note: "元珊/元珠 descendants moved here; met at 廣府 ancestral-rites gatherings." },
+    { id: "p_yongan",    type: "residence", name: "惠州府 永安縣",      nameEn: "Yong'an (today Zijin), Heyuan, Guangdong", modern: "廣東河源紫金縣", lat: 23.6353, lng: 115.1830, approximate: false, confidence: "high", note: "下義約; gens 8–10 born/buried (蛋家田, 羊屎坑). 永安縣 renamed 紫金縣 in 1914; coord is the Zijin county seat." },
+    { id: "p_haifeng",   type: "grave",   name: "海豐縣",              nameEn: "Haifeng, Shanwei, Guangdong", modern: "廣東汕尾海豐縣", lat: 22.9667, lng: 115.3300, approximate: false, confidence: "high", note: "Gen 9 六郎公 & others buried here (海陽/海豐). Coord is the Haifeng county seat (海城鎮)." },
+    { id: "p_changle",   type: "origin",  name: "長樂 (今五華縣)",      nameEn: "Changle (now Wuhua), Meizhou, Guangdong", modern: "廣東梅州五華縣", lat: 23.9240, lng: 115.7780, approximate: false, confidence: "high", note: "彰村 / 元坑 / 雙頭. Sabah branch's home county. 長樂縣 renamed 五華縣 in 1914; coord is the county seat (水寨鎮)." },
+    { id: "p_zhangkeng", type: "residence", name: "東莞 樟坑徑",        nameEn: "Zhangkengjing (Dongguan/Shenzhen border)", modern: "廣東深圳龍華區觀瀾樟坑徑", lat: 22.7300, lng: 114.0500, approximate: true,  confidence: "low", note: "Some gen-24 births '在東莞樟坑徑 / 長山口'. 樟坑徑 community in Guanlan/Longhua, Shenzhen — neighborhood estimate." },
+    { id: "p_lilang",    type: "residence", name: "新安 李朗",           nameEn: "Lilang, Xin'an (Shenzhen)", modern: "廣東深圳龍崗區布吉/坂田", lat: 22.628, lng: 114.130, approximate: false, note: "ll_* branch settlement. Origin of the Basel missionaries." },
+    { id: "p_zengcheng", type: "residence", name: "增城 / 廣府",         nameEn: "Zengcheng / Guangzhou", modern: "廣東廣州增城區", lat: 23.2906, lng: 113.8106, approximate: false, confidence: "high", note: "元珊/元珠 branch migrated here. Coord is the Zengcheng district seat (荔城街道)." },
     // graves of the direct upper line
     { id: "p_lilan",     type: "grave",   name: "浬蘭 石角 / 李蘭 花瓶嘴", nameEn: "Lilan Shijiao / Huapingzui (burial)", lat: 23.90, lng: 115.80, approximate: true,  note: "紹泗公 (gen 20) buried 石角; wife 鄭氏 & 承緒 buried 花瓶嘴. Near 長樂 — verify.", confidence: "low" },
+    { id: "p_dakeng",    type: "grave",     name: "大坑 圍背黃泥夾",       nameEn: "Dakeng (Weibei Huangnijia)", lat: 22.62, lng: 114.13, approximate: true, note: "Grave of 起瀾公." },
+    { id: "p_dalong",    type: "grave",     name: "大隆",                 nameEn: "Dalong", lat: 22.62, lng: 114.13, approximate: true, note: "Grave of 承業." },
     { id: "p_dahu",      type: "grave",   name: "大湖公嶺 聖會墳場",     nameEn: "Dahu Gongling — Basel Mission cemetery", lat: 23.90, lng: 115.80, approximate: true,  note: "承續公 & 梁氏(望福), buried at the 陰城 church ground. Exact plot to verify.", confidence: "low" },
     { id: "p_shuangtou", type: "church_grave", name: "雙頭聖教堂 / 大徑陰城", nameEn: "Shuangtou Holy Church / Dajing", lat: 23.91, lng: 115.82, approximate: true, note: "永宏 first buried here, later moved.", confidence: "low" },
     { id: "p_yincheng",  type: "church_grave", name: "陰城 教會墳場 (彰村)", nameEn: "Yincheng church cemetery, Changcun", lat: 23.92, lng: 115.79, approximate: true, note: "Several gen-23/24 members: '教會陰城立有石灰坟石碑記'.", confidence: "low" },
@@ -311,8 +313,8 @@ window.LINEAGE = {
     // diaspora — Sabah
     { id: "p_kudat",     type: "diaspora", name: "古達",               nameEn: "Kudat, Sabah, Malaysia", lat: 6.883, lng: 116.848, approximate: false, note: "'古達聖會義學堂' — Basel Mission Hakka settlement." },
     { id: "p_sandakan",  type: "diaspora", name: "山打根",             nameEn: "Sandakan, Sabah, Malaysia", lat: 5.840, lng: 118.118, approximate: false, note: "Gen-24/25 births & church." },
-    { id: "p_papar",     type: "diaspora", name: "吧巴 / 巴色堆山邑",    nameEn: "Papar, Sabah, Malaysia", lat: 5.733, lng: 115.933, approximate: true,  note: "Later-generation births.", confidence: "low" },
-    { id: "p_lianzhou",  type: "residence", name: "連州",              nameEn: "Lianzhou, Guangdong", lat: 24.783, lng: 112.383, approximate: true, note: "原籍連州 recorded for 有喬 (其昌)." }
+    { id: "p_papar",     type: "diaspora", name: "吧巴 / 巴色堆山邑",    nameEn: "Papar, Sabah, Malaysia", lat: 5.7333, lng: 115.9333, approximate: false,  note: "Later-generation births. Coord is Papar town centre.", confidence: "med" },
+    { id: "p_lianzhou",  type: "residence", name: "連州",              nameEn: "Lianzhou, Guangdong", modern: "廣東清遠連州市", lat: 24.7800, lng: 112.3800, approximate: false, confidence: "high", note: "原籍連州 recorded for 有喬 (其昌). Coord is the Lianzhou city seat (連州鎮)." }
   ],
 
   // --- PERSONS --------------------------------------------------------------
@@ -320,7 +322,7 @@ window.LINEAGE = {
     ...ll_chaoyang,
 
     // ===== DEEP ANCESTRY (Gen 1–12) — pt1 pp.18–27 =====
-    { id: "a01",  gen: 1, name: "江八郎", pinyin: "Baliang", style: "字文明", gender: "m", relation: "始祖 Founding ancestor", residencePlace: "p_shanghang", bio: "由寧化石壁移來上杭三坪鄉開基五業。所生三大房：長萬里、次萬戴、三萬頃。", confidence: "med" },
+    { id: "a01",  gen: 1, name: "江八郎", pinyin: "Baliang", style: "字文明", gender: "m", relation: "始祖 Founding ancestor", birthPlace: "p_ninghua", residencePlace: "p_shanghang", bio: "由寧化石壁移來上杭三坪鄉開基五業。所生三大房：長萬里、次萬戴、三萬頃。", confidence: "med" },
     { id: "a01w", gen: 1, name: "張一娘", pinyin: "Madam Zhang", gender: "f", spouseOf: "a01", burialPlace: "p_shanghang", note: "合塋福建上杭三坪鄉.", confidence: "med" },
 
     { id: "a02b", gen: 2, father: "a01", name: "江萬里", pinyin: "Wanli", style: "諱億 號古山", gender: "m", relation: "伯祖 (granduncle)", bio: "官授錦衣衛指揮使，亦授禮部尚書。(book links the line to the Song 江萬里 lineage)", confidence: "low" },
@@ -417,7 +419,7 @@ window.LINEAGE = {
       note: "Son of 日輝. Chart shows him fathering 龍見 and others. An annotation mentions descendants in Lilang." },
     { id: "a17", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世祖 (direct line)", confidence: "med",
       note: "Son of 朝滔. Wife 蕭氏. Chart shows him fathering 起瀾 and 9 other brothers." },
-    { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
+    { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
       note: "Named, well-attested ancestor — his entry (pt2) lists the 五大房, of which 紹泗公 is the direct Sabah-line father. This is the anchor that closes the 13–19 gap." },
     { id: "a18w", gen: 18, name: "涂氏", pinyin: "Madam Tu", gender: "f", spouseOf: "a18", confidence: "low", note: "元配; 續妣 何氏." },
 
@@ -430,7 +432,7 @@ window.LINEAGE = {
 
     // ===== Gen 21 — 承 generation (pt2 pp.66–67) =====
     { id: "k_chengxu",   gen: 21, father: "a20", name: "承緒",  pinyin: "Cheng Xu",  gender: "m", relation: "叔祖 (uncle of the line)", burialPlace: "p_lilan", note: "塋在土名 李蘭花瓶嘴.", confidence: "med" },
-    { id: "k_chengye",   gen: 21, father: "a20", name: "承業",  pinyin: "Cheng Ye",  gender: "m", relation: "叔祖", note: "塋在土名 大隆.", confidence: "med" },
+    { id: "k_chengye",   gen: 21, father: "a20", name: "承業",  pinyin: "Cheng Ye",  gender: "m", relation: "叔祖", burialPlace: "p_dalong", note: "塋在土名 大隆.", confidence: "med" },
     { id: "k_chengxu2",  gen: 21, father: "a20", name: "承續",  pinyin: "Cheng Xu",  gender: "m", relation: "二十一世祖 (direct line)", burialPlace: "p_dahu", confidence: "med" },
     { id: "k_liangshi",  gen: 21, name: "梁氏",  pinyin: "Madam Liang", ritualName: "望福", ritualPinyin: "Wangfu", gender: "f", spouseOf: "k_chengxu2", religion: "進巴色耶穌教 (Basel Mission)", birthYear: "壬寅年四月初八", deathYear: "甲子年", lifespan: "享壽八十三歲 (aged 83)", burialPlace: "p_dahu", confidence: "med" },
 
@@ -441,7 +443,7 @@ window.LINEAGE = {
 
     // ===== Gen 23 — 永 generation =====
     { id: "k_yazhao",    gen: 23, father: "k_daxin", name: "亞招",  pinyin: "Ya Zhao",  gender: "f", marriedOut: "嫁黃沙坑凌屋", confidence: "low" },
-    { id: "k_yonghong",  gen: 23, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十三世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。", burialPlace: "p_shuangtou", confidence: "med" },
+    { id: "k_yonghong",  gen: 23, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十三世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", residencePlace: "p_changle", burialPlace: "p_shuangtou", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。", confidence: "med" },
     { id: "k_yongren",   gen: 23, father: "k_daxin", name: "永仁",  pinyin: "Yong Ren", ritualName: "昌貴", hao: "任堂", gender: "m", relation: "二十三世叔", religion: "廣東巴色會長樂封為帮教書記職", confidence: "med" },
     { id: "k_yongchong", gen: 23, father: "k_daxin", name: "永崇",  pinyin: "Yong Chong", ritualName: "昌發", hao: "欽道", gender: "m", relation: "二十三世", religion: "洗禮名 昌發 號 欽道", note: "妣洪氏，以耀華為子 (adopted 耀華).", confidence: "med" },
     { id: "k_changxing", gen: 23, father: "k_daxin", name: "昌興",  pinyin: "Chang Xing", gender: "m", note: "早喪.", confidence: "low" },
@@ -472,7 +474,7 @@ window.LINEAGE = {
     { id: "k_yaozhen",   gen: 24, father: "k_yongren", name: "耀珍",  pinyin: "Yao Zhen", gender: "m", relation: "十子", birthYear: "光緒十九年癸巳六月二十日", birthPlace: "p_papar", confidence: "low" },
 
     // ===== Gen 25 — children of 俊明 (其/有) =====
-    { id: "k_luoying",   gen: 25, father: "k_junming", name: "珞英",  pinyin: "Luo Ying", gender: "f", relation: "長女", birthYear: "光緒二十五年己亥", birthPlace: "p_kudat", note: "生于永安駱坑教堂.", confidence: "low" },
+    { id: "k_luoying",   gen: 25, father: "k_junming", name: "珞英",  pinyin: "Luo Ying", gender: "f", relation: "長女", birthYear: "光緒二十五年己亥", birthPlace: "p_yongan", note: "生于永安駱坑教堂.", confidence: "low" },
     { id: "k_qizhen",    gen: 25, father: "k_junming", name: "其禎",  pinyin: "Qi Zhen", gender: "m", relation: "次子", birthYear: "光緒二十八年壬寅", birthPlace: "p_sandakan", confidence: "low" },
     { id: "k_qixiang",   gen: 25, father: "k_junming", name: "其祥",  pinyin: "Qi Xiang", gender: "m", relation: "三子", birthYear: "民國十年辛酉 (1921)", confidence: "low" },
     { id: "k_qichang",   gen: 25, father: "k_junming", name: "其昌",  pinyin: "Qi Chang", formalName: "有喬", gender: "m", relation: "四子 (direct line)", birthYear: "民國二年 (1913)", religion: "有喬 乳名 其昌", residencePlace: "p_lianzhou", note: "原籍連州.", confidence: "med" },

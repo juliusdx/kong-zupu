@@ -208,6 +208,75 @@
         };
         const { error: plErr } = await sb.from("places").upsert(place);
         if (plErr) throw plErr;
+
+        // Link the place to the related person if specified
+        if (payload.relatedTo) {
+          let updateField = null;
+          if (payload.placeType === "grave" || payload.placeType === "church_grave") updateField = "burial_place";
+          else if (payload.placeType === "residence" || payload.placeType === "diaspora") updateField = "residence_place";
+          else if (payload.placeType === "origin") updateField = "birth_place";
+
+          if (updateField) {
+            const pObj = personById(payload.relatedTo);
+            if (pObj) {
+              const { data: upData, error: upErr } = await sb.from("persons")
+                .update({ [updateField]: place.id })
+                .eq("id", payload.relatedTo)
+                .select();
+              if (upErr) throw upErr;
+              if (!upData || upData.length === 0) {
+                // No live row exists, so insert one copying essential properties from memory
+                const fullRow = {
+                  id: payload.relatedTo,
+                  name: pObj.name,
+                  gen: pObj.gen,
+                  pinyin: pObj.pinyin,
+                  ritual_name: pObj.ritualName,
+                  formal_name: pObj.formalName,
+                  hao: pObj.hao,
+                  gender: pObj.gender,
+                  father_id: pObj.father,
+                  spouse_of: pObj.spouseOf,
+                  birth_year: pObj.birthYear,
+                  death_year: pObj.deathYear,
+                  lifespan: pObj.lifespan,
+                  religion: pObj.religion,
+                  relation: pObj.relation,
+                  bio: pObj.bio,
+                  birth_place: pObj.birthPlace,
+                  residence_place: pObj.residencePlace,
+                  burial_place: pObj.burialPlace,
+                  confidence: pObj.confidence,
+                  [updateField]: place.id
+                };
+                Object.keys(fullRow).forEach(k => fullRow[k] === undefined && delete fullRow[k]);
+                const { error: insErr } = await sb.from("persons").insert(fullRow);
+                if (insErr) throw insErr;
+              }
+            }
+          }
+        }
+      }
+      // On approve, apply a member's exact-GPS correction to an existing place.
+      if (status === "approved" && payload && payload.action === "update_place") {
+        const lat = parseFloat(payload.lat), lng = parseFloat(payload.lng);
+        if (!isFinite(lat) || !isFinite(lng))
+          throw new Error("This location correction has no valid latitude/longitude.");
+        const ex = placeById(payload.placeId);
+        // upsert handles both an existing live place (update coords) and a
+        // seed-only place that has no live row yet (insert, copying seed fields).
+        const place = {
+          id: payload.placeId,
+          type: (ex && ex.type) || payload.placeType || "residence",
+          name: (ex && ex.name) || payload.placeName || "(unnamed place)",
+          name_en: ex ? ex.nameEn : null,
+          lat, lng,
+          approximate: false,
+          note: ex ? ex.note : null,
+          visibility: "public"
+        };
+        const { error: plErr } = await sb.from("places").upsert(place);
+        if (plErr) throw plErr;
       }
       const { error } = await sb.from("contributions")
         .update({ status, reviewed_by: st.user.id }).eq("id", id);
@@ -219,6 +288,7 @@
 
   /* ---- Live data: merge Supabase rows on top of the static seed ----------- */
   let mediaByPerson = {};
+  let mediaByPlace = {};
   const camel = r => ({
     id: r.id, gen: r.gen, name: r.name, pinyin: r.pinyin,
     ritualName: r.ritual_name, formalName: r.formal_name, hao: r.hao,
@@ -247,27 +317,34 @@
       ]);
       (pl.data || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
       (pp.data || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
-      mediaByPerson = {};
-      (md.data || []).forEach(m => (mediaByPerson[m.person_id] = mediaByPerson[m.person_id] || []).push(m));
+      mediaByPerson = {}; mediaByPlace = {};
+      (md.data || []).forEach(m => {
+        if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);
+        else if (m.person_id) (mediaByPerson[m.person_id] = mediaByPerson[m.person_id] || []).push(m);
+      });
       Tree.render("#tree-canvas", openPerson);   // re-index + redraw with merged data
       if (window.MapView && MapView.refresh) MapView.refresh();
       updateVerifyCount();
     } catch (e) { console.warn("live data load failed", e); }
   }
 
-  async function uploadPhoto(personId, file) {
+  // Upload a photo attached to either a person (member tier) or a place (public).
+  async function uploadMedia(subject, file) {
     const sb = Auth.client(), st = Auth.state();
     if (!st.user) throw new Error("Sign in to add photos.");
+    const key = subject.placeId || subject.personId;
     const safe = file.name.replace(/[^\w.\-]/g, "_");
-    const path = personId + "/" + Date.now() + "_" + safe;
+    const path = (subject.placeId ? "places/" : "") + key + "/" + Date.now() + "_" + safe;
     const up = await sb.storage.from("photos").upload(path, file, { upsert: false });
     if (up.error) throw up.error;
     const url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
-    const ins = await sb.from("media").insert({
-      person_id: personId, url, uploaded_by: st.user.id, visibility: "member"
-    });
+    const row = subject.placeId
+      ? { place_id: subject.placeId, url, uploaded_by: st.user.id, visibility: "public" }
+      : { person_id: subject.personId, url, uploaded_by: st.user.id, visibility: "member" };
+    const ins = await sb.from("media").insert(row);
     if (ins.error) throw ins.error;
   }
+  const uploadPhoto = (personId, file) => uploadMedia({ personId }, file);
   async function approvePhoto(mediaId) {
     const sb = Auth.client();
     const { error } = await sb.from("media").update({ approved: true }).eq("id", mediaId);
@@ -382,6 +459,89 @@
     $("#drawer-scrim").classList.remove("open");
   }
 
+  /* ---- Place drawer (shares #drawer with the person drawer) ---------------- */
+  const PLACE_TYPE_KEY = { hall:"pt_hall", grave:"pt_grave", church_grave:"pt_church",
+    residence:"pt_residence", origin:"pt_origin", diaspora:"pt_diaspora" };
+  function openPlace(id) {
+    const pl = placeById(id);
+    if (!pl) return;
+    const T = I18N.t, me = Auth.state();
+    const who = LINEAGE.persons.filter(pp => [pp.birthPlace,pp.burialPlace,pp.residencePlace].includes(pl.id));
+    const rows = [];
+    const row = (k,v) => v ? rows.push(`<div class="row"><span class="k">${k}</span><span>${v}</span></div>`) : null;
+    row(T("pl_type"), T(PLACE_TYPE_KEY[pl.type] || pl.type));
+    if (pl.modern) row(T("pl_modern"), pl.modern);
+    if (who.length) row(T("pl_linked"), who.map(w=>`<a class="kin" data-go="${w.id}">${w.name}</a>`).join("、"));
+
+    const photos = mediaByPlace[pl.id] || [];
+    let photoHtml = "";
+    if (photos.length) {
+      photoHtml = `<div class="field-section">${T("pl_photos")}</div><div class="photo-grid">` +
+        photos.map(m => `<figure class="photo"><img src="${m.url}" alt="" loading="lazy">
+          ${!m.approved ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>` : ""}
+        </figure>`).join("") + `</div>`;
+    }
+
+    $("#drawer-body").innerHTML = `
+      <h2>${pl.name}</h2>
+      <div class="pin-name">${pl.nameEn || ""}</div>
+      <div>${pl.approximate
+        ? `<span class="badge low">${T("pl_approx_warn")}</span>`
+        : `<span class="badge verified">${T("pl_verified")}</span>`}</div>
+      ${pl.note ? `<div class="bio">${pl.note}</div>` : ""}
+      ${rows.join("")}
+      ${photoHtml}
+      <button class="action" id="place-pin">${T("pl_suggest_loc")}</button>
+      ${me.user ? `<button class="action" id="place-photo">${T("pl_addphoto")}</button><input type="file" id="place-file" accept="image/*" hidden>` : ""}
+      <button class="action" id="place-map">${T("pl_view_map")}</button>
+    `;
+    $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
+    if (me.isAdmin) $$("#drawer-body [data-approve-photo]").forEach(b =>
+      b.onclick = async () => { await approvePhoto(b.dataset.approvePhoto); openPlace(pl.id); });
+    $("#place-pin").onclick = () => suggestLocation(pl);
+    $("#place-map").onclick = () => { closeDrawer(); show("map"); };
+    if (me.user) {
+      $("#place-photo").onclick = () => $("#place-file").click();
+      $("#place-file").onchange = async e => {
+        const f = e.target.files[0]; if (!f) return;
+        const btn = $("#place-photo"); btn.textContent = T("d_uploading"); btn.disabled = true;
+        try { await uploadMedia({ placeId: pl.id }, f); await loadLiveData(); openPlace(pl.id); }
+        catch (err) { alert(T("d_uploadfail") + err.message); btn.textContent = T("pl_addphoto"); btn.disabled = false; }
+      };
+    }
+    $("#drawer").classList.add("open");
+    $("#drawer-scrim").classList.add("open");
+  }
+
+  /* Member suggests an exact GPS by dropping a pin on the map → review queue. */
+  async function suggestLocation(place) {
+    closeDrawer();
+    show("map");
+    const coords = await MapView.pickLocation(place);
+    if (!coords) return;
+    const payload = {
+      action: "update_place", placeId: place.id, placeName: place.name,
+      placeType: place.type, lat: coords.lat, lng: coords.lng,
+      submittedAt: new Date().toISOString(), status: "pending"
+    };
+    try {
+      if (Auth.LIVE && Auth.client()) {
+        const sb = Auth.client(), st = Auth.state();
+        const ins = { payload, status: "pending" };
+        if (st.user) ins.submitted_by = st.user.id;
+        const { error } = await sb.from("contributions").insert(ins);
+        if (error) throw error;
+      } else {
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `zupu-location-${Date.now()}.json`; a.click();
+        URL.revokeObjectURL(a.href);
+      }
+      alert(I18N.t("pick_thanks"));
+    } catch (e) { alert(I18N.t("pick_fail") + e.message); }
+  }
+
   /* ---- Needs-verification list ---- */
   function updateVerifyCount() {
     const n = LINEAGE.persons.filter(p => p.confidence === "low").length;
@@ -479,10 +639,10 @@
     updateVerifyCount();
     $("#search").addEventListener("keydown", e => { if (e.key === "Enter") search(e.target.value); });
 
-    // place links inside drawer
+    // place links (person drawer + map popups) open the place drawer
     document.addEventListener("click", e => {
       const a = e.target.closest("[data-place]");
-      if (a) { closeDrawer(); show("map"); }
+      if (a) { e.preventDefault(); openPlace(a.dataset.place); }
     });
     window.addEventListener("resize", () => { Tree.onResize(); });
 
@@ -491,5 +651,6 @@
   }
 
   window.openPerson = openPerson;
+  window.openPlace = openPlace;
   document.addEventListener("DOMContentLoaded", init);
 })();

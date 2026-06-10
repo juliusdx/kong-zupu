@@ -182,8 +182,22 @@ How it works after that:
   row (with the submitter's place type, name, and GPS) and the map redraws to show the new
   pin immediately. The Contribute form now has a **Place type** + **Place name** field for this.
 
-Still on the roadmap (say the word): member self-service contact info, linking a contributed
-pin to a specific person's grave/residence, and richer per-photo captions / cover-photo selection.
+- **Place detail drawer + member pin-correction.** Clicking any pin (or a birth/burial/
+  residence link in a person drawer) opens a **place drawer** showing the type, modern
+  location, linked people and photos. Anyone can hit **📍 Pin the exact location**, drop/drag
+  a marker on the map, and submit it — this lands in the Review queue as an `update_place`
+  contribution; approving it writes the new GPS to the `places` row and clears the *approx.*
+  flag. Coordinates in `data/lineage.js` are now split into **verified** (county/town seats,
+  Sabah towns, the 寧化石壁 Hakka site — `approximate:false`) vs **approximate** (village
+  graves/halls/origins — left for relatives to pin precisely). Each carries a `modern:` field
+  mapping the historical name to today's administrative location.
+
+- **Location photos.** Signed-in members can attach photos to a place (graves, 祠堂, churches)
+  from the place drawer — same pending→admin-approve moderation as person photos. **Requires
+  running `supabase/migration_v3.sql` once** (adds `place_id` to `media`).
+
+Still on the roadmap (say the word): member self-service contact info, and richer per-photo
+captions / cover-photo selection.
 
 ---
 

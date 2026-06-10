@@ -35,7 +35,7 @@
 // Branch tracing from Gen 16: 朝陽 (Chao Yang)
 // ==========================================
 const ll_chaoyang = [
-  { id: "ll_a16", gen: 16, name: "朝陽", pinyin: "Chaoyang", gender: "m", note: "叔九公. 生于惠州永安下義龍舟寨 自康熙年間 始來新安李朗. 偕祖妣文太李氏開基五業. Often misread as 朝鴻 or 朝湧.", confidence: "med" },
+  { id: "ll_a16", gen: 16, father: "a15_riming", name: "朝陽", pinyin: "Chaoyang", gender: "m", note: "叔九公. 生于惠州永安下義龍舟寨 自康熙年間 始來新安李朗. 偕祖妣文太李氏開基五業. Often misread as 朝鴻 or 朝湧.", confidence: "med" },
   { id: "ll_a16_w1", gen: 16, name: "溫氏", pinyin: "Madam Wen", gender: "f", spouseOf: "ll_a16", note: "壬戌生", confidence: "low" },
   
   // Gen 17
@@ -409,24 +409,14 @@ window.LINEAGE = {
       ] },
     { id: "a14", gen: 14, father: "a13", name: "道通公", pinyin: "Daotong", gender: "m", relation: "十四世 (道字輩)", confidence: "low",
       note: "道-generation; chart shows 道同 / 道通. 道通 carries the line down to the 日 generation." },
-    { id: "a15", gen: 15, father: "a14", name: "日標公", pinyin: "Ribiao", style: "字建章", gender: "m", relation: "十五世 (日字輩)", confidence: "low",
-      note: "日-generation; chart shows 日韓 / 日煌 / 日炟 / 日標 / 日嘉 …; 日標公 (字建章) is shown fathering the 朝 generation." },
-    { id: "a16", gen: 16, father: "a15", name: "（十六世 · 朝字輩）", pinyin: "Chao generation", gender: "m", relation: "十六世 (朝字輩 — individual unconfirmed)", confidence: "low",
-      note: "朝-generation brothers incl. 朝淵 / 朝洪 / 朝湧 / 朝鴻 (朝湧·朝鴻 settled 新安李朗 / today Shenzhen — a sibling branch). The Sabah line continues via a different 朝 brother who stayed near 長樂.",
-      candidates: [
-        { name: "朝淵公", pinyin: "Chaoyuan" },
-        { name: "朝洪公", pinyin: "Chaohong", note: "生一房，永安 (per chart)." },
-        { name: "朝淨公", pinyin: "Chaojing" },
-        { name: "朝泳公", pinyin: "Chaoyong", note: "生三房，永安 (per chart)." },
-        { name: "朝陽公", pinyin: "Chaoyang" },
-        { name: "朝湧公", pinyin: "Chaoyong", note: "⚠ settled 李朗 (Shenzhen) — the OTHER branch, likely NOT the Sabah line." },
-        { name: "朝鴻公", pinyin: "Chaohong", note: "⚠ settled 李朗 (Shenzhen) — the OTHER branch, likely NOT the Sabah line." }
-      ] },
-    { id: "a17", gen: 17, father: "a16", name: "（十七世 · 龍字輩）", pinyin: "Long generation", gender: "m", relation: "十七世 (龍字輩 — individual unconfirmed)", confidence: "low",
-      note: "龍-generation (chart shows 龍見 etc.); father of 起瀾公.",
-      candidates: [
-        { name: "龍見公", pinyin: "Longjian", note: "shown on chart; other 龍-generation brothers not yet transcribed." }
-      ] },
+    { id: "a15", gen: 15, father: "a14", name: "日輝公", pinyin: "Rihui", gender: "m", relation: "十五世祖 (direct line)", confidence: "med",
+      note: "Eldest son of 道通. Chart shows him fathering 朝滔." },
+    { id: "a15_riming", gen: 15, father: "a14", name: "日明公", pinyin: "Riming", gender: "m", relation: "十五世", confidence: "med",
+      note: "Son of 道通. Father of 朝陽 (Lilang branch ancestor)." },
+    { id: "a16", gen: 16, father: "a15", name: "江朝滔公", pinyin: "Chaotao", gender: "m", relation: "十六世祖 (direct line)", confidence: "med",
+      note: "Son of 日輝. Chart shows him fathering 龍見 and others. An annotation mentions descendants in Lilang." },
+    { id: "a17", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世祖 (direct line)", confidence: "med",
+      note: "Son of 朝滔. Wife 蕭氏. Chart shows him fathering 起瀾 and 9 other brothers." },
     { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
       note: "Named, well-attested ancestor — his entry (pt2) lists the 五大房, of which 紹泗公 is the direct Sabah-line father. This is the anchor that closes the 13–19 gap." },
     { id: "a18w", gen: 18, name: "涂氏", pinyin: "Madam Tu", gender: "f", spouseOf: "a18", confidence: "low", note: "元配; 續妣 何氏." },
@@ -471,6 +461,7 @@ window.LINEAGE = {
     // ===== Gen 24 — children of 永仁 (耀) =====
     { id: "k_qiongying", gen: 24, father: "k_yongren", name: "瓊英",  pinyin: "Qiong Ying", gender: "f", relation: "長女", birthYear: "同治十年辛未十二月十五日", marriedOut: "出嫁于樟坑徑陳必達", confidence: "low" },
     { id: "k_guien",     gen: 24, father: "k_yongren", name: "癸恩",  pinyin: "Gui En", gender: "m", relation: "次子", birthYear: "同治十二年癸酉十一月廿五日", confidence: "low" },
+    { id: "k_wushi",     gen: 24, name: "吳氏",  pinyin: "Madam Wu", ritualName: "求恩", ritualPinyin: "Qiu'en", gender: "f", spouseOf: "k_guien", confidence: "low" },
     { id: "k_yaoci",     gen: 24, father: "k_yongren", name: "耀慈",  pinyin: "Yao Ci",  gender: "m", relation: "三子", birthYear: "光緒二年丙子二月廿一日", birthPlace: "p_changle", confidence: "low" },
     { id: "k_yaoxiang",  gen: 24, father: "k_yongren", name: "耀祥",  pinyin: "Yao Xiang", gender: "m", relation: "五子", birthYear: "光緒六年庚辰五月十六日", birthPlace: "p_changle", confidence: "low" },
     { id: "k_yunying",   gen: 24, father: "k_yongren", name: "雲英",  pinyin: "Yun Ying", gender: "f", relation: "四女", birthYear: "光緒四年戊寅二月初九日", confidence: "low" },
@@ -488,7 +479,8 @@ window.LINEAGE = {
     { id: "k_qifang",    gen: 25, father: "k_junming", name: "其芳",  pinyin: "Qi Fang", formalName: "有梓", gender: "m", relation: "五子", religion: "有梓 乳名 其芳", confidence: "med" },
     { id: "k_qiqing",    gen: 25, father: "k_junming", name: "其清",  pinyin: "Qi Qing", gender: "m", relation: "六子", birthYear: "宣統元年己酉 (1909)", birthPlace: "p_sandakan", confidence: "low" },
     { id: "k_qiyong",    gen: 25, father: "k_junming", name: "其永",  pinyin: "Qi Yong", gender: "m", relation: "七子", confidence: "low" },
-    { id: "k_daoxi",     gen: 25, father: "k_junen", name: "道希",  pinyin: "Dao Xi",  gender: "m", relation: "長子", note: "早喪, 古達.", confidence: "low" },
+    { id: "k_daoxi",     gen: 25, father: "k_junen", name: "道希",  pinyin: "Dao Xi",  gender: "f", relation: "長女", note: "早喪, 古達.", confidence: "low" },
+    { id: "k_liying",    gen: 25, father: "k_junen", name: "麗英",  pinyin: "Li Ying", gender: "f", relation: "次女", confidence: "low" },
     { id: "k_daozhen",   gen: 25, father: "k_junen", name: "道珍",  pinyin: "Dao Zhen", gender: "m", relation: "三子", birthYear: "光緒廿九年癸卯", birthPlace: "p_kudat", confidence: "low" },
     { id: "k_xuaizhen",  gen: 25, name: "徐愛貞",  pinyin: "Xu Aizhen", gender: "f", spouseOf: "k_qichang", note: "民國八年 (1919) 結婚.", confidence: "low" },
     { id: "k_huangciying", gen: 25, name: "黃慈英", pinyin: "Huang Ciying", gender: "f", spouseOf: "k_qifang", confidence: "low" },

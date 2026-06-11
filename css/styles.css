@@ -284,6 +284,9 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .photo-ring.living{stroke:#c9a24a;stroke-width:2.6}
 .cam-badge{font-size:9px;pointer-events:none}
 .node-years{font-size:9px;fill:var(--ink-soft,#7a6a4e);pointer-events:none}
+.seam-flag{font-size:12px;font-weight:700;fill:var(--seal);cursor:help}
+.badge.seam{background:#f3e2df;color:#8a3a35;border:1px solid #d8a9a4}
+.seam-mark{color:var(--seal);font-weight:700}
 .photo .pending{position:absolute;left:0;right:0;bottom:0;background:rgba(43,33,24,.78);color:#f3e9d6;
   font-size:.62rem;text-align:center;padding:2px}
 .photo .pending button{font-size:.62rem;padding:1px 5px;border:none;border-radius:4px;background:#c9a24a;color:#2b2118;cursor:pointer}

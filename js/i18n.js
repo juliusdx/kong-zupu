@@ -68,6 +68,9 @@
       d_addphoto: "＋ Add a photo", d_uploading: "Uploading…", d_pending: "pending review",
       d_maxphotos: "Maximum 5 photos reached.",
       d_setcover: "Set as cover", d_cover: "★ Cover (on tree)",
+      d_seam_badge: "※ numbering seam",
+      d_seam: "Sits on the 1825 合譜 numbering seam — the book's 世 label and this app's generation differ by ~1 here. See About.",
+      seam_tip: "Generation-numbering seam (1825 合譜) — see the About tab",
       d_approve: "Approve", d_suggest: "Suggest a correction →", d_approx: " (approx.)",
       d_uploadfail: "Upload failed: ",
 
@@ -108,7 +111,9 @@
       ab_h_privacy: "Privacy",
       ab_privacy: "The lineage and ancestral sites are public. Photos and details of <i>living</i> members are shown only to signed-in family. Contact details are private. Minors are hidden by default, and anyone may ask to be removed.",
       ab_h_tech: "Technical",
-      ab_tech: "Static site (hostable free on GitHub Pages) + optional Supabase backend for accounts, uploads and moderation. See <code>README.md</code> and <code>supabase/schema.sql</code> in the repository."
+      ab_tech: "Static site (hostable free on GitHub Pages) + optional Supabase backend for accounts, uploads and moderation. See <code>README.md</code> and <code>supabase/schema.sql</code> in the repository.",
+      ab_h_seam: "About the generation numbers (1825 合譜 seam)",
+      ab_seam: "In 1825 (道光五年) the family merged two genealogies — an older <b>新安老族譜</b> (which began only about four generations back, from 賴氏 / 貴七公) was joined onto the deeper line down to the 始祖 <b>江八郎</b>. Splicing the two leaves a small <b>seam</b> around <b>起瀾公 (gen 18)</b> → his five sons <b>(gen 20)</b>, where one generation is absorbed in the merge — so the book's printed 世 label and this app's generation number can differ by about one in that region. The tree numbers everyone consistently and lays them out by parent–child links, so the gap is harmless. Affected ancestors are marked <span class=\"seam-mark\">※</span> on their card."
     },
 
     zh: {
@@ -174,6 +179,9 @@
       d_addphoto: "＋ 新增相片", d_uploading: "上載中…", d_pending: "待審核",
       d_maxphotos: "已達上限 5 張相片。",
       d_setcover: "設為主相片", d_cover: "★ 主相片（族譜顯示）",
+      d_seam_badge: "※ 世系接縫",
+      d_seam: "位於1825合譜世系接縫 — 此處族書「世」與本站世代編號相差約一代。詳見「關於」。",
+      seam_tip: "世系編號接縫（1825合譜）— 詳見「關於」頁",
       d_approve: "核准", d_suggest: "建議修正 →", d_approx: "（約）",
       d_uploadfail: "上載失敗：",
 
@@ -214,7 +222,9 @@
       ab_h_privacy: "私隱",
       ab_privacy: "世系與祖地公開可見。<i>在世</i>成員的相片與細節僅向已登入的家族成員顯示。聯絡方式為私密。未成年者預設隱藏，任何人亦可要求移除。",
       ab_h_tech: "技術",
-      ab_tech: "靜態網站（可免費託管於 GitHub Pages）＋ 可選用的 Supabase 後端，處理帳戶、上載與審核。詳見儲存庫中的 <code>README.md</code> 與 <code>supabase/schema.sql</code>。"
+      ab_tech: "靜態網站（可免費託管於 GitHub Pages）＋ 可選用的 Supabase 後端，處理帳戶、上載與審核。詳見儲存庫中的 <code>README.md</code> 與 <code>supabase/schema.sql</code>。",
+      ab_h_seam: "關於世代編號（1825 合譜接縫）",
+      ab_seam: "1825年（道光五年）家族合譜，將較淺的《<b>新安老族譜</b>》（僅上溯約四代，以賴氏／貴七公為始祖）接上更早、直達始祖<b>江八郎</b>的世系。兩譜相接處在<b>起瀾公（第18世）</b>→其五大房<b>（第20世）</b>一帶留下<b>接縫</b>，合併時吸收了一代，故此處族書印刷的「世」與本站世代編號相差約一代。本譜採一致編號並依父子關係排版，故跳號不影響族譜結構。受影響的祖先卡片標有 <span class=\"seam-mark\">※</span>。"
     }
   };
 

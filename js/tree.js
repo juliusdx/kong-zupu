@@ -170,6 +170,14 @@
     all.filter(d => d.data.candidates && d.data.candidates.length && !d.data._confirmed)
       .append("text").attr("class", "cand-flag").attr("x", NODE_W/2 - 13).attr("y", -NODE_H/2 + 17).text("⚑");
 
+    // 1825 合譜 generation-numbering seam marker (top-left ※)
+    all.selectAll(".seam-flag").remove();
+    all.filter(d => d.data.seam).each(function () {
+      d3.select(this).append("text").attr("class", "seam-flag")
+        .attr("x", -NODE_W / 2 + 11).attr("y", -NODE_H / 2 + 15).text("※")
+        .append("title").text(window.I18N ? I18N.t("seam_tip") : "seam");
+    });
+
     // node photo avatars — only nodes that have a main photo
     all.selectAll(".node-photo,.photo-ring,.cam-badge").remove();
     if (opts.photos) {

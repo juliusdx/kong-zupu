@@ -419,7 +419,7 @@ window.LINEAGE = {
       note: "Son of 日輝. Chart shows him fathering 龍見 and others. An annotation mentions descendants in Lilang." },
     { id: "a17", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世祖 (direct line)", confidence: "med",
       note: "Son of 朝滔. Wife 蕭氏. Chart shows him fathering 起瀾 and 9 other brothers." },
-    { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
+    { id: "a18", gen: 18, seam: true, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
       note: "Named, well-attested ancestor — his entry (pt2) lists the 五大房, of which 紹泗公 is the direct Sabah-line father. This is the anchor that closes the 13–19 gap." },
     { id: "a18w", gen: 18, name: "涂氏", pinyin: "Madam Tu", gender: "f", spouseOf: "a18", confidence: "low", note: "元配; 續妣 何氏." },
 
@@ -427,7 +427,7 @@ window.LINEAGE = {
     // NOTE: chart numbering would make 紹泗 gen 19 (起瀾18→紹泗19), but the per-person entries
     // label 承續 as 二十一世祖, which puts 紹泗 at gen 20. This ±1 seam comes from the 1825 (道光5年)
     // 合譜 that spliced the older 4-generation 新安老族譜 onto the deeper ancestry. Entry numbering kept.
-    { id: "a20",  gen: 20, father: "a18", name: "江紹泗公", pinyin: "Shaosi", gender: "m", relation: "考祖 (direct father of 承續)", burialPlace: "p_lilan", bio: "起瀾公第四房。生 承續、承緒、承業。墓在浬蘭石角。", confidence: "med", note: "起瀾18→紹泗20 spans the 1825 合譜 numbering seam (see note above) — one intermediate generation is absorbed in the merge." },
+    { id: "a20",  gen: 20, seam: true, father: "a18", name: "江紹泗公", pinyin: "Shaosi", gender: "m", relation: "考祖 (direct father of 承續)", burialPlace: "p_lilan", bio: "起瀾公第四房。生 承續、承緒、承業。墓在浬蘭石角。", confidence: "med", note: "起瀾18→紹泗20 spans the 1825 合譜 numbering seam (see note above) — one intermediate generation is absorbed in the merge." },
     { id: "a20w", gen: 20, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "a20", burialPlace: "p_lilan", note: "墓在李蘭花瓶嘴.", confidence: "med" },
 
     // ===== Gen 21 — 承 generation (pt2 pp.66–67) =====
@@ -594,7 +594,7 @@ window.LINEAGE = {
     // these 十九世 but kept at gen 20 to match the entry-numbered direct line (紹泗=20,
     // 承續=21) — same 1825 合譜 ±1 seam noted on a20. All confidence low.
     // — 長房 通漢公 —
-    { id: "f5_tonghan",  gen: 20, father: "a18", name: "通漢公", pinyin: "Tonghan", gender: "m", relation: "二十世 · 長房 (大伯祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_tonghan",  gen: 20, seam: true, father: "a18", name: "通漢公", pinyin: "Tonghan", gender: "m", relation: "二十世 · 長房 (大伯祖)", confidence: "low", note: "妣劉氏。" },
     { id: "f5_chengtong", gen: 21, father: "f5_tonghan", name: "承統公", pinyin: "Cheng Tong", gender: "m", relation: "二十一世", confidence: "low", note: "妣李氏。" },
     { id: "f5_dachang",  gen: 22, father: "f5_chengtong", name: "大昌公", pinyin: "Da Chang", formalName: "國學名 清輝", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
     { id: "f5_dakuan",   gen: 22, father: "f5_chengtong", name: "大寬公", pinyin: "Da Kuan", gender: "m", relation: "二十二世", confidence: "low", note: "妣廖氏。" },
@@ -606,7 +606,7 @@ window.LINEAGE = {
     { id: "f5_yonghui",  gen: 23, father: "f5_dakuan", name: "永輝", pinyin: "Yong Hui", gender: "m", relation: "二十三世", confidence: "low" },
     { id: "f5_jizhen",   gen: 24, father: "f5_yongji", name: "集珍", pinyin: "Ji Zhen", gender: "m", relation: "二十四世", confidence: "low" },
     // — 次房 通澤公 (一名通洋) —
-    { id: "f5_tongze",   gen: 20, father: "a18", name: "通澤公", pinyin: "Tongze", aka: "一名 通洋", gender: "m", relation: "二十世 · 次房 (二伯祖)", confidence: "low", note: "妣梁氏。以紹淮公次子承球公為継嗣。" },
+    { id: "f5_tongze",   gen: 20, seam: true, father: "a18", name: "通澤公", pinyin: "Tongze", aka: "一名 通洋", gender: "m", relation: "二十世 · 次房 (二伯祖)", confidence: "low", note: "妣梁氏。以紹淮公次子承球公為継嗣。" },
     { id: "f5_chengqiu", gen: 21, father: "f5_tongze", name: "承球公", pinyin: "Cheng Qiu", gender: "m", relation: "二十一世 (継嗣)", confidence: "low", note: "紹淮公次子，過繼通澤公為嗣。" },
     { id: "f5_daan",     gen: 22, father: "f5_chengqiu", name: "大安公", pinyin: "Da An", gender: "m", relation: "二十二世", confidence: "low", note: "妣林氏。" },
     { id: "f5_dachangB", gen: 23, father: "f5_daan", name: "大常公", pinyin: "Da Chang", gender: "m", relation: "二十三世", confidence: "low", note: "妣黃氏。" },
@@ -614,14 +614,14 @@ window.LINEAGE = {
     { id: "f5_yongfeng", gen: 24, father: "f5_dachangB", name: "永鳳", pinyin: "Yong Feng", gender: "m", relation: "二十四世", confidence: "low" },
     { id: "f5_yonghuang", gen: 24, father: "f5_dachangB", name: "永凰", pinyin: "Yong Huang", gender: "m", relation: "二十四世", confidence: "low" },
     // — 三房 紹淮公 —
-    { id: "f5_shaohuai", gen: 20, father: "a18", name: "紹淮公", pinyin: "Shaohuai", gender: "m", relation: "二十世 · 三房 (三伯祖)", confidence: "low", note: "妣曾氏。生承基、承球(過繼通澤)、承謀、承訓。" },
+    { id: "f5_shaohuai", gen: 20, seam: true, father: "a18", name: "紹淮公", pinyin: "Shaohuai", gender: "m", relation: "二十世 · 三房 (三伯祖)", confidence: "low", note: "妣曾氏。生承基、承球(過繼通澤)、承謀、承訓。" },
     { id: "f5_chengji",  gen: 21, father: "f5_shaohuai", name: "承基", pinyin: "Cheng Ji", gender: "m", relation: "二十一世", confidence: "low" },
     { id: "f5_chengmou", gen: 21, father: "f5_shaohuai", name: "承謀", pinyin: "Cheng Mou", gender: "m", relation: "二十一世", confidence: "low" },
     { id: "f5_chengxun", gen: 21, father: "f5_shaohuai", name: "承訓公", pinyin: "Cheng Xun", gender: "m", relation: "二十一世", confidence: "low", note: "妣劉氏。" },
     { id: "f5_dawen",    gen: 22, father: "f5_chengxun", name: "大文公", pinyin: "Da Wen", gender: "m", relation: "二十二世", confidence: "low", note: "妣宗氏。" },
     { id: "f5_jinfu",    gen: 23, father: "f5_dawen", name: "金福", pinyin: "Jin Fu", gender: "m", relation: "二十三世", confidence: "low" },
     // — 五房 紹淡公 —
-    { id: "f5_shaodan",  gen: 20, father: "a18", name: "紹淡公", pinyin: "Shaodan", gender: "m", relation: "二十世 · 五房 (五叔祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_shaodan",  gen: 20, seam: true, father: "a18", name: "紹淡公", pinyin: "Shaodan", gender: "m", relation: "二十世 · 五房 (五叔祖)", confidence: "low", note: "妣劉氏。" },
     { id: "f5_chengguo", gen: 21, father: "f5_shaodan", name: "承國公", pinyin: "Cheng Guo", gender: "m", relation: "二十一世", confidence: "low", note: "妣曾氏。" },
     { id: "f5_dake",     gen: 22, father: "f5_chengguo", name: "大可公", pinyin: "Da Ke", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
     { id: "f5_yongwei",  gen: 23, father: "f5_dake", name: "永威", pinyin: "Yong Wei", gender: "m", relation: "二十三世", confidence: "low", note: "妣張氏。" },

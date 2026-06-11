@@ -476,7 +476,9 @@
       <div>
         ${p.confidence === "low" ? `<span class="badge low">${T("d_badge_low")}</span>` : ""}
         ${p.religion ? '<span class="badge relig">巴色會 Basel Mission</span>' : ""}
+        ${p.seam ? `<span class="badge seam">${T("d_seam_badge")}</span>` : ""}
       </div>
+      ${p.seam ? `<p class="muted" style="margin:.4rem 0">${T("d_seam")}</p>` : ""}
       ${p.bio ? `<div class="bio">${p.bio}</div>` : ""}
       ${rows.join("")}
       ${candHtml}
@@ -716,6 +718,9 @@
 
       <h3>${T("ab_h_help")}</h3>
       <p>${T("ab_help")}</p>
+
+      <h3>${T("ab_h_seam")}</h3>
+      <p>${T("ab_seam")}</p>
 
       <h3>${T("ab_h_privacy")}</h3>
       <p>${T("ab_privacy")}</p>

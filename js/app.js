@@ -625,14 +625,78 @@
   function openVerify() { buildVerifyList(); $("#verify-panel").classList.add("open"); }
   function closeVerify() { $("#verify-panel").classList.remove("open"); }
 
-  /* ---- Search ---- */
-  function search(q) {
+  /* ---- Search (live autocomplete dropdown) ---- */
+  const SEARCH_FIELDS = ["name", "pinyin", "ritualName", "ritualPinyin", "style", "formalName", "hao", "milkName", "aka"];
+  const SEARCH_LIMIT = 20;
+  let searchMatches = [], searchActive = -1;
+
+  function searchHits(q) {
     q = q.trim().toLowerCase();
-    if (!q) return;
-    const allNames = p => [p.name, p.pinyin, p.ritualName, p.ritualPinyin, p.style,
-      p.formalName, p.hao, p.milkName, p.aka].filter(Boolean).join(" ").toLowerCase();
-    const hit = LINEAGE.persons.find(p => allNames(p).includes(q));
-    if (hit) { show("tree"); Tree.focus(hit.id); openPerson(hit.id); }
+    if (!q) return [];
+    const scored = [];
+    for (const p of LINEAGE.persons) {
+      let rank = 99;
+      for (const f of SEARCH_FIELDS) {
+        const v = p[f]; if (!v) continue;
+        const idx = String(v).toLowerCase().indexOf(q);
+        if (idx === 0) { rank = 0; break; }       // prefix match ranks first
+        if (idx > 0) rank = Math.min(rank, 1);    // substring match
+      }
+      if (rank < 99) scored.push({ p, rank });
+    }
+    scored.sort((a, b) => a.rank - b.rank || (a.p.gen || 0) - (b.p.gen || 0) || a.p.name.localeCompare(b.p.name));
+    return scored.map(s => s.p);
+  }
+  function hl(text, q) {
+    if (!text) return "";
+    const t = String(text), i = t.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return esc(t);
+    return esc(t.slice(0, i)) + "<mark>" + esc(t.slice(i, i + q.length)) + "</mark>" + esc(t.slice(i + q.length));
+  }
+  function renderSearch(raw) {
+    const box = $("#search-results"), q = raw.trim();
+    if (!q) { closeSearch(); return; }
+    const all = searchHits(q);
+    searchMatches = all.slice(0, SEARCH_LIMIT);
+    searchActive = -1;
+    $("#search").setAttribute("aria-expanded", "true");
+    if (!all.length) {
+      box.innerHTML = `<li class="sr-empty">${I18N.t("search_none")}</li>`;
+      box.classList.add("open"); return;
+    }
+    const ql = q.toLowerCase();
+    box.innerHTML = searchMatches.map((p, i) => {
+      const sub = [];
+      if (p.pinyin) sub.push(hl(p.pinyin, q));
+      ["ritualName", "style", "formalName", "hao", "milkName", "aka"].forEach(f => {
+        if (p[f] && String(p[f]).toLowerCase().includes(ql)) sub.push(hl(p[f], q));
+      });
+      const gen = p.gen != null ? "第" + p.gen + "世" : "";
+      const subTxt = sub.filter(Boolean).join(" · ");
+      return `<li role="option" data-id="${p.id}" data-i="${i}">
+        <span class="sr-name">${hl(p.name, q)}</span>
+        <span class="sr-sub">${subTxt ? subTxt + (gen ? " · " : "") : ""}${gen}</span></li>`;
+    }).join("") + (all.length > SEARCH_LIMIT ? `<li class="sr-more">+${all.length - SEARCH_LIMIT}${I18N.t("search_more")}</li>` : "");
+    box.classList.add("open");
+    box.querySelectorAll("li[data-id]").forEach(li => li.onclick = () => pickSearch(li.dataset.id));
+  }
+  function pickSearch(id) {
+    closeSearch();
+    $("#search").value = "";
+    show("tree"); Tree.focus(id); openPerson(id);
+  }
+  function closeSearch() {
+    const box = $("#search-results");
+    box.classList.remove("open"); box.innerHTML = "";
+    searchMatches = []; searchActive = -1;
+    $("#search").setAttribute("aria-expanded", "false");
+  }
+  function moveActive(delta) {
+    const items = $$("#search-results li[data-id]");
+    if (!items.length) return;
+    searchActive = (searchActive + delta + items.length) % items.length;
+    items.forEach((li, i) => li.classList.toggle("active", i === searchActive));
+    items[searchActive].scrollIntoView({ block: "nearest" });
   }
 
   /* ---- About ---- */
@@ -703,7 +767,19 @@
     $("#btn-verify").onclick = openVerify;
     $("#verify-close").onclick = closeVerify;
     updateVerifyCount();
-    $("#search").addEventListener("keydown", e => { if (e.key === "Enter") search(e.target.value); });
+    const sEl = $("#search");
+    sEl.addEventListener("input", e => renderSearch(e.target.value));
+    sEl.addEventListener("focus", e => { if (e.target.value.trim()) renderSearch(e.target.value); });
+    sEl.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { e.preventDefault(); moveActive(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); moveActive(-1); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        const pick = (searchActive >= 0 ? searchMatches[searchActive] : searchMatches[0]);
+        if (pick) pickSearch(pick.id);
+      } else if (e.key === "Escape") { closeSearch(); sEl.blur(); }
+    });
+    document.addEventListener("click", e => { if (!e.target.closest(".search-box")) closeSearch(); });
 
     // place links (person drawer + map popups) open the place drawer
     document.addEventListener("click", e => {

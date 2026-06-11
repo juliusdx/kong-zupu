@@ -7,7 +7,8 @@
       brand_tag: "The Kong Family Zupu · Hakka Christian lineage · 廣東 → 沙巴",
       tab_tree: "族譜 Tree", tab_map: "地圖 Map", tab_contribute: "貢獻 Contribute",
       tab_review: "審核 Review", tab_about: "關於 About",
-      search_ph: "Search name / 名…", auth_signin: "Sign in", auth_guest: "Guest",
+      search_ph: "Search name / 名…", search_none: "No matches", search_more: " more…",
+      auth_signin: "Sign in", auth_guest: "Guest",
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
@@ -114,7 +115,8 @@
       brand_tag: "江氏族譜 · 客家基督徒世系 · 廣東 → 沙巴",
       tab_tree: "族譜", tab_map: "地圖", tab_contribute: "貢獻",
       tab_review: "審核", tab_about: "關於",
-      search_ph: "搜尋姓名 / 名…", auth_signin: "登入", auth_guest: "訪客",
+      search_ph: "搜尋姓名 / 名…", search_none: "沒有相符", search_more: " 項…",
+      auth_signin: "登入", auth_guest: "訪客",
       auth_signout_confirm: "登出？", lang_switch: "EN",
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",

@@ -4,9 +4,11 @@
   const SPOUSE_W = 96, SP_GAP = 10;                 // spouse mini-card width + gap from main card
   const SPOUSE_DX = NODE_W / 2 + SP_GAP + SPOUSE_W / 2;   // spouse centre, fully right of main card
   const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
-  let svg, g, gLinks, gNodes, gBands, gSwim, zoom;
+  const HOME_DEPTH = 3;   // first-load view shows generations 1..HOME_DEPTH, deeper branches collapsed
+  let svg, g, gLinks, gNodes, gBands, gSwim, zoom, ro;
   let opts = { daughters: true, pinyin: true, swim: true, photos: true };
   let collapsed = new Set();
+  let firstRender = true;   // seed the legible "home" view only on the very first paint
   let onSelect = () => {};
 
   const byId = {};
@@ -20,6 +22,12 @@
   }
   function spouseFor(id) {
     return LINEAGE.persons.find(p => p.spouseOf === id);
+  }
+  // collapse every blood node deeper than HOME_DEPTH so the opening view is a
+  // legible 始祖 → Gen 3 tree the user can read and expand downward at will
+  function seedHomeCollapse() {
+    collapsed.clear();
+    bloodMembers().forEach(p => { if ((p.gen | 0) >= HOME_DEPTH) collapsed.add(p.id); });
   }
   // pull a 4-digit year out of a (possibly Chinese-era) date string; "" if none
   function yr(s) { const m = s && String(s).match(/\d{4}/); return m ? m[0] : null; }
@@ -78,6 +86,16 @@
     g = root;
     zoom = d3.zoom().scaleExtent([0.25, 2.2]).on("zoom", e => root.attr("transform", e.transform));
     svg.call(zoom);
+    // self-heal: if the canvas was laid out at 0×0 on first paint, fit() bails; refit
+    // the moment it gains a real size so the tree always appears
+    if (ro) ro.disconnect();
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(() => {
+        if (el.clientWidth && el.clientHeight && (+svg.attr("width") === 0 || +svg.attr("height") === 0)) fit();
+      });
+      ro.observe(el);
+    }
+    if (firstRender) { seedHomeCollapse(); firstRender = false; }
     update();
     setTimeout(fit, 60);
   }
@@ -227,12 +245,24 @@
     update();
   }
   function expandAll() { collapsed.clear(); update(); setTimeout(fit, 60); }
+  // reset to the legible opening view (始祖 → Gen 3), re-centred
+  function home() { seedHomeCollapse(); update(); setTimeout(fit, 60); }
+
+  // live container size — the svg's own width/height attributes can be frozen at 0
+  // if the first render happened before #tree-canvas was laid out (slow load / hidden
+  // tab); always measure the parent so fit/focus can self-heal once it gains a size.
+  function dims() {
+    const el = svg && svg.node().parentNode;
+    return el ? { W: el.clientWidth, H: el.clientHeight } : { W: 0, H: 0 };
+  }
 
   function fit() {
     if (!svg) return;
+    const { W, H } = dims();
+    if (!W || !H) return;                       // container not laid out yet — skip
+    svg.attr("width", W).attr("height", H);     // keep svg sized to its container
     const root = svg.select("g");
     const b = root.node().getBBox();
-    const W = svg.node().clientWidth, H = svg.node().clientHeight;
     const scale = Math.min(1.1, 0.92 / Math.max(b.width / W, b.height / H));
     const tx = W/2 - scale * (b.x + b.width/2);
     const ty = H/2 - scale * (b.y + b.height/2);
@@ -242,12 +272,14 @@
   function focus(id) {
     const node = gNodes.selectAll("g.node-card").filter(d => d.data && d.data.id === id).datum();
     if (!node) return;
-    const W = svg.node().clientWidth, H = svg.node().clientHeight, scale = 1.1;
+    const { W, H } = dims(), scale = 1.1;
+    if (!W || !H) return;
+    svg.attr("width", W).attr("height", H);
     svg.transition().duration(450).call(zoom.transform,
       d3.zoomIdentity.translate(W/2 - scale*node.x, H/2 - scale*node.y).scale(scale));
   }
 
   function setOptions(o) { Object.assign(opts, o); update(); }
 
-  window.Tree = { render, focus, setOptions, expandAll, fit, get: id => byId[id], spouseFor, onResize: () => { if (svg) fit(); } };
+  window.Tree = { render, focus, setOptions, expandAll, home, fit, get: id => byId[id], spouseFor, onResize: () => { if (svg) fit(); } };
 })();

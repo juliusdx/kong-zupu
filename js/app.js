@@ -81,7 +81,10 @@
     $$(".view").forEach(v => v.classList.remove("active"));
     $("#view-" + view).classList.add("active");
     if (view === "map") { MapView.init(); mapReady = true; }
-    if (view === "tree") setTimeout(() => Tree.fit(), 50);
+    if (view === "tree") {
+      setTimeout(() => Tree.fit(), 50);
+      if (currentPersonId) setTimeout(() => renderBreadcrumb(currentPersonId), 60); else hideBreadcrumb();
+    } else hideBreadcrumb();
     if (view === "review") buildReview();
   }
 
@@ -405,6 +408,7 @@
     const p = personById(id);
     if (!p) return;
     currentPersonId = id; currentPlaceId = null;
+    renderBreadcrumb(id);
     const sp = Tree.spouseFor(id);
     const father = p.father ? personById(p.father) : null;
     const kids = LINEAGE.persons.filter(k => k.father === id && !k.spouseOf);
@@ -523,6 +527,7 @@
     const pl = placeById(id);
     if (!pl) return;
     currentPlaceId = id; currentPersonId = null;
+    hideBreadcrumb();
     const T = I18N.t, me = Auth.state();
     const who = LINEAGE.persons.filter(pp => [pp.birthPlace,pp.burialPlace,pp.residencePlace].includes(pl.id));
     const rows = [];
@@ -730,6 +735,96 @@
     `;
   }
 
+  /* ---- "You are here" breadcrumb ---- */
+  // walk father links up to the 始祖; for a married-in spouse, anchor on the husband's
+  // line and append the spouse as the final crumb
+  function ancestorPath(id) {
+    let p = personById(id);
+    if (!p) return [];
+    let spouse = null;
+    if (p.spouseOf) { spouse = p; p = personById(p.spouseOf) || p; }
+    const chain = [], seen = new Set();
+    while (p && !seen.has(p.id)) { seen.add(p.id); chain.unshift(p); p = p.father ? personById(p.father) : null; }
+    return spouse ? chain.concat([spouse]) : chain;
+  }
+  function positionBreadcrumb() {
+    const bc = $("#tree-breadcrumb");
+    if (!bc || bc.hidden) return;
+    const c = $("#tree-canvas").getBoundingClientRect();
+    bc.style.top = (c.top + 10) + "px";
+    bc.style.left = (c.left + 16) + "px";
+    bc.style.maxWidth = (c.width - 32) + "px";
+  }
+  function hideBreadcrumb() { const bc = $("#tree-breadcrumb"); if (bc) bc.hidden = true; }
+  function renderBreadcrumb(id) {
+    const bc = $("#tree-breadcrumb");
+    const chain = ancestorPath(id);
+    if (!chain.length) { bc.hidden = true; return; }
+    const cur = chain[chain.length - 1];
+    const crumb = p => `<a class="bc-crumb${p.id === cur.id ? " bc-current" : ""}" data-go="${p.id}">${p.name}</a>`;
+    let parts;
+    if (chain.length > 5) {
+      // collapse the deep middle so the bar stays readable: 始祖 › … › last three
+      const mid = chain.slice(1, chain.length - 3).map(p => p.name).join(" › ");
+      parts = [crumb(chain[0]), `<span class="bc-more" title="${mid}">…</span>`].concat(chain.slice(-3).map(crumb));
+    } else {
+      parts = chain.map(crumb);
+    }
+    const genTxt = I18N.getLang() === "zh" ? ("第 " + cur.gen + " 世") : ("Gen " + cur.gen);
+    const sep = `<span class="bc-sep">›</span>`;
+    bc.innerHTML = `<span class="bc-label">${I18N.t("bc_here")}</span>${parts.join(sep)}<span class="bc-gen">· ${genTxt}</span>`;
+    bc.hidden = false;
+    positionBreadcrumb();
+    $$("#tree-breadcrumb [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
+  }
+
+  /* ---- First-run welcome card ---- */
+  const INTRO_SEEN_KEY = "zupu_seen_intro";
+  function buildIntro() {
+    if ($("#intro-card")) return;
+    const scrim = document.createElement("div");
+    scrim.id = "intro-scrim"; scrim.className = "intro-scrim";
+    const card = document.createElement("div");
+    card.id = "intro-card"; card.className = "intro-card";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+    card.innerHTML = `
+      <span class="intro-seal">江</span>
+      <h2 data-i18n="intro_title"></h2>
+      <p class="intro-sub" data-i18n="intro_sub"></p>
+      <ul class="intro-tips">
+        <li data-i18n-html="intro_tip_click"></li>
+        <li data-i18n-html="intro_tip_expand"></li>
+        <li data-i18n-html="intro_tip_search"></li>
+      </ul>
+      <div class="intro-actions">
+        <button class="primary" id="intro-start" data-i18n="intro_start"></button>
+        <button id="intro-expand" data-i18n="intro_expand"></button>
+        <button id="intro-skip" data-i18n="intro_skip"></button>
+      </div>`;
+    document.body.appendChild(scrim);
+    document.body.appendChild(card);
+    I18N.applyStatic(card);
+    $("#intro-start").onclick = () => { closeIntro(); Tree.home(); };
+    $("#intro-expand").onclick = () => { closeIntro(); Tree.expandAll(); };
+    $("#intro-skip").onclick = () => closeIntro();
+    scrim.onclick = () => closeIntro();
+    // keep the card legible if the user flips language while it is open
+    I18N.onChange(() => { if (card.classList.contains("open")) I18N.applyStatic(card); });
+  }
+  function maybeShowIntro() {
+    let seen = false;
+    try { seen = localStorage.getItem(INTRO_SEEN_KEY) === "1"; } catch (e) { /* ignore */ }
+    if (seen) return;
+    $("#intro-scrim").classList.add("open");
+    $("#intro-card").classList.add("open");
+  }
+  function closeIntro() {
+    $("#intro-scrim").classList.remove("open");
+    $("#intro-card").classList.remove("open");
+    try { localStorage.setItem(INTRO_SEEN_KEY, "1"); } catch (e) { /* ignore */ }
+  }
+
   /* ---- Init ---- */
   function init() {
     mergeCommittedOverrides();
@@ -737,7 +832,9 @@
     Tree.render("#tree-canvas", openPerson);
     Contribute.build();
     buildAbout();
+    buildIntro();
     refreshAdminBar();
+    maybeShowIntro();
 
     // language toggle + re-render dynamic UI on language change
     const langBtn = $("#lang-toggle");
@@ -756,6 +853,7 @@
       if ($("#view-review").classList.contains("active")) buildReview();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
       if ($("#drawer").classList.contains("open") && currentPlaceId) openPlace(currentPlaceId);
+      if (currentPersonId && !$("#tree-breadcrumb").hidden) renderBreadcrumb(currentPersonId);
     });
 
     $$(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
@@ -767,6 +865,7 @@
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     // map layer filters (祖籍 / 遷居 / 墓 / 祠堂 / 教會墳場 / 沙巴)
     $$(".layer-toggle").forEach(c => c.onchange = () => MapView.setLayer(c.dataset.group, c.checked));
+    $("#btn-home").onclick = () => { Tree.home(); hideBreadcrumb(); };
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();
     $("#btn-verify").onclick = openVerify;
@@ -801,7 +900,7 @@
       const thumb = e.target.closest(".photo img");
       if (thumb && thumb.src) { lbImg.src = thumb.src; lb.classList.add("open"); }
     });
-    window.addEventListener("resize", () => { Tree.onResize(); });
+    window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); });
 
     setupAuth();
     Auth.init().then(loadLiveData);

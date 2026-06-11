@@ -1,6 +1,6 @@
 /* Lineage tree — top-down, generation-banded, collapsible. D3 v7. */
 (function () {
-  const NODE_W = 132, NODE_H = 50, H_GAP = 26, V_GAP = 110;
+  const NODE_W = 132, NODE_H = 58, H_GAP = 26, V_GAP = 112;
   const SPOUSE_W = 96, SP_GAP = 10;                 // spouse mini-card width + gap from main card
   const SPOUSE_DX = NODE_W / 2 + SP_GAP + SPOUSE_W / 2;   // spouse centre, fully right of main card
   const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
@@ -29,6 +29,17 @@
     if (b) return "b." + b;
     if (d) return "d." + d;
     return "";
+  }
+  // top-of-card label: translate pure generation strings (二十一世 / 二十世祖) to
+  // "Gen N" in English; leave birth-order/role relations (五子, 長女, 始祖) as-is.
+  const GEN_STR = /^[〇零一二三四五六七八九十廿卅百]+世祖?$/;
+  function relLabel(p) {
+    const rel = p.relation;
+    if (rel && GEN_STR.test(rel.trim())) {
+      const en = window.I18N && I18N.getLang && I18N.getLang() === "en";
+      return en ? ("Gen " + (p.gen != null ? p.gen : "")) : rel;
+    }
+    return (rel && rel.length < 14) ? rel : "";
   }
 
   function buildHierarchy() {
@@ -151,7 +162,7 @@
       if (d.data.ritualName) s += (s ? " · " : "") + "禮名 " + d.data.ritualName;
       return s.length > 24 ? s.slice(0, 23) + "…" : s;   // spouse shown on its own card, not here
     });
-    all.select("text.node-gen").text(d => d.data.relation && d.data.relation.length < 14 ? d.data.relation : "");
+    all.select("text.node-gen").text(d => relLabel(d.data));
     all.select("text.node-years").text(d => yearStr(d.data));
 
     // candidate flag (unresolved placeholder generations)

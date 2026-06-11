@@ -11,15 +11,6 @@
       auth_signin: "Sign in", auth_guest: "Guest",
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
 
-      intro_title: "Welcome to the 江氏族譜",
-      intro_sub: "Thirty generations of the Kong (江) family — from 寧化石壁 in Fujian, through 廣東, to 沙巴.",
-      intro_tip_click: "<b>Click</b> any card to open that person's details, photos and places.",
-      intro_tip_expand: "Tap the <b>⊕</b> badge under a card to reveal that branch's children.",
-      intro_tip_search: "<b>Search</b> a name up top to jump straight to anyone.",
-      intro_start: "Start at the founder",
-      intro_expand: "Show the whole tree",
-      intro_skip: "Got it",
-
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
       tt_photos: "Photos",
       tt_home: "⌂ Home", tt_expand: "Expand all", tt_fit: "Fit", tt_swim: "Place · era lanes",
@@ -133,15 +124,6 @@
       search_ph: "搜尋姓名 / 名…", search_none: "沒有相符", search_more: " 項…",
       auth_signin: "登入", auth_guest: "訪客",
       auth_signout_confirm: "登出？", lang_switch: "EN",
-
-      intro_title: "歡迎來到江氏族譜",
-      intro_sub: "江氏家族三十世 — 自福建寧化石壁，歷廣東，遠至沙巴。",
-      intro_tip_click: "<b>點選</b>任何卡片，查看該人的詳情、相片與地點。",
-      intro_tip_expand: "點卡片下方的 <b>⊕</b> 標記，展開該支系的子女。",
-      intro_tip_search: "在上方<b>搜尋</b>姓名，即可直接跳至任何人。",
-      intro_start: "從始祖開始",
-      intro_expand: "顯示整個族譜",
-      intro_skip: "知道了",
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
       tt_photos: "相片",

@@ -778,7 +778,11 @@
     $$("#tree-breadcrumb [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
   }
 
-  /* ---- First-run welcome card ---- */
+  /* ---- Welcome card ----
+   * First-touch onboarding, so it is intentionally BILINGUAL (中文 + English shown
+   * together) rather than following the language toggle — a new visitor hasn't picked
+   * a language yet. Shows once automatically (localStorage), and is reopenable any time
+   * via the header "?" button. */
   const INTRO_SEEN_KEY = "zupu_seen_intro";
   function buildIntro() {
     if ($("#intro-card")) return;
@@ -789,35 +793,39 @@
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-modal", "true");
     card.innerHTML = `
+      <button id="intro-close" class="drawer-close" aria-label="Close">×</button>
       <span class="intro-seal">江</span>
-      <h2 data-i18n="intro_title"></h2>
-      <p class="intro-sub" data-i18n="intro_sub"></p>
+      <h2 class="intro-title">歡迎 · Welcome</h2>
+      <p class="intro-sub">
+        <span class="zh">江氏家族三十世 — 自福建寧化石壁，歷廣東，遠至沙巴。</span>
+        <span class="en">Thirty generations of the Kong (江) family — from 寧化石壁 in Fujian, through 廣東, to 沙巴.</span>
+      </p>
       <ul class="intro-tips">
-        <li data-i18n-html="intro_tip_click"></li>
-        <li data-i18n-html="intro_tip_expand"></li>
-        <li data-i18n-html="intro_tip_search"></li>
+        <li><span class="zh"><b>點選</b>任何卡片，查看該人的詳情、相片與地點。</span><span class="en"><b>Click</b> any card to open a person's details, photos and places.</span></li>
+        <li><span class="zh">點卡片下方的 <b>⊕</b> 標記，展開該支系的子女。</span><span class="en">Tap the <b>⊕</b> badge under a card to reveal that branch's children.</span></li>
+        <li><span class="zh">在上方<b>搜尋</b>姓名，即可直接跳至任何人。</span><span class="en"><b>Search</b> a name up top to jump straight to anyone.</span></li>
       </ul>
       <div class="intro-actions">
-        <button class="primary" id="intro-start" data-i18n="intro_start"></button>
-        <button id="intro-expand" data-i18n="intro_expand"></button>
-        <button id="intro-skip" data-i18n="intro_skip"></button>
+        <button class="primary" id="intro-start">從始祖開始 · Start at the founder</button>
+        <button id="intro-expand">顯示整個族譜 · Show whole tree</button>
+        <button id="intro-skip">知道了 · Got it</button>
       </div>`;
     document.body.appendChild(scrim);
     document.body.appendChild(card);
-    I18N.applyStatic(card);
     $("#intro-start").onclick = () => { closeIntro(); Tree.home(); };
     $("#intro-expand").onclick = () => { closeIntro(); Tree.expandAll(); };
     $("#intro-skip").onclick = () => closeIntro();
+    $("#intro-close").onclick = () => closeIntro();
     scrim.onclick = () => closeIntro();
-    // keep the card legible if the user flips language while it is open
-    I18N.onChange(() => { if (card.classList.contains("open")) I18N.applyStatic(card); });
+  }
+  function showIntro() {
+    $("#intro-scrim").classList.add("open");
+    $("#intro-card").classList.add("open");
   }
   function maybeShowIntro() {
     let seen = false;
     try { seen = localStorage.getItem(INTRO_SEEN_KEY) === "1"; } catch (e) { /* ignore */ }
-    if (seen) return;
-    $("#intro-scrim").classList.add("open");
-    $("#intro-card").classList.add("open");
+    if (!seen) showIntro();
   }
   function closeIntro() {
     $("#intro-scrim").classList.remove("open");
@@ -865,6 +873,7 @@
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     // map layer filters (祖籍 / 遷居 / 墓 / 祠堂 / 教會墳場 / 沙巴)
     $$(".layer-toggle").forEach(c => c.onchange = () => MapView.setLayer(c.dataset.group, c.checked));
+    $("#help-intro").onclick = () => showIntro();
     $("#btn-home").onclick = () => { Tree.home(); hideBreadcrumb(); };
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();

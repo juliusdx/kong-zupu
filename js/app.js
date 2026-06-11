@@ -323,15 +323,43 @@
         if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);
         else if (m.person_id) (mediaByPerson[m.person_id] = mediaByPerson[m.person_id] || []).push(m);
       });
-      // main photo per person → tree avatars (approved only; respects RLS visibility tiers)
+      // main photo per person → tree avatars (approved only; respects RLS visibility tiers).
+      // Use the chosen cover photo if set, otherwise the first approved one.
       LINEAGE.persons.forEach(p => {
         const ap = (mediaByPerson[p.id] || []).filter(m => m.approved);
-        if (ap.length) p.photo = ap[0].url; else delete p.photo;
+        const main = ap.find(m => m.cover) || ap[0];
+        if (main) p.photo = main.url; else delete p.photo;
       });
       Tree.render("#tree-canvas", openPerson);   // re-index + redraw with merged data
       if (window.MapView && MapView.refresh) MapView.refresh();
       updateVerifyCount();
     } catch (e) { console.warn("live data load failed", e); }
+  }
+
+  // Shrink/re-encode big photos in the browser before upload — saves bandwidth and
+  // storage, which matters a lot on slow mainland-China connections. EXIF-orientation
+  // aware via createImageBitmap; falls back to the original file if anything fails.
+  async function downscaleImage(file, maxDim = 1600, quality = 0.82) {
+    try {
+      if (!file.type || !file.type.startsWith("image/") || file.type === "image/gif") return file;
+      let bmp;
+      if (window.createImageBitmap) {
+        try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+        catch (e) { bmp = await createImageBitmap(file); }
+      } else {
+        const url = URL.createObjectURL(file);
+        bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      }
+      const w0 = bmp.width, h0 = bmp.height, big = Math.max(w0, h0);
+      if (big <= maxDim && file.size < 600 * 1024) return file;   // already small enough
+      const scale = Math.min(1, maxDim / big);
+      const w = Math.round(w0 * scale), h = Math.round(h0 * scale);
+      const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", quality));
+      if (!blob || blob.size >= file.size) return file;           // no win → keep original
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    } catch (e) { console.warn("downscale skipped", e); return file; }
   }
 
   // Upload a photo attached to either a person (member tier) or a place (public).
@@ -340,6 +368,7 @@
     if (!st.user) throw new Error("Sign in to add photos.");
     const existing = subject.placeId ? (mediaByPlace[subject.placeId] || []) : (mediaByPerson[subject.personId] || []);
     if (existing.length >= 5) throw new Error(I18N.t("d_maxphotos"));
+    file = await downscaleImage(file);
     const key = subject.placeId || subject.personId;
     const safe = file.name.replace(/[^\w.\-]/g, "_");
     const path = (subject.placeId ? "places/" : "") + key + "/" + Date.now() + "_" + safe;
@@ -358,6 +387,17 @@
     const { error } = await sb.from("media").update({ approved: true }).eq("id", mediaId);
     if (error) { alert("Failed: " + error.message); return; }
     await loadLiveData();
+  }
+  // Choose which approved photo is the tree avatar: clear siblings, set this one.
+  async function setCover(mediaId, personId) {
+    const sb = Auth.client();
+    try {
+      await sb.from("media").update({ cover: false }).eq("person_id", personId).neq("id", mediaId);
+      const { error } = await sb.from("media").update({ cover: true }).eq("id", mediaId);
+      if (error) throw error;
+      await loadLiveData();
+      openPerson(personId);
+    } catch (e) { alert(I18N.t("r_failed") + e.message); }
   }
 
   /* ---- Person drawer ---- */
@@ -416,9 +456,12 @@
     let photoHtml = "";
     if (photos.length) {
       photoHtml = `<div class="field-section">${T("d_photos")}</div><div class="photo-grid">` +
-        photos.map(m => `<figure class="photo">
+        photos.map(m => `<figure class="photo${m.cover ? " is-cover" : ""}">
           <img src="${m.url}" alt="" loading="lazy">
-          ${!m.approved ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>` : ""}
+          ${m.cover ? `<span class="cover-badge" title="${T("d_cover")}">★</span>` : ""}
+          ${!m.approved
+            ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>`
+            : (me.isAdmin && !m.cover ? `<figcaption class="setcover"><button data-cover="${m.id}">${T("d_setcover")}</button></figcaption>` : "")}
         </figure>`).join("") + `</div>`;
     }
     const atMax = photos.length >= 5;
@@ -457,6 +500,8 @@
     }
     if (me.isAdmin) $$("#drawer-body [data-approve-photo]").forEach(b =>
       b.onclick = async () => { await approvePhoto(b.dataset.approvePhoto); openPerson(p.id); });
+    if (me.isAdmin) $$("#drawer-body [data-cover]").forEach(b =>
+      b.onclick = () => setCover(b.dataset.cover, p.id));
     $("#drawer").classList.add("open");
     $("#drawer-scrim").classList.add("open");
   }

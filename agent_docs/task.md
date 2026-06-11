@@ -20,10 +20,18 @@
 - `[x]` 📷 camera badge on photo nodes; birth–death years on each card (4-digit year
         pulled from Chinese-era date strings)
 - `[x]` Toolbar "Photos" toggle to show/hide tree avatars (slow-connection friendly)
-- `[x]` app.js sets person.photo (first approved) before Tree.render
+- `[x]` app.js sets person.photo (cover if chosen, else first approved) before Tree.render
+
+# Phase 4 — cover photo + image downscaling
+- `[x]` media.cover flag (added to migration_v3.sql, idempotent — safe to re-run)
+- `[x]` Admin "Set as cover" control + ★ badge in person photo grid; setCover() clears
+        siblings then sets the chosen one; tree avatar uses cover, else first approved
+- `[x]` downscaleImage(): EXIF-aware (createImageBitmap) resize to ≤1600px + JPEG q0.82
+        in uploadMedia — cuts upload/storage bandwidth for mainland China
 
 ## Owner to-do
-- `[ ]` Run `supabase/migration_v3.sql` in Supabase SQL editor (enables place photos)
+- `[ ]` Run `supabase/migration_v3.sql` in Supabase SQL editor (place photos + cover flag;
+        idempotent — safe to re-run even if you already applied an earlier version)
 
 # Phase 1 (prior) — map pins
 - `[x]` Link approved `add_place` contribution to a person's birth/residence/burial

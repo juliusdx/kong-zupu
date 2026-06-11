@@ -26,6 +26,11 @@ alter table media add constraint media_subject_chk check (
 
 create index if not exists media_place_idx on media (place_id);
 
+-- ---- cover photo: one media row per subject can be flagged as the "cover" — the
+--      photo shown as the tree avatar. The app unsets siblings when a new cover is
+--      chosen. Safe to re-run this file if you already applied it.
+alter table media add column if not exists cover boolean not null default false;
+
 -- ---- RLS: existing media policies already gate by approved/visibility/owner/
 --      admin and are subject-agnostic, so they cover place photos unchanged.
 --      (media_read / media_insert / media_update / media_delete from v2.)

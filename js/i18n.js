@@ -66,6 +66,7 @@
       d_setcorrect: "Set as correct →", d_photos: "相片 · Photos",
       d_addphoto: "＋ Add a photo", d_uploading: "Uploading…", d_pending: "pending review",
       d_maxphotos: "Maximum 5 photos reached.",
+      d_setcover: "Set as cover", d_cover: "★ Cover (on tree)",
       d_approve: "Approve", d_suggest: "Suggest a correction →", d_approx: " (approx.)",
       d_uploadfail: "Upload failed: ",
 
@@ -170,6 +171,7 @@
       d_setcorrect: "設為正確 →", d_photos: "相片",
       d_addphoto: "＋ 新增相片", d_uploading: "上載中…", d_pending: "待審核",
       d_maxphotos: "已達上限 5 張相片。",
+      d_setcover: "設為主相片", d_cover: "★ 主相片（族譜顯示）",
       d_approve: "核准", d_suggest: "建議修正 →", d_approx: "（約）",
       d_uploadfail: "上載失敗：",
 

@@ -1,6 +1,8 @@
 /* Lineage tree — top-down, generation-banded, collapsible. D3 v7. */
 (function () {
-  const NODE_W = 132, NODE_H = 50, H_GAP = 26, V_GAP = 110, SPOUSE_DX = 92;
+  const NODE_W = 132, NODE_H = 50, H_GAP = 26, V_GAP = 110;
+  const SPOUSE_W = 96, SP_GAP = 10;                 // spouse mini-card width + gap from main card
+  const SPOUSE_DX = NODE_W / 2 + SP_GAP + SPOUSE_W / 2;   // spouse centre, fully right of main card
   const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
   let svg, g, gLinks, gNodes, gBands, gSwim, zoom;
   let opts = { daughters: true, pinyin: true, swim: true, photos: true };
@@ -71,7 +73,16 @@
 
   function update() {
     const hier = buildHierarchy();
-    const layout = d3.tree().nodeSize([NODE_W + H_GAP, V_GAP]);
+    const layout = d3.tree().nodeSize([NODE_W + H_GAP, V_GAP])
+      // reserve extra width to the right of a node only when it has a (shown) spouse,
+      // so couples don't overlap the next card while childless/spouseless nodes stay tight
+      .separation((a, b) => {
+        // d3 may pass either node as `a`, so reserve the extra column if EITHER of the
+        // adjacent nodes carries a spouse card (which extends into the gap between them).
+        const base = a.parent === b.parent ? 1 : 1.4;
+        const sp = n => opts.daughters && n && n.data && n.data.id && spouseFor(n.data.id);
+        return base + (sp(a) || sp(b) ? 0.6 : 0);
+      });
     layout(hier);
     const nodes = hier.descendants().filter(d => !d.data.__virtual);
     const links = hier.links().filter(d => !d.source.data.__virtual);
@@ -136,11 +147,9 @@
       .attr("class", d => "node-rect " + (d.data.gender === "f" ? "female" : "male") + (d.data.confidence === "low" ? " low" : ""));
     all.select("text.node-name").text(d => d.data.name);
     all.select("text.node-sub").text(d => {
-      const sp = spouseFor(d.data.id);
       let s = opts.pinyin ? (d.data.pinyin || "") : "";
       if (d.data.ritualName) s += (s ? " · " : "") + "禮名 " + d.data.ritualName;
-      if (opts.daughters && sp) s += (s ? "  ⚭ " : "⚭ ") + sp.name;
-      return s.length > 26 ? s.slice(0, 25) + "…" : s;
+      return s.length > 24 ? s.slice(0, 23) + "…" : s;   // spouse shown on its own card, not here
     });
     all.select("text.node-gen").text(d => d.data.relation && d.data.relation.length < 14 ? d.data.relation : "");
     all.select("text.node-years").text(d => yearStr(d.data));
@@ -184,10 +193,11 @@
         const m = gNodes.append("g").attr("class", "spouse-mini").attr("transform", `translate(${d.x + SPOUSE_DX},${d.y})`)
           .style("cursor", "pointer").on("click", e => { e.stopPropagation(); onSelect(sp.id); });
         gLinks.append("path").attr("class", "link").attr("style", "stroke-dasharray:4 3")
-          .attr("d", `M${d.x + NODE_W/2 - 4},${d.y} L${d.x + SPOUSE_DX - 56},${d.y}`);
-        m.append("rect").attr("class", "node-rect spouse").attr("width", 112).attr("height", 38).attr("x", -56).attr("y", -19).attr("rx", 6);
-        m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1").style("font-size","14px").text(sp.name);
-        m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12").text(sp.ritualName ? "禮名 " + sp.ritualName : (sp.pinyin || ""));
+          .attr("d", `M${d.x + NODE_W/2},${d.y} L${d.x + SPOUSE_DX - SPOUSE_W/2},${d.y}`);
+        m.append("rect").attr("class", "node-rect spouse").attr("width", SPOUSE_W).attr("height", 38).attr("x", -SPOUSE_W/2).attr("y", -19).attr("rx", 6);
+        m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1").style("font-size", "14px").text(sp.name);
+        const ss = sp.ritualName ? "禮名 " + sp.ritualName : (sp.pinyin || "");
+        m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12").text(ss.length > 15 ? ss.slice(0, 14) + "…" : ss);
       });
     }
     node.exit().remove();

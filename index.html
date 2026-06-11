@@ -45,6 +45,7 @@
     <div class="tree-toolbar">
       <label><input type="checkbox" id="toggle-daughters" checked /> <span data-i18n="tt_daughters">Show daughters &amp; married-in</span></label>
       <label><input type="checkbox" id="toggle-pinyin" checked /> <span data-i18n="tt_romanization">Romanization</span></label>
+      <label><input type="checkbox" id="toggle-photos" checked /> <span data-i18n="tt_photos">Photos</span></label>
       <label><input type="checkbox" id="toggle-swim" checked /> <span data-i18n="tt_swim">Place · era lanes</span></label>
       <button id="btn-expand" data-i18n="tt_expand">Expand all</button>
       <button id="btn-fit" data-i18n="tt_fit">Fit</button>
@@ -113,6 +114,12 @@
   <button id="verify-close" class="drawer-close" aria-label="Close">×</button>
   <div id="verify-body"></div>
 </aside>
+
+<!-- Full-size photo lightbox -->
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true">
+  <button id="lightbox-close" class="lightbox-close" aria-label="Close">×</button>
+  <img id="lightbox-img" alt="" />
+</div>
 
 <!-- Person detail drawer -->
 <aside id="drawer" class="drawer">

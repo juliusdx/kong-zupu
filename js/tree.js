@@ -1,8 +1,9 @@
 /* Lineage tree — top-down, generation-banded, collapsible. D3 v7. */
 (function () {
   const NODE_W = 132, NODE_H = 50, H_GAP = 26, V_GAP = 110, SPOUSE_DX = 92;
+  const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
   let svg, g, gLinks, gNodes, gBands, gSwim, zoom;
-  let opts = { daughters: true, pinyin: true, swim: true };
+  let opts = { daughters: true, pinyin: true, swim: true, photos: true };
   let collapsed = new Set();
   let onSelect = () => {};
 
@@ -17,6 +18,15 @@
   }
   function spouseFor(id) {
     return LINEAGE.persons.find(p => p.spouseOf === id);
+  }
+  // pull a 4-digit year out of a (possibly Chinese-era) date string; "" if none
+  function yr(s) { const m = s && String(s).match(/\d{4}/); return m ? m[0] : null; }
+  function yearStr(p) {
+    const b = yr(p.birthYear), d = yr(p.deathYear);
+    if (b && d) return b + "–" + d;
+    if (b) return "b." + b;
+    if (d) return "d." + d;
+    return "";
   }
 
   function buildHierarchy() {
@@ -44,6 +54,9 @@
     el.innerHTML = "";
     const W = el.clientWidth, H = el.clientHeight;
     svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
+    // one circular clip reused by every node avatar (all share local node coords)
+    svg.append("defs").append("clipPath").attr("id", "avatarClip")
+      .append("circle").attr("cx", AV_CX).attr("cy", 0).attr("r", AV_R);
     const root = svg.append("g");
     gSwim = root.append("g").attr("class", "swim");   // behind everything
     gBands = root.append("g").attr("class", "bands");
@@ -111,9 +124,10 @@
     const node = gNodes.selectAll("g.node-card").data(nodes, d => d.data.id);
     const nE = node.enter().append("g").attr("class", "node-card");
     nE.append("rect").attr("class", "node-rect").attr("width", NODE_W).attr("height", NODE_H).attr("x", -NODE_W/2).attr("y", -NODE_H/2).attr("rx", 7);
-    nE.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1");
-    nE.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "13");
+    nE.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-2");
+    nE.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "11");
     nE.append("text").attr("class", "node-gen").attr("text-anchor", "middle").attr("dy", "-19");
+    nE.append("text").attr("class", "node-years").attr("text-anchor", "middle").attr("dy", "21");
 
     const all = nE.merge(node);
     all.attr("transform", d => `translate(${d.x},${d.y})`)
@@ -129,11 +143,26 @@
       return s.length > 26 ? s.slice(0, 25) + "…" : s;
     });
     all.select("text.node-gen").text(d => d.data.relation && d.data.relation.length < 14 ? d.data.relation : "");
+    all.select("text.node-years").text(d => yearStr(d.data));
 
     // candidate flag (unresolved placeholder generations)
     all.selectAll(".cand-flag").remove();
     all.filter(d => d.data.candidates && d.data.candidates.length && !d.data._confirmed)
       .append("text").attr("class", "cand-flag").attr("x", NODE_W/2 - 13).attr("y", -NODE_H/2 + 17).text("⚑");
+
+    // node photo avatars — only nodes that have a main photo
+    all.selectAll(".node-photo,.photo-ring,.cam-badge").remove();
+    if (opts.photos) {
+      const wp = all.filter(d => d.data.photo);
+      wp.append("image").attr("class", d => "node-photo " + (d.data.living ? "living" : "deceased"))
+        .attr("href", d => d.data.photo).attr("xlink:href", d => d.data.photo)
+        .attr("x", AV_CX - AV_R).attr("y", -AV_R).attr("width", AV_R * 2).attr("height", AV_R * 2)
+        .attr("clip-path", "url(#avatarClip)").attr("preserveAspectRatio", "xMidYMid slice")
+        .on("click", (e, d) => { e.stopPropagation(); onSelect(d.data.id); });
+      wp.append("circle").attr("class", d => "photo-ring" + (d.data.living ? " living" : ""))
+        .attr("cx", AV_CX).attr("cy", 0).attr("r", AV_R);
+      wp.append("text").attr("class", "cam-badge").attr("x", AV_CX + AV_R - 4).attr("y", AV_R - 1).text("📷");
+    }
 
     // collapse badges
     all.selectAll(".collapse-badge,.collapse-badge-txt").remove();

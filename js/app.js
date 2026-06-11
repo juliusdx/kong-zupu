@@ -323,6 +323,11 @@
         if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);
         else if (m.person_id) (mediaByPerson[m.person_id] = mediaByPerson[m.person_id] || []).push(m);
       });
+      // main photo per person → tree avatars (approved only; respects RLS visibility tiers)
+      LINEAGE.persons.forEach(p => {
+        const ap = (mediaByPerson[p.id] || []).filter(m => m.approved);
+        if (ap.length) p.photo = ap[0].url; else delete p.photo;
+      });
       Tree.render("#tree-canvas", openPerson);   // re-index + redraw with merged data
       if (window.MapView && MapView.refresh) MapView.refresh();
       updateVerifyCount();
@@ -333,6 +338,8 @@
   async function uploadMedia(subject, file) {
     const sb = Auth.client(), st = Auth.state();
     if (!st.user) throw new Error("Sign in to add photos.");
+    const existing = subject.placeId ? (mediaByPlace[subject.placeId] || []) : (mediaByPerson[subject.personId] || []);
+    if (existing.length >= 5) throw new Error(I18N.t("d_maxphotos"));
     const key = subject.placeId || subject.personId;
     const safe = file.name.replace(/[^\w.\-]/g, "_");
     const path = (subject.placeId ? "places/" : "") + key + "/" + Date.now() + "_" + safe;
@@ -414,8 +421,10 @@
           ${!m.approved ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>` : ""}
         </figure>`).join("") + `</div>`;
     }
+    const atMax = photos.length >= 5;
     const uploadHtml = me.user
-      ? `<button class="action" id="add-photo">${T("d_addphoto")}</button><input type="file" id="photo-file" accept="image/*" hidden>`
+      ? (atMax ? `<p class="muted">${T("d_maxphotos")}</p>`
+               : `<button class="action" id="add-photo">${T("d_addphoto")}</button><input type="file" id="photo-file" accept="image/*" hidden>`)
       : "";
 
     $("#drawer-body").innerHTML = `
@@ -437,7 +446,7 @@
     $("#drawer-body [data-edit]").onclick = () => { closeDrawer(); show("contribute"); };
     if (ADMIN) $$("#drawer-body [data-pick]").forEach(b =>
       b.onclick = () => chooseCandidate(p.id, p.candidates[+b.dataset.pick]));
-    if (me.user) {
+    if (me.user && !atMax) {
       $("#add-photo").onclick = () => $("#photo-file").click();
       $("#photo-file").onchange = async e => {
         const f = e.target.files[0]; if (!f) return;
@@ -494,7 +503,11 @@
       ${rows.join("")}
       ${photoHtml}
       <button class="action" id="place-pin">${T("pl_suggest_loc")}</button>
-      ${me.user ? `<button class="action" id="place-photo">${T("pl_addphoto")}</button><input type="file" id="place-file" accept="image/*" hidden>` : ""}
+      ${me.user
+        ? (photos.length >= 5
+            ? `<p class="muted">${T("d_maxphotos")}</p>`
+            : `<button class="action" id="place-photo">${T("pl_addphoto")}</button><input type="file" id="place-file" accept="image/*" hidden>`)
+        : ""}
       <button class="action" id="place-map">${T("pl_view_map")}</button>
     `;
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
@@ -502,7 +515,7 @@
       b.onclick = async () => { await approvePhoto(b.dataset.approvePhoto); openPlace(pl.id); });
     $("#place-pin").onclick = () => suggestLocation(pl);
     $("#place-map").onclick = () => { closeDrawer(); show("map"); };
-    if (me.user) {
+    if (me.user && photos.length < 5) {
       $("#place-photo").onclick = () => $("#place-file").click();
       $("#place-file").onchange = async e => {
         const f = e.target.files[0]; if (!f) return;
@@ -636,6 +649,7 @@
     $("#drawer-scrim").onclick = closeDrawer;
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });
     $("#toggle-pinyin").onchange = e => Tree.setOptions({ pinyin: e.target.checked });
+    $("#toggle-photos").onchange = e => Tree.setOptions({ photos: e.target.checked });
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     // map layer filters (祖籍 / 遷居 / 墓 / 祠堂 / 教會墳場 / 沙巴)
     $$(".layer-toggle").forEach(c => c.onchange = () => MapView.setLayer(c.dataset.group, c.checked));
@@ -650,6 +664,16 @@
     document.addEventListener("click", e => {
       const a = e.target.closest("[data-place]");
       if (a) { e.preventDefault(); openPlace(a.dataset.place); }
+    });
+
+    // photo lightbox — click any thumbnail (drawer grid or tree avatar) to expand
+    const lb = $("#lightbox"), lbImg = $("#lightbox-img");
+    const closeLb = () => lb.classList.remove("open");
+    $("#lightbox-close").onclick = closeLb;
+    lb.onclick = closeLb;
+    document.addEventListener("click", e => {
+      const thumb = e.target.closest(".photo img");
+      if (thumb && thumb.src) { lbImg.src = thumb.src; lb.classList.add("open"); }
     });
     window.addEventListener("resize", () => { Tree.onResize(); });
 

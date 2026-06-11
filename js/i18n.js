@@ -11,6 +11,7 @@
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
+      tt_photos: "Photos",
       tt_expand: "Expand all", tt_fit: "Fit", tt_swim: "Place · era lanes",
       tt_verify: "To verify", vp_title: "⚠ Needs verification",
       vp_none: "Nothing flagged. 🎉",
@@ -64,6 +65,7 @@
       d_cand: "候選祖先 · Candidate ancestors (admin can confirm)",
       d_setcorrect: "Set as correct →", d_photos: "相片 · Photos",
       d_addphoto: "＋ Add a photo", d_uploading: "Uploading…", d_pending: "pending review",
+      d_maxphotos: "Maximum 5 photos reached.",
       d_approve: "Approve", d_suggest: "Suggest a correction →", d_approx: " (approx.)",
       d_uploadfail: "Upload failed: ",
 
@@ -115,6 +117,7 @@
       auth_signout_confirm: "登出？", lang_switch: "EN",
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
+      tt_photos: "相片",
       tt_expand: "全部展開", tt_fit: "置中", tt_swim: "遷徙年代帶（地點・年代）",
       tt_verify: "待考證", vp_title: "⚠ 待考證清單",
       vp_none: "沒有待考證項目。🎉",
@@ -166,6 +169,7 @@
       d_cand: "候選祖先（管理員可確認）",
       d_setcorrect: "設為正確 →", d_photos: "相片",
       d_addphoto: "＋ 新增相片", d_uploading: "上載中…", d_pending: "待審核",
+      d_maxphotos: "已達上限 5 張相片。",
       d_approve: "核准", d_suggest: "建議修正 →", d_approx: "（約）",
       d_uploadfail: "上載失敗：",
 

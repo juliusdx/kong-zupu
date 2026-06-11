@@ -253,7 +253,23 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 /* photo gallery in drawer */
 .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:.5rem;margin-top:.5rem}
 .photo{margin:0;position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--rule,#d8cdb5)}
-.photo img{width:100%;height:84px;object-fit:cover;display:block}
+.photo img{width:100%;height:84px;object-fit:cover;display:block;cursor:zoom-in}
+
+/* full-size photo lightbox */
+.lightbox{position:fixed;inset:0;z-index:60;background:rgba(20,14,6,.88);display:none;
+  align-items:center;justify-content:center;padding:2rem;cursor:zoom-out}
+.lightbox.open{display:flex}
+.lightbox img{max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);background:#fff}
+.lightbox-close{position:absolute;top:1rem;right:1.3rem;font-size:2.4rem;line-height:1;
+  color:#f3e9d6;background:none;border:none;cursor:pointer}
+
+/* tree node avatars */
+.node-photo{cursor:pointer}
+.node-photo.deceased{filter:sepia(.75) contrast(.95) brightness(1.03)}
+.photo-ring{fill:none;stroke:#b8a98c;stroke-width:2;pointer-events:none}
+.photo-ring.living{stroke:#c9a24a;stroke-width:2.6}
+.cam-badge{font-size:9px;pointer-events:none}
+.node-years{font-size:9px;fill:var(--ink-soft,#7a6a4e);pointer-events:none}
 .photo .pending{position:absolute;left:0;right:0;bottom:0;background:rgba(43,33,24,.78);color:#f3e9d6;
   font-size:.62rem;text-align:center;padding:2px}
 .photo .pending button{font-size:.62rem;padding:1px 5px;border:none;border-radius:4px;background:#c9a24a;color:#2b2118;cursor:pointer}

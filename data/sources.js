@@ -6,7 +6,7 @@
 window.SOURCES = [
   {
     id: "book_pt1",
-    key: "Kong_Family_book_pt1.pdf",
+    key: "kong-family-book-pt1.pdf",
     kind: "pdf",
     pages: 46,
     title: "江氏族譜 — 手抄本 上冊",
@@ -16,7 +16,7 @@ window.SOURCES = [
   },
   {
     id: "book_pt2",
-    key: "Kong_Family_book_pt2.pdf",
+    key: "kong-family-book-pt2.pdf",
     kind: "pdf",
     pages: 84,
     title: "江氏族譜 — 手抄本 下冊",
@@ -26,7 +26,7 @@ window.SOURCES = [
   },
   {
     id: "book_2nd",
-    key: "Kong Family Book 2nd Ed.pdf",
+    key: "kong-family-book-2nd-ed.pdf",
     kind: "pdf",
     pages: 14,
     title: "江氏族譜 第二版（沙巴支系摘錄）",
@@ -36,7 +36,7 @@ window.SOURCES = [
   },
   {
     id: "book_story",
-    key: "Kong Family Book Story 2nd Ed(enhanced).pdf",
+    key: "kong-family-book-story.pdf",
     kind: "pdf",
     pages: null,
     title: "族譜故事（增訂版）",

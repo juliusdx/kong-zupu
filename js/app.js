@@ -777,17 +777,22 @@
     const title = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
     openDocview(title);
     try {
-      // Resolve against what's actually in the bucket so the exact upload name
-      // doesn't have to match (tolerates Kong_Family_book_pt1.pdf vs the manifest key).
-      const key = (await resolveDocKey(sb, s)) || s.key;
-      const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
-      if (error || !data || !data.signedUrl) throw error || new Error("no url");
-      const url = data.signedUrl;
+      let url;
+      if (s.localUrl) {
+        url = s.localUrl;
+      } else {
+        // Resolve against what's actually in the bucket so the exact upload name
+        // doesn't have to match (tolerates Kong_Family_book_pt1.pdf vs the manifest key).
+        const key = (await resolveDocKey(sb, s)) || s.key;
+        const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
+        if (error || !data || !data.signedUrl) throw error || new Error("no url");
+        url = data.signedUrl;
+      }
       const open = $("#docview-open");
       open.href = url; open.textContent = I18N.t("src_open_new"); open.hidden = false;
       $("#docview-body").innerHTML = `<iframe class="docview-frame" src="${url}" title="${esc(title)}"></iframe>`;
     } catch (e) {
-      console.error("openDoc failed for", s.key, e);   // real error for diagnosis
+      console.error("openDoc failed for", s.key || s.localUrl, e);   // real error for diagnosis
       const notFound = e && /not found|does not exist|400|404/i.test(e.message || "");
       const msg = notFound ? I18N.t("src_unavailable") : I18N.t("src_err") + (e && e.message || "");
       $("#docview-body").innerHTML = `<p class="docview-msg">${msg}</p>`;

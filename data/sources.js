@@ -43,5 +43,15 @@ window.SOURCES = [
     titleEn: "Family Book — The Story (enhanced edition)",
     desc: "以敘事方式整理的家族故事增訂版，補充世系背後的人物與遷徙脈絡。",
     descEn: "A narrative retelling of the family's history that adds context to the people and migrations behind the lineage."
+  },
+  {
+    id: "book_transcription",
+    localUrl: "data/Kong_Family_Book_Transcription.html",
+    kind: "html",
+    pages: null,
+    title: "江氏族譜 第二版 釋文 Transcription",
+    titleEn: "Kong Family Book — 2nd Edition Transcription",
+    desc: "基於機器視覺與人工校對的族譜釋文。由於原稿年代久遠且字跡模糊，部分內容為推測。",
+    descEn: "Transcription of the 2nd edition based on machine vision and human review. Due to age and cursive handwriting, some parts are inferred."
   }
 ];

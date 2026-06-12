@@ -161,6 +161,20 @@
   function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function renderContribCard(c) {
     const p = c.payload || {};
+    // proofread transcription corrections render as a current-vs-suggested comparison
+    if (p.action === "fix_transcription") {
+      const T = I18N.t;
+      return `<div class="contrib-card">
+        <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()} · ${T("r_tx_label")} · ${T("pf_page")} ${esc(p.page)}${p.contributor ? " · " + esc(p.contributor) : ""}</div>
+        <div class="tx-compare">
+          <div class="tx-col"><div class="tx-h">${T("r_tx_current")}</div><pre class="tx-pre old">${esc(p.original || "")}</pre></div>
+          <div class="tx-col"><div class="tx-h">${T("r_tx_new")}</div><pre class="tx-pre new">${esc(p.text || "")}</pre></div>
+        </div>
+        <div class="cc-actions">
+          <button class="primary" data-approve="${c.id}">${T("r_approve")}</button>
+          <button class="ghost" data-reject="${c.id}">${T("r_reject")}</button>
+        </div></div>`;
+    }
     const rows = Object.entries(p)
       .filter(([k, v]) => v && !["status", "submittedAt"].includes(k))
       .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
@@ -283,6 +297,14 @@
         };
         const { error: plErr } = await sb.from("places").upsert(place);
         if (plErr) throw plErr;
+      }
+      // On approve, store a proofread transcription correction so it shows for everyone.
+      if (status === "approved" && payload && payload.action === "fix_transcription") {
+        const { error: txErr } = await sb.from("transcriptions").upsert({
+          doc_id: payload.doc_id, page: parseInt(payload.page, 10),
+          text: payload.text || "", updated_by: st.user.id, updated_at: new Date().toISOString()
+        });
+        if (txErr) throw txErr;
       }
       const { error } = await sb.from("contributions")
         .update({ status, reviewed_by: st.user.id }).eq("id", id);
@@ -769,6 +791,7 @@
           ${s.titleEn ? `<div class="plate-romaji">${esc(s.titleEn)}</div>` : ""}
           ${caption ? `<div class="plate-caption">${esc(caption)}</div>` : ""}
           <button class="plate-view${locked ? " locked" : ""}" data-doc="${s.id}">${btnLabel}</button>
+          ${s.proofread ? `<button class="plate-proofread" data-proof="${s.id}">${T("pf_open")}</button>` : ""}
         </div>
       </div>`;
 
@@ -798,6 +821,7 @@
       `<div class="exhibits">${exhibits}</div>`;
     const signin = $("#src-signin"); if (signin) signin.onclick = openSignin;
     $$("#sources-wrap [data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc));
+    $$("#sources-wrap [data-proof]").forEach(b => b.onclick = () => openProofreader(b.dataset.proof));
   }
 
   // open the sign-in modal by reusing the header auth button (only when signed out)
@@ -872,6 +896,153 @@
   function closeDocview() {
     $("#docview").classList.remove("open");
     $("#docview-body").innerHTML = "";   // unload the iframe / stop the download
+  }
+
+  /* ---- Proofreader: scanned page (left) beside its transcription (right) ---- */
+  let pfSource = null, pfPdf = null, pfPage = 1, pfTotal = 1, pfZoom = 1, pfLive = {}, pfEdits = {}, pfBaseline = "";
+
+  // lazy-load pdf.js only when the proofreader is first opened (keeps the app light)
+  function ensurePdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return new Promise((resolve, reject) => {
+      const sc = document.createElement("script");
+      sc.src = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js";
+      sc.onload = () => {
+        try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js"; } catch (e) { /* ignore */ }
+        resolve(window.pdfjsLib);
+      };
+      sc.onerror = () => reject(new Error("pdf.js failed to load"));
+      document.head.appendChild(sc);
+    });
+  }
+
+  async function openProofreader(srcId) {
+    const s = (window.SOURCES || []).find(d => d.id === srcId);
+    if (!s || !s.proofread) return;
+    if (!Auth.state().user) { openSignin(); return; }   // scans are family-only
+    const T = I18N.t, st = Auth.state();
+    pfSource = s; pfPage = 1; pfTotal = s.pageCount || 1; pfZoom = 1; pfPdf = null; pfLive = {}; pfEdits = {};
+
+    $("#pf-title").textContent = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
+    $("#pf-help").textContent = T("pf_help");
+    $("#pf-textlabel").textContent = T("pf_textlabel");
+    $("#pf-text").setAttribute("placeholder", T("pf_placeholder"));
+    $("#pf-namelabel").textContent = T("pf_name");
+    $("#pf-submit").textContent = T("pf_submit");
+    $("#pf-zoom-reset").textContent = T("pf_zoomreset");
+    $("#pf-name").value = (st.profile && st.profile.full_name) || "";
+    $("#pf-msg").textContent = "";
+    $("#proofreader").classList.add("open");
+
+    // live (approved) corrections layered over the seed draft
+    try {
+      const sb = Auth.client();
+      if (sb) {
+        const { data } = await sb.from("transcriptions").select("page,text").eq("doc_id", s.id);
+        (data || []).forEach(r => { pfLive[r.page] = r.text; });
+      }
+    } catch (e) { console.warn("transcription load failed", e); }
+    pfShowText();
+    pfUpdateNav();
+
+    // the scanned PDF
+    $("#pf-canvas").style.display = "none";   // hide the blank canvas until a page renders
+    $("#pf-scan-msg").textContent = T("pf_loading");
+    $("#pf-scan-msg").style.display = "";
+    try {
+      await ensurePdfJs();
+      const sb = Auth.client();
+      const key = (await resolveDocKey(sb, { id: s.id + "_scan", key: s.scanKey })) || s.scanKey;
+      const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
+      if (error || !data || !data.signedUrl) throw error || new Error("no url");
+      pfPdf = await window.pdfjsLib.getDocument(data.signedUrl).promise;
+      pfTotal = pfPdf.numPages || pfTotal;
+      pfUpdateNav();
+      await pfRender();
+      $("#pf-scan-msg").style.display = "none";
+    } catch (e) {
+      console.error("proofreader scan load failed", e);
+      $("#pf-scan-msg").textContent = T("pf_loaderr") + (e && e.message || "");
+    }
+  }
+
+  async function pfRender() {
+    if (!pfPdf) return;
+    const page = await pfPdf.getPage(pfPage);
+    const wrap = $("#pf-canvas-wrap");
+    const dpr = window.devicePixelRatio || 1;
+    const vp1 = page.getViewport({ scale: 1 });
+    const fitW = Math.max(280, wrap.clientWidth - 24);   // fit container, then multiply by zoom
+    const cssW = fitW * pfZoom;
+    const vp = page.getViewport({ scale: (cssW / vp1.width) * dpr });
+    const canvas = $("#pf-canvas");
+    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.style.width = (vp.width / dpr) + "px";
+    canvas.style.height = (vp.height / dpr) + "px";
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+    canvas.style.display = "block";
+  }
+
+  function pfSeedText() {
+    const seed = (window.TRANSCRIPTION_SEED && window.TRANSCRIPTION_SEED[pfSource.id]) || {};
+    // saved baseline = approved live text if any, else the seed draft
+    return (pfLive[pfPage] != null) ? pfLive[pfPage] : (seed[pfPage] != null ? seed[pfPage] : "");
+  }
+  function pfShowText() {
+    pfBaseline = pfSeedText();
+    // keep in-session edits while flipping pages, even before they're submitted
+    $("#pf-text").value = (pfEdits[pfPage] != null) ? pfEdits[pfPage] : pfBaseline;
+  }
+  function pfUpdateNav() {
+    const T = I18N.t, zh = I18N.getLang() === "zh";
+    $("#pf-pageind").textContent = zh
+      ? `${T("pf_page")} ${pfPage} ${T("pf_of")} ${pfTotal} 頁`
+      : `${T("pf_page")} ${pfPage} ${T("pf_of")} ${pfTotal}`;
+    $("#pf-prev").disabled = pfPage <= 1;
+    $("#pf-next").disabled = pfPage >= pfTotal;
+  }
+  async function pfGo(delta) {
+    const next = Math.min(pfTotal, Math.max(1, pfPage + delta));
+    if (next === pfPage) return;
+    pfEdits[pfPage] = $("#pf-text").value;   // remember current edit
+    pfPage = next;
+    $("#pf-msg").textContent = "";
+    pfShowText();
+    pfUpdateNav();
+    $("#pf-canvas-wrap").scrollTop = 0; $("#pf-canvas-wrap").scrollLeft = 0;
+    await pfRender();
+  }
+  async function pfSetZoom(z) {
+    pfZoom = Math.min(4, Math.max(0.5, z));
+    await pfRender();
+  }
+  async function pfSubmit() {
+    if (!pfSource) return;
+    const text = $("#pf-text").value;
+    const T = I18N.t;
+    if (text === pfBaseline) { $("#pf-msg").textContent = T("pf_nochange"); $("#pf-msg").className = "pf-msg warn"; return; }
+    const sb = Auth.client(), st = Auth.state();
+    const btn = $("#pf-submit"); btn.disabled = true;
+    const payload = {
+      action: "fix_transcription",
+      doc_id: pfSource.id, page: pfPage,
+      original: pfBaseline, text,
+      contributor: $("#pf-name").value || null,
+      submittedAt: new Date().toISOString(), status: "pending"
+    };
+    try {
+      const { error } = await sb.from("contributions").insert({ payload, status: "pending" });
+      if (error) throw error;
+      pfBaseline = text;                       // sent; don't re-warn for the same text
+      $("#pf-msg").textContent = T("pf_sent"); $("#pf-msg").className = "pf-msg ok";
+    } catch (e) {
+      console.error("transcription submit failed", e);
+      $("#pf-msg").textContent = T("pf_failed") + (e && e.message || ""); $("#pf-msg").className = "pf-msg warn";
+    } finally { btn.disabled = false; }
+  }
+  function closeProofreader() {
+    $("#proofreader").classList.remove("open");
+    if (pfPdf && pfPdf.cleanup) { try { pfPdf.cleanup(); } catch (e) { /* ignore */ } }
   }
 
   /* ---- "You are here" breadcrumb ---- */
@@ -1053,7 +1224,24 @@
     $("#docview-close").onclick = closeDocview;
     document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#docview").classList.contains("open")) closeDocview(); });
 
-    window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); });
+    // proofreader
+    $("#pf-close").onclick = closeProofreader;
+    $("#pf-prev").onclick = () => pfGo(-1);
+    $("#pf-next").onclick = () => pfGo(1);
+    $("#pf-zoom-in").onclick = () => pfSetZoom(pfZoom * 1.25);
+    $("#pf-zoom-out").onclick = () => pfSetZoom(pfZoom / 1.25);
+    $("#pf-zoom-reset").onclick = () => pfSetZoom(1);
+    $("#pf-text").addEventListener("input", () => { if (pfSource) { pfEdits[pfPage] = $("#pf-text").value; $("#pf-msg").textContent = ""; } });
+    $("#pf-submit").onclick = pfSubmit;
+    document.addEventListener("keydown", e => {
+      if (!$("#proofreader").classList.contains("open")) return;
+      if (e.key === "Escape") closeProofreader();
+      else if (e.target === $("#pf-text") || e.target === $("#pf-name")) return;   // don't page while typing
+      else if (e.key === "ArrowLeft") pfGo(-1);
+      else if (e.key === "ArrowRight") pfGo(1);
+    });
+
+    window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); if ($("#proofreader").classList.contains("open")) pfRender(); });
 
     setupAuth();
     Auth.init().then(loadLiveData);

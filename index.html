@@ -128,6 +128,43 @@
   <div id="verify-body"></div>
 </aside>
 
+<!-- Proofreader: scanned page (left) beside its transcription (right), family-only -->
+<div id="proofreader" class="proofreader" role="dialog" aria-modal="true" aria-label="Proofreader">
+  <div class="pf-bar">
+    <span class="pf-title" id="pf-title"></span>
+    <div class="pf-nav">
+      <button id="pf-prev" class="pf-navbtn" aria-label="Previous page">‹</button>
+      <span id="pf-pageind" class="pf-pageind"></span>
+      <button id="pf-next" class="pf-navbtn" aria-label="Next page">›</button>
+    </div>
+    <button id="pf-close" class="drawer-close" aria-label="Close">×</button>
+  </div>
+  <div class="pf-body">
+    <div class="pf-scan">
+      <div class="pf-zoom">
+        <button id="pf-zoom-out" class="pf-zoombtn" aria-label="Zoom out">−</button>
+        <button id="pf-zoom-in" class="pf-zoombtn" aria-label="Zoom in">＋</button>
+        <button id="pf-zoom-reset" class="pf-zoombtn pf-zoomreset"></button>
+      </div>
+      <div id="pf-canvas-wrap" class="pf-canvas-wrap">
+        <canvas id="pf-canvas"></canvas>
+        <div id="pf-scan-msg" class="pf-scan-msg"></div>
+      </div>
+    </div>
+    <div class="pf-edit">
+      <p class="pf-help" id="pf-help"></p>
+      <label class="pf-textlabel" id="pf-textlabel" for="pf-text"></label>
+      <textarea id="pf-text" class="pf-text" spellcheck="false"></textarea>
+      <label class="pf-namelabel" id="pf-namelabel" for="pf-name"></label>
+      <input id="pf-name" class="pf-name" type="text" />
+      <div class="pf-actions">
+        <button id="pf-submit" class="primary pf-submit"></button>
+        <span id="pf-msg" class="pf-msg"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Document viewer (signed-URL PDF in an iframe; family-only sources) -->
 <div id="docview" class="docview" role="dialog" aria-modal="true" aria-label="Document viewer">
   <div class="docview-bar">
@@ -163,6 +200,7 @@ window.APP_CONFIG = {
 <script src="data/lineage.js"></script>
 <script src="data/overrides.js"></script>
 <script src="data/sources.js"></script>
+<script src="data/transcription.js"></script>
 <script src="js/tree.js"></script>
 <script src="js/map.js"></script>
 <script src="js/auth.js"></script>

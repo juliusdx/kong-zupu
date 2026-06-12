@@ -93,6 +93,9 @@ window.SOURCES = [
     localUrl: "data/Kong_Family_Book_Transcription.html",
     kind: "html",
     pages: null,
+    proofread: true,                       // enables the page-by-page proofreader
+    scanKey: "kong-family-book-story.pdf", // the scanned PDF shown beside the text
+    pageCount: 16,
     glyph: "釋",
     title: "江氏族譜 第二版 釋文",
     titleEn: "Kong Family Book — 2nd Edition, Transcription",

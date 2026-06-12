@@ -86,6 +86,7 @@
       if (currentPersonId) setTimeout(() => renderBreadcrumb(currentPersonId), 60); else hideBreadcrumb();
     } else hideBreadcrumb();
     if (view === "review") buildReview();
+    if (view === "sources") buildSources();
   }
 
   /* ---- Auth UI + admin review --------------------------------------------- */
@@ -133,6 +134,7 @@
       }
       $("#tab-review").style.display = st.isAdmin ? "" : "none";
       if (!st.isAdmin && $("#view-review").classList.contains("active")) show("tree");
+      if ($("#view-sources").classList.contains("active")) buildSources();   // refresh lock state
     });
   }
 
@@ -735,6 +737,69 @@
     `;
   }
 
+  /* ---- Sources (family-only scans of the original 族譜) ---- */
+  function buildSources() {
+    const T = I18N.t, st = Auth.state(), zh = I18N.getLang() === "zh";
+    const list = (window.SOURCES || []);
+    const locked = !st.user;   // signed-out (or demo) visitors see the list but can't open
+    const lockBanner = locked
+      ? `<div class="src-lock"><span>${T("src_locked")}</span><button class="src-signin" id="src-signin">${T("src_signin")}</button></div>`
+      : "";
+    const cards = list.map(s => {
+      const title = zh ? s.title : (s.titleEn || s.title);
+      const sub   = zh ? (s.titleEn || "") : s.title;
+      const desc  = zh ? s.desc : (s.descEn || s.desc);
+      const pages = s.pages ? `<span class="src-pages">${s.pages}${T("src_pages")}</span>` : "";
+      return `<div class="src-card">
+        <div class="src-thumb" aria-hidden="true">📄</div>
+        <div class="src-meta">
+          <div class="src-title">${esc(title)} ${pages}</div>
+          ${sub ? `<div class="src-sub">${esc(sub)}</div>` : ""}
+          <p class="src-desc">${esc(desc)}</p>
+          <button class="src-view${locked ? " locked" : ""}" data-doc="${s.id}">${locked ? "🔒 " + T("src_signin") : T("src_view")}</button>
+        </div>
+      </div>`;
+    }).join("");
+    $("#sources-wrap").innerHTML = `<h2>${T("src_h")}</h2><p class="muted">${T("src_intro")}</p>${lockBanner}<div class="src-grid">${cards}</div>`;
+    const signin = $("#src-signin"); if (signin) signin.onclick = openSignin;
+    $$("#sources-wrap [data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc));
+  }
+
+  // open the sign-in modal by reusing the header auth button (only when signed out)
+  function openSignin() { const b = $("#auth-status"); if (b && !Auth.state().user) b.click(); }
+
+  async function openDoc(id) {
+    const s = (window.SOURCES || []).find(d => d.id === id);
+    if (!s) return;
+    if (!Auth.state().user) { openSignin(); return; }
+    const sb = Auth.client();
+    if (!sb) return;
+    const title = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
+    openDocview(title);
+    try {
+      const { data, error } = await sb.storage.from("documents").createSignedUrl(s.key, 3600);
+      if (error || !data || !data.signedUrl) throw error || new Error("no url");
+      const url = data.signedUrl;
+      const open = $("#docview-open");
+      open.href = url; open.textContent = I18N.t("src_open_new"); open.hidden = false;
+      $("#docview-body").innerHTML = `<iframe class="docview-frame" src="${url}" title="${esc(title)}"></iframe>`;
+    } catch (e) {
+      // most common cause: the PDF hasn't been uploaded to the bucket yet
+      const msg = (e && /not found|does not exist|400|404/i.test(e.message || "")) ? I18N.t("src_unavailable") : I18N.t("src_err") + (e && e.message || "");
+      $("#docview-body").innerHTML = `<p class="docview-msg">${msg}</p>`;
+    }
+  }
+  function openDocview(title) {
+    $("#docview-title").textContent = title || "";
+    $("#docview-open").hidden = true;
+    $("#docview-body").innerHTML = `<p class="docview-msg">${I18N.t("src_loading")}</p>`;
+    $("#docview").classList.add("open");
+  }
+  function closeDocview() {
+    $("#docview").classList.remove("open");
+    $("#docview-body").innerHTML = "";   // unload the iframe / stop the download
+  }
+
   /* ---- "You are here" breadcrumb ---- */
   // walk father links up to the 始祖; for a married-in spouse, anchor on the husband's
   // line and append the spouse as the final crumb
@@ -859,6 +924,7 @@
       if (window.MapView && MapView.relabel) MapView.relabel();   // rebuild map popups in the new language
       if ($("#verify-panel").classList.contains("open")) buildVerifyList();
       if ($("#view-review").classList.contains("active")) buildReview();
+      if ($("#view-sources").classList.contains("active")) buildSources();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
       if ($("#drawer").classList.contains("open") && currentPlaceId) openPlace(currentPlaceId);
       if (currentPersonId && !$("#tree-breadcrumb").hidden) renderBreadcrumb(currentPersonId);
@@ -909,6 +975,10 @@
       const thumb = e.target.closest(".photo img");
       if (thumb && thumb.src) { lbImg.src = thumb.src; lb.classList.add("open"); }
     });
+    // document viewer (family-only source scans)
+    $("#docview-close").onclick = closeDocview;
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#docview").classList.contains("open")) closeDocview(); });
+
     window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); });
 
     setupAuth();

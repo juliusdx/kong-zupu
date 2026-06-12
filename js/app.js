@@ -737,30 +737,65 @@
     `;
   }
 
-  /* ---- Sources (family-only scans of the original 族譜) ---- */
+  /* ---- Sources — a museum-style exhibition (artifact left, label right) ---- */
+  const CN_NUM = ["零","一","二","三","四","五","六","七","八","九","十"];
   function buildSources() {
     const T = I18N.t, st = Auth.state(), zh = I18N.getLang() === "zh";
     const list = (window.SOURCES || []);
-    const locked = !st.user;   // signed-out (or demo) visitors see the list but can't open
-    const lockBanner = locked
+    const signedIn = !!st.user;
+    const anyGated = list.some(s => !s.localUrl);
+    const lockBanner = (!signedIn && anyGated)
       ? `<div class="src-lock"><span>${T("src_locked")}</span><button class="src-signin" id="src-signin">${T("src_signin")}</button></div>`
       : "";
-    const cards = list.map(s => {
-      const title = zh ? s.title : (s.titleEn || s.title);
-      const sub   = zh ? (s.titleEn || "") : s.title;
-      const desc  = zh ? s.desc : (s.descEn || s.desc);
-      const pages = s.pages ? `<span class="src-pages">${s.pages}${T("src_pages")}</span>` : "";
-      return `<div class="src-card">
-        <div class="src-thumb" aria-hidden="true">📄</div>
-        <div class="src-meta">
-          <div class="src-title">${esc(title)} ${pages}</div>
-          ${sub ? `<div class="src-sub">${esc(sub)}</div>` : ""}
-          <p class="src-desc">${esc(desc)}</p>
-          <button class="src-view${locked ? " locked" : ""}" data-doc="${s.id}">${locked ? "🔒 " + T("src_signin") : T("src_view")}</button>
+
+    const exhibits = list.map((s, i) => {
+      const n = i + 1;
+      const no = zh ? `${T("src_plate")}${CN_NUM[n] || n}件` : `${T("src_plate")} ${String(n).padStart(2, "0")}`;
+      const heading   = zh ? s.title : (s.titleEn || s.title);
+      const altTitle  = zh ? (s.titleEn || "") : s.title;
+      const narrative = zh ? (s.narrative || s.desc) : (s.narrativeEn || s.descEn || s.desc);
+      const medium = zh ? (s.medium || "") : (s.mediumEn || s.medium || "");
+      const era    = zh ? (s.era || "") : (s.eraEn || s.era || "");
+      const pages  = s.pages ? `${s.pages}${T("src_pages")}` : "";
+      const caption = [medium, era, pages].filter(Boolean).join("　·　");
+      const gated  = !s.localUrl;            // private scans are gated; local HTML is public
+      const locked = gated && !signedIn;
+      const btnLabel = locked ? "🔒 " + T("src_signin") : T("src_view");
+
+      const plate = `<div class="exhibit-plate">
+        <div class="plate-frame">
+          <div class="plate-glyph" aria-hidden="true">${esc(s.glyph || "卷")}</div>
+          <div class="plate-title">${esc(s.title)}</div>
+          ${s.titleEn ? `<div class="plate-romaji">${esc(s.titleEn)}</div>` : ""}
+          ${caption ? `<div class="plate-caption">${esc(caption)}</div>` : ""}
+          <button class="plate-view${locked ? " locked" : ""}" data-doc="${s.id}">${btnLabel}</button>
         </div>
       </div>`;
+
+      let excerptsHtml = "";
+      if (Array.isArray(s.excerpts) && s.excerpts.length) {
+        excerptsHtml = `<div class="exhibit-excerpts"><div class="excerpt-eyebrow">${T("src_excerpts")}</div>` +
+          s.excerpts.map(x => `<div class="excerpt"><p class="ex-zh">${esc(x.zh)}</p><p class="ex-en">${esc(x.en)}</p></div>`).join("") +
+          `</div>`;
+      }
+      const noteText = zh ? s.note : (s.noteEn || s.note);
+      const noteHtml = noteText ? `<div class="exhibit-note"><span class="note-label">${T("src_note")}</span>${esc(noteText)}</div>` : "";
+
+      const label = `<div class="exhibit-label">
+        <div class="exhibit-no">${no}</div>
+        <h3 class="exhibit-title">${esc(heading)}</h3>
+        ${altTitle ? `<div class="exhibit-alt">${esc(altTitle)}</div>` : ""}
+        <p class="exhibit-narrative">${esc(narrative)}</p>
+        ${excerptsHtml}${noteHtml}
+      </div>`;
+
+      return `<article class="exhibit">${plate}${label}</article>`;
     }).join("");
-    $("#sources-wrap").innerHTML = `<h2>${T("src_h")}</h2><p class="muted">${T("src_intro")}</p>${lockBanner}<div class="src-grid">${cards}</div>`;
+
+    $("#sources-wrap").innerHTML =
+      `<header class="exhibit-head"><h2>${T("src_h")}</h2><p class="exhibit-intro">${T("src_intro")}</p></header>` +
+      lockBanner +
+      `<div class="exhibits">${exhibits}</div>`;
     const signin = $("#src-signin"); if (signin) signin.onclick = openSignin;
     $$("#sources-wrap [data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc));
   }
@@ -771,9 +806,10 @@
   async function openDoc(id) {
     const s = (window.SOURCES || []).find(d => d.id === id);
     if (!s) return;
-    if (!Auth.state().user) { openSignin(); return; }
-    const sb = Auth.client();
-    if (!sb) return;
+    // local docs (transcription HTML) are public; only the private scans need sign-in
+    if (!s.localUrl && !Auth.state().user) { openSignin(); return; }
+    const sb = s.localUrl ? null : Auth.client();
+    if (!s.localUrl && !sb) return;
     const title = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
     openDocview(title);
     try {

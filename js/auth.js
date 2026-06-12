@@ -29,9 +29,17 @@
     try {
       const { data } = await sb.auth.getSession();
       session = data.session || null;
+      if (location.hash.includes("access_token") || location.hash.includes("error_description")) {
+        history.replaceState(null, "", location.pathname + location.search);
+      }
       await loadProfile();
     } catch (e) { console.error("getSession failed", e); }
-    sb.auth.onAuthStateChange(async (_evt, s) => { session = s || null; await loadProfile(); emit(); });
+    sb.auth.onAuthStateChange(async (_evt, s) => {
+      if (location.hash.includes("access_token")) {
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+      session = s || null; await loadProfile(); emit(); 
+    });
     emit();
   }
 

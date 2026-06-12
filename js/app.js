@@ -777,17 +777,50 @@
     const title = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
     openDocview(title);
     try {
-      const { data, error } = await sb.storage.from("documents").createSignedUrl(s.key, 3600);
+      // Resolve against what's actually in the bucket so the exact upload name
+      // doesn't have to match (tolerates Kong_Family_book_pt1.pdf vs the manifest key).
+      const key = (await resolveDocKey(sb, s)) || s.key;
+      const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
       if (error || !data || !data.signedUrl) throw error || new Error("no url");
       const url = data.signedUrl;
       const open = $("#docview-open");
       open.href = url; open.textContent = I18N.t("src_open_new"); open.hidden = false;
       $("#docview-body").innerHTML = `<iframe class="docview-frame" src="${url}" title="${esc(title)}"></iframe>`;
     } catch (e) {
-      // most common cause: the PDF hasn't been uploaded to the bucket yet
-      const msg = (e && /not found|does not exist|400|404/i.test(e.message || "")) ? I18N.t("src_unavailable") : I18N.t("src_err") + (e && e.message || "");
+      console.error("openDoc failed for", s.key, e);   // real error for diagnosis
+      const notFound = e && /not found|does not exist|400|404/i.test(e.message || "");
+      const msg = notFound ? I18N.t("src_unavailable") : I18N.t("src_err") + (e && e.message || "");
       $("#docview-body").innerHTML = `<p class="docview-msg">${msg}</p>`;
     }
+  }
+  // List the bucket and find the object that best matches this source, so the file
+  // can be uploaded under any reasonable name (case / spaces / underscores ignored).
+  // Searches the root and any one-level subfolder. Returns the full object path.
+  const _docKeyCache = {};
+  async function resolveDocKey(sb, s) {
+    if (_docKeyCache[s.id]) return _docKeyCache[s.id];
+    const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const want = norm(s.key.replace(/\.pdf$/i, ""));
+    try {
+      let files = [];
+      const top = await sb.storage.from("documents").list("", { limit: 1000 });
+      const items = (top && top.data) || [];
+      // direct files at root
+      items.filter(o => o.id || /\.[a-z0-9]+$/i.test(o.name)).forEach(o => files.push(o.name));
+      // one level of folders (Supabase lists folders as entries with no id)
+      const folders = items.filter(o => !o.id && !/\.[a-z0-9]+$/i.test(o.name));
+      for (const f of folders) {
+        const sub = await sb.storage.from("documents").list(f.name, { limit: 1000 });
+        ((sub && sub.data) || []).forEach(o => { if (o.id || /\.[a-z0-9]+$/i.test(o.name)) files.push(f.name + "/" + o.name); });
+      }
+      if (!files.length) return null;
+      const base = p => p.split("/").pop().replace(/\.pdf$/i, "");
+      let hit = files.find(p => norm(base(p)) === want)
+             || files.find(p => norm(base(p)).includes(want))
+             || files.find(p => want.includes(norm(base(p))));
+      if (hit) _docKeyCache[s.id] = hit;
+      return hit || null;
+    } catch (e) { console.error("bucket list failed", e); return null; }
   }
   function openDocview(title) {
     $("#docview-title").textContent = title || "";

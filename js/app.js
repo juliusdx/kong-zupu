@@ -780,9 +780,13 @@
       const era    = zh ? (s.era || "") : (s.eraEn || s.era || "");
       const pages  = s.pages ? `${s.pages}${T("src_pages")}` : "";
       const caption = [medium, era, pages].filter(Boolean).join("　·　");
-      const gated  = !s.localUrl;            // private scans are gated; local HTML is public
-      const locked = gated && !signedIn;
-      const btnLabel = locked ? "🔒 " + T("src_signin") : T("src_view");
+      const locked = !!s.key && !signedIn;   // a private scan needs sign-in
+      const scanLabel = locked ? "🔒 " + T("src_signin") : T("src_view");
+      // a source may carry a private scan (key), a public transcription (localUrl), and
+      // a proofreader — each gets its own button
+      const scanBtn  = s.key ? `<button class="plate-view${locked ? " locked" : ""}" data-doc="${s.id}" data-mode="scan">${scanLabel}</button>` : "";
+      const readBtn  = s.localUrl ? `<button class="plate-read" data-doc="${s.id}" data-mode="local">${T("src_read")}</button>` : "";
+      const proofBtn = s.proofread ? `<button class="plate-proofread" data-proof="${s.id}">${T("pf_open")}</button>` : "";
 
       const plate = `<div class="exhibit-plate">
         <div class="plate-frame">
@@ -790,8 +794,7 @@
           <div class="plate-title">${esc(s.title)}</div>
           ${s.titleEn ? `<div class="plate-romaji">${esc(s.titleEn)}</div>` : ""}
           ${caption ? `<div class="plate-caption">${esc(caption)}</div>` : ""}
-          <button class="plate-view${locked ? " locked" : ""}" data-doc="${s.id}">${btnLabel}</button>
-          ${s.proofread ? `<button class="plate-proofread" data-proof="${s.id}">${T("pf_open")}</button>` : ""}
+          ${scanBtn}${readBtn}${proofBtn}
         </div>
       </div>`;
 
@@ -820,25 +823,27 @@
       lockBanner +
       `<div class="exhibits">${exhibits}</div>`;
     const signin = $("#src-signin"); if (signin) signin.onclick = openSignin;
-    $$("#sources-wrap [data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc));
+    $$("#sources-wrap [data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc, b.dataset.mode));
     $$("#sources-wrap [data-proof]").forEach(b => b.onclick = () => openProofreader(b.dataset.proof));
   }
 
   // open the sign-in modal by reusing the header auth button (only when signed out)
   function openSignin() { const b = $("#auth-status"); if (b && !Auth.state().user) b.click(); }
 
-  async function openDoc(id) {
+  async function openDoc(id, which) {
     const s = (window.SOURCES || []).find(d => d.id === id);
     if (!s) return;
-    // local docs (transcription HTML) are public; only the private scans need sign-in
-    if (!s.localUrl && !Auth.state().user) { openSignin(); return; }
-    const sb = s.localUrl ? null : Auth.client();
-    if (!s.localUrl && !sb) return;
+    // "local" = the public transcription HTML; otherwise the private scan (needs sign-in).
+    // default to local only when the source has no scan at all.
+    const useLocal = which === "local" || (which == null && s.localUrl && !s.key);
+    if (!useLocal && !Auth.state().user) { openSignin(); return; }
+    const sb = useLocal ? null : Auth.client();
+    if (!useLocal && !sb) return;
     const title = I18N.getLang() === "zh" ? s.title : (s.titleEn || s.title);
     openDocview(title);
     try {
       let url;
-      if (s.localUrl) {
+      if (useLocal) {
         url = s.localUrl;
       } else {
         // Resolve against what's actually in the bucket so the exact upload name

@@ -61,8 +61,30 @@ window.SOURCES = [
     eraEn: "Republican era · the Sabah branch",
     desc: "第二版摘錄，聚焦沙巴（古達、山打根、吧巴）一支的近代世系。",
     descEn: "An excerpt from the 2nd edition focused on the modern Sabah branch (Kudat, Sandakan, Papar).",
-    narrative: "第二版十四頁摘錄，專記沙巴一支。所載為十一至十五世之簡略條目——名諱、以舊曆紀年之生卒、配偶與葬地——家族藉以存續記憶的簡練格式。後人並以西曆年份（1915、1928、1942）以鉛筆旁註其側。",
-    narrativeEn: "A fourteen-page excerpt from the second edition, devoted to the modern Sabah branch. Its pages record the eleventh through fifteenth generations in spare genealogical entries — a name, birth and death by the old reign-era calendar, a spouse, a place of burial — the lean formulas by which a family kept its memory. Later hands have pencilled Western years (1915, 1928, 1942) into the margins.",
+    narrative: "第二版的一份十四頁摘錄，記沙巴一支的近代世系——家族中渡海至古達、山打根與吧巴者及其後代。",
+    narrativeEn: "A fourteen-page excerpt from the family's second edition, devoted to the modern Sabah branch — those who crossed to Kudat, Sandakan and Papar, and their descendants."
+  },
+  {
+    id: "book_story",
+    key: "kong-family-book-story.pdf",      // the scanned PDF (the artifact / left side)
+    kind: "pdf",
+    pages: 16,
+    proofread: true,                        // its transcription is what family proofread
+    scanKey: "kong-family-book-story.pdf",  // page rendered beside the transcription
+    pageCount: 16,
+    localUrl: "data/Kong_Family_Book_Transcription.html",  // public read-only transcription
+    glyph: "記",
+    title: "族譜故事（增訂版）",
+    titleEn: "Family Book — The Story (enhanced edition)",
+    medium: "敘事增訂 · 附釋文", mediumEn: "Narrative edition · with transcription",
+    era: "增訂 · 家族自述",
+    eraEn: "Enhanced edition · the family's own telling",
+    desc: "以敘事方式整理的家族故事增訂版，並附逐頁釋文。",
+    descEn: "A narrative retelling of the family's history, with a page-by-page transcription.",
+    narrative: "此非世系冊，而是敘事。增訂版《故事》以行文重述家族，還原一行行姓名背後的人物與旅程。隨附逐頁釋文，由機器視覺結合人工校讀而成；行草褪墨、難以確證之處皆以中括號標記，存疑而不掩——歡迎家人對照原稿、協助校正。",
+    narrativeEn: "Not a register but a retelling. The enhanced “Story” edition gathers the lineage into narrative, restoring the people and journeys behind the columns of names. Beside it runs a page-by-page transcription, made by machine vision and human review; where cursive brushwork and faded ink defeat certainty, the reading is bracketed and left honest — and family are warmly invited to compare it with the original and help correct it.",
+    note: "由於原稿為行草手寫且年代久遠，墨跡多有褪色。中括號〔 〕內為字跡模糊處的推測或缺失標記。",
+    noteEn: "Because the original is cursive and old, with much-faded ink, the transcription reconstructs only what is legible. Bracketed 〔 〕 text marks passages that are inferred or illegible.",
     excerpts: [
       { zh: "子愚次子 鑅之，生于光緒三十二年五月初五日。",
         en: "Ziyu's second son, Hengzhi — born on the fifth day of the fifth month, Guangxu 32 (1906)." },
@@ -71,42 +93,5 @@ window.SOURCES = [
       { zh: "配 許氏，生于民國八年。",
         en: "Married Lady Xu, born Republic 8 (1919)." }
     ]
-  },
-  {
-    id: "book_story",
-    key: "kong-family-book-story.pdf",
-    kind: "pdf",
-    pages: null,
-    glyph: "記",
-    title: "族譜故事（增訂版）",
-    titleEn: "Family Book — The Story (enhanced edition)",
-    medium: "敘事增訂", mediumEn: "Narrative edition",
-    era: "增訂 · 家族自述",
-    eraEn: "Enhanced edition · the family's own telling",
-    desc: "以敘事方式整理的家族故事增訂版，補充世系背後的人物與遷徙脈絡。",
-    descEn: "A narrative retelling of the family's history that adds context to the people and migrations behind the lineage.",
-    narrative: "此非世系冊，而是敘事。增訂版《故事》以行文重述家族，還原一行行姓名背後的人物與旅程——家族自述其源流，及如何成為今日的模樣。",
-    narrativeEn: "Not a register but a retelling. The enhanced “Story” edition gathers the lineage into narrative, restoring the people and journeys behind the columns of names — the family's own account of where it came from and how it became what it is."
-  },
-  {
-    id: "book_transcription",
-    localUrl: "data/Kong_Family_Book_Transcription.html",
-    kind: "html",
-    pages: null,
-    proofread: true,                       // enables the page-by-page proofreader
-    scanKey: "kong-family-book-story.pdf", // the scanned PDF shown beside the text
-    pageCount: 16,
-    glyph: "釋",
-    title: "江氏族譜 第二版 釋文",
-    titleEn: "Kong Family Book — 2nd Edition, Transcription",
-    medium: "數位釋文", mediumEn: "Digital transcription",
-    era: "今 · 機器視覺＋人工校讀",
-    eraEn: "Present day · machine vision + human review",
-    desc: "基於機器視覺與人工校對的族譜釋文。由於原稿年代久遠且字跡模糊，部分內容為推測。",
-    descEn: "Transcription of the 2nd edition based on machine vision and human review. Due to age and cursive handwriting, some parts are inferred.",
-    narrative: "本釋文以機器視覺結合人工逐字校讀，重構第二版內容。凡行草褪墨、難以確證之處，皆以中括號標記，存疑而不掩。是脆弱原件與今日讀者之間的一道橋樑。",
-    narrativeEn: "This transcription reconstructs the second edition character by character, pairing machine vision with patient human review. Where cursive brushwork and faded ink defeat certainty, the reading is set in brackets and left honest. It is the bridge between the brittle original and a reader today.",
-    note: "由於原稿為行草手寫且年代久遠，墨跡多有褪色。中括號〔 〕內為字跡模糊處的推測或缺失標記。",
-    noteEn: "Because the original is cursive and old, with much-faded ink, this reading reconstructs only what is legible. Bracketed 〔 〕 text marks passages that are inferred or illegible."
   }
 ];

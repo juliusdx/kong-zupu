@@ -382,7 +382,11 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .plate-frame{max-width:340px;margin:0 auto}
 }
 
-.plate-proofread{display:block;width:100%;margin-top:.55rem;font:inherit;font-size:.8rem;font-weight:700;
+.plate-read{display:block;width:100%;margin-top:.45rem;font:inherit;font-size:.78rem;font-weight:600;
+  cursor:pointer;padding:.4rem 1rem;border-radius:7px;border:1px solid var(--line);
+  background:#fffdf8;color:var(--ink-soft)}
+.plate-read:hover{border-color:var(--gold);color:var(--ink)}
+.plate-proofread{display:block;width:100%;margin-top:.45rem;font:inherit;font-size:.8rem;font-weight:700;
   cursor:pointer;padding:.42rem 1rem;border-radius:7px;border:1px solid var(--gold);
   background:rgba(176,136,51,.14);color:var(--ink)}
 .plate-proofread:hover{background:rgba(176,136,51,.24)}

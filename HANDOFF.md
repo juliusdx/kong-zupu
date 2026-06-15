@@ -161,12 +161,17 @@ two books lives here and feeds the museum "Sources" tab + the in-app proofreader
   transcription the **proofreader** seeds from. `〔?〕` marks illegible spots.
 - **`data/transcription_en.json`** — the **English reading aid**, keyed `"pt1_07"` → `{type, en}`
   where `type` is `prose` (full translation) | `register` (1–2 line summary) | `faded`.
-- **`data/Kong_Family_book_pt{1,2}_Transcription.html`** — the **public bilingual pages**
+- **`data/scans/<tag>/pNN.webp`** — rendered page images (`tag` = `story` | `pt1` | `pt2`),
+  shown on the **left** of each page in the public pages. These are the family scans made
+  **public** by owner decision (re-rendered from the PDFs at ~1300px). To regenerate them,
+  re-run the render step (PyMuPDF → Pillow WebP) over the source PDFs.
+- **`data/Kong_Family_Book_Transcription.html`** (Story) + **`data/Kong_Family_book_pt{1,2}_Transcription.html`**
+  — the **public bilingual pages**, each page laid out as **original scan (left) | transcription + English (right)**
   (linked from `sources.js` as `localUrl`; readable without sign-in). **Generated — do not
-  hand-edit.** Built from the two files above by:
+  hand-edit.** Built from the sources above by:
 
   ```bash
-  node tools/build_transcription_html.js      # rebuilds both HTML from committed sources
+  node tools/build_transcription_html.js      # rebuilds all three HTML from committed sources
   ```
 
   These HTML files match the gitignore rule `Kong_Family_book*` (private scans) but are

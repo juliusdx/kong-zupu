@@ -415,6 +415,19 @@
     if (error) { alert("Failed: " + error.message); return; }
     await loadLiveData();
   }
+  // Remove a photo: best-effort delete of the storage object (the owner may delete
+  // it per RLS; an admin removing someone else's only deletes the row), then the
+  // media row (uploader or admin, per the media_delete policy).
+  async function deletePhoto(m) {
+    const sb = Auth.client();
+    try {
+      const path = decodeURIComponent((String(m.url).split("/photos/")[1] || "").split("?")[0]);
+      if (path) await sb.storage.from("photos").remove([path]);
+    } catch (e) { console.warn("storage remove failed", e); }
+    const { error } = await sb.from("media").delete().eq("id", m.id);
+    if (error) throw error;
+    await loadLiveData();
+  }
   // Choose which approved photo is the tree avatar: clear siblings, set this one.
   async function setCover(mediaId, personId) {
     const sb = Auth.client();
@@ -486,6 +499,7 @@
       photoHtml = `<div class="field-section">${T("d_photos")}</div><div class="photo-grid">` +
         photos.map(m => `<figure class="photo${m.cover ? " is-cover" : ""}">
           <img src="${m.url}" alt="" loading="lazy">
+          ${(me.isAdmin || (me.user && m.uploaded_by === me.user.id)) ? `<button class="del" data-del-photo="${m.id}" title="${T("d_remove")}">✕</button>` : ""}
           ${m.cover ? `<span class="cover-badge" title="${T("d_cover")}">★</span>` : ""}
           ${!m.approved
             ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>`
@@ -532,6 +546,14 @@
       b.onclick = async () => { await approvePhoto(b.dataset.approvePhoto); openPerson(p.id); });
     if (me.isAdmin) $$("#drawer-body [data-cover]").forEach(b =>
       b.onclick = () => setCover(b.dataset.cover, p.id));
+    if (me.user) $$("#drawer-body [data-del-photo]").forEach(b =>
+      b.onclick = async () => {
+        if (!confirm(I18N.t("d_delconfirm"))) return;
+        const m = photos.find(x => String(x.id) === b.dataset.delPhoto);
+        b.disabled = true;
+        try { await deletePhoto(m); openPerson(p.id); }
+        catch (err) { alert(I18N.t("d_delfail") + (err.message || err)); b.disabled = false; }
+      });
     $("#drawer").classList.add("open");
     $("#drawer-scrim").classList.add("open");
   }
@@ -565,6 +587,7 @@
     if (photos.length) {
       photoHtml = `<div class="field-section">${T("pl_photos")}</div><div class="photo-grid">` +
         photos.map(m => `<figure class="photo"><img src="${m.url}" alt="" loading="lazy">
+          ${(me.isAdmin || (me.user && m.uploaded_by === me.user.id)) ? `<button class="del" data-del-photo="${m.id}" title="${T("d_remove")}">✕</button>` : ""}
           ${!m.approved ? `<figcaption class="pending">${me.isAdmin ? `<button data-approve-photo="${m.id}">${T("d_approve")}</button>` : T("d_pending")}</figcaption>` : ""}
         </figure>`).join("") + `</div>`;
     }
@@ -589,6 +612,14 @@
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
     if (me.isAdmin) $$("#drawer-body [data-approve-photo]").forEach(b =>
       b.onclick = async () => { await approvePhoto(b.dataset.approvePhoto); openPlace(pl.id); });
+    if (me.user) $$("#drawer-body [data-del-photo]").forEach(b =>
+      b.onclick = async () => {
+        if (!confirm(I18N.t("d_delconfirm"))) return;
+        const m = photos.find(x => String(x.id) === b.dataset.delPhoto);
+        b.disabled = true;
+        try { await deletePhoto(m); openPlace(pl.id); }
+        catch (err) { alert(I18N.t("d_delfail") + (err.message || err)); b.disabled = false; }
+      });
     $("#place-pin").onclick = () => suggestLocation(pl);
     $("#place-map").onclick = () => { closeDrawer(); show("map"); };
     if (me.user && photos.length < 5) {

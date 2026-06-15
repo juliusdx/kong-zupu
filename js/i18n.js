@@ -108,6 +108,8 @@
       seam_tip: "Generation-numbering seam (1825 合譜) — see the About tab",
       d_approve: "Approve", d_suggest: "Suggest a correction →", d_approx: " (approx.)",
       d_uploadfail: "Upload failed: ",
+      d_remove: "Remove photo", d_delconfirm: "Remove this photo? This can't be undone.",
+      d_delfail: "Could not remove photo: ",
 
       pl_modern: "今 Modern", pl_type: "Type", pl_linked: "People here",
       pl_approx_warn: "Approximate location — exact GPS needed",
@@ -254,6 +256,8 @@
       seam_tip: "世系編號接縫（1825合譜）— 詳見「關於」頁",
       d_approve: "核准", d_suggest: "建議修正 →", d_approx: "（約）",
       d_uploadfail: "上載失敗：",
+      d_remove: "移除相片", d_delconfirm: "確定移除這張相片？此操作無法復原。",
+      d_delfail: "移除相片失敗：",
 
       pl_modern: "今地", pl_type: "類型", pl_linked: "相關人物",
       pl_approx_warn: "座標約略 — 待補精確 GPS",

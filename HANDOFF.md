@@ -151,6 +151,46 @@ GitHub Actions auto-publishes to `https://juliusdx.github.io/kong-zupu/`.
 
 ---
 
+## Page transcriptions & English reading aid (regenerating after corrections)
+
+Separate from the `lineage.js` person data, the **full page-by-page transcription** of the
+two books lives here and feeds the museum "Sources" tab + the in-app proofreader:
+
+- **`data/transcription.js`** — `window.TRANSCRIPTION_SEED`, keyed by source id then page
+  number: `book_story` (16 pp), `book_pt1` (46 pp), `book_pt2` (84 pp). This is the Chinese
+  transcription the **proofreader** seeds from. `〔?〕` marks illegible spots.
+- **`data/transcription_en.json`** — the **English reading aid**, keyed `"pt1_07"` → `{type, en}`
+  where `type` is `prose` (full translation) | `register` (1–2 line summary) | `faded`.
+- **`data/Kong_Family_book_pt{1,2}_Transcription.html`** — the **public bilingual pages**
+  (linked from `sources.js` as `localUrl`; readable without sign-in). **Generated — do not
+  hand-edit.** Built from the two files above by:
+
+  ```bash
+  node tools/build_transcription_html.js      # rebuilds both HTML from committed sources
+  ```
+
+  These HTML files match the gitignore rule `Kong_Family_book*` (private scans) but are
+  re-included by a `!…_Transcription.html` negation, so they DO commit. The `.md` records
+  (`data/Kong_Family_book_pt{1,2}_Transcription.md`) are gitignored scratch copies — the
+  app does not use them.
+
+**Regen-on-correction (owner request):** the transcription is a machine best-effort. When a
+relative corrects a page in the proofreader, the approved text is stored in the Supabase
+`transcriptions` table (`doc_id`, `page`, `text`) and shown on top of the seed. To fold a
+correction back into the public pages **and refresh its English**:
+
+1. Update that page's Chinese in `data/transcription.js` (the matching `book_pt1`/`book_pt2` key).
+2. Regenerate **only that page's** English — prose → full translation, register → 1–2 line
+   summary, keeping `〔?〕`/`[unclear]` honesty — and replace its entry in
+   `data/transcription_en.json` (the LLM step; ask Claude to do the page, or re-run the
+   per-page translation). Keep the `type` accurate.
+3. `node tools/build_transcription_html.js` to rebuild the HTML, then commit + push.
+
+Until a page is corrected, its English reflects the original machine transcription (the
+editor's note on each HTML page says so).
+
+---
+
 ## Copy-paste kickoff prompt for a fresh session
 
 > I'm continuing transcription of a handwritten Chinese family book into an existing app.

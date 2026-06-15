@@ -21,6 +21,10 @@ window.SOURCES = [
     key: "kong-family-book-pt1.pdf",
     kind: "pdf",
     pages: 46,
+    proofread: true,
+    scanKey: "kong-family-book-pt1.pdf",
+    pageCount: 46,
+    localUrl: "data/Kong_Family_book_pt1_Transcription.html",  // public read-only transcription
     glyph: "卷",
     title: "江氏族譜 — 手抄本 上冊",
     titleEn: "Kong Family Book — Original Manuscript, Part 1",
@@ -37,6 +41,10 @@ window.SOURCES = [
     key: "kong-family-book-pt2.pdf",
     kind: "pdf",
     pages: 84,
+    proofread: true,
+    scanKey: "kong-family-book-pt2.pdf",
+    pageCount: 84,
+    localUrl: "data/Kong_Family_book_pt2_Transcription.html",  // public read-only transcription
     glyph: "卷",
     title: "江氏族譜 — 手抄本 下冊",
     titleEn: "Kong Family Book — Original Manuscript, Part 2",

@@ -16,3 +16,5 @@ npm-debug.log*
 # the original family book scans are private; keep them OUT of the public repo
 *.pdf
 Kong_Family_book*
+# ...but the derived public transcriptions (text only, no scans) are meant to be shared
+!Kong_Family_book*_Transcription.html

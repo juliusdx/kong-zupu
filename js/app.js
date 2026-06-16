@@ -260,6 +260,7 @@
         const { error: insErr } = await sb.from("persons").upsert(row);
         if (insErr) throw insErr;
         await attachContribPhoto(row.id, payload.photo, row.visibility);
+        await attachContribContact(row.id, payload);
       }
       // On approve, apply an "edit" correction to the named person. Most ancestors
       // exist only in the static seed (no live row yet), so we UPDATE first and, when
@@ -300,6 +301,7 @@
         }
         const cur = personById(pid);
         await attachContribPhoto(pid, payload.photo, vis || (cur && cur.living ? "member" : "public"));
+        await attachContribContact(pid, payload);
       }
       // On approve, promote a location contribution onto the map.
       if (status === "approved" && payload && payload.action === "add_place") {
@@ -456,6 +458,16 @@
           if (d.bio)        p.bio       = d.bio;
         });
       } catch (_) { /* person_details not migrated yet — basic info only */ }
+      // Private per-person contact directory (phone / WeChat / email). RLS returns only
+      // rows the viewer may see (admins, or the linked member's own), so anon gets nothing.
+      try {
+        LINEAGE.persons.forEach(p => { delete p.contact; });
+        const { data: ct } = await sb.from("contacts").select("*");
+        (ct || []).forEach(c => {
+          const p = LINEAGE.persons.find(x => x.id === c.person_id);
+          if (p) p.contact = { phone: c.phone, wechat: c.wechat, email: c.email, address: c.address };
+        });
+      } catch (_) { /* contacts not migrated yet — skip */ }
       mediaByPerson = {}; mediaByPlace = {};
       (md.data || []).forEach(m => {
         if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);
@@ -588,6 +600,21 @@
       if (error) throw error;
     } catch (e) { console.warn("contrib photo link failed", e); }
   }
+
+  // On approval, save the person's own private contact details (phone / WeChat / email)
+  // into the `contacts` table — a family directory gated by RLS to admins + the linked
+  // member. Only provided fields are written, so a blank field never wipes an existing one.
+  async function attachContribContact(personId, payload) {
+    const row = { person_id: personId };
+    if (payload.personPhone)  row.phone  = payload.personPhone;
+    if (payload.personWechat) row.wechat = payload.personWechat;
+    if (payload.personEmail)  row.email  = payload.personEmail;
+    if (Object.keys(row).length === 1) return;   // nothing but the id → skip
+    const sb = Auth.client();
+    const { error } = await sb.from("contacts").upsert(row);
+    if (error) console.warn("contrib contact save failed", error);
+  }
+
   async function approvePhoto(mediaId) {
     const sb = Auth.client();
     const { error } = await sb.from("media").update({ approved: true }).eq("id", mediaId);
@@ -639,7 +666,11 @@
       place: placeName(p.birthPlace) || placeName(p.residencePlace) || "",
       bio: p.bio || "",
       lat: p.lat != null ? p.lat : "",
-      lng: p.lng != null ? p.lng : ""
+      lng: p.lng != null ? p.lng : "",
+      // private contact directory — prefilled so an edit keeps phone/WeChat/email
+      personPhone: (p.contact && p.contact.phone) || "",
+      personWechat: (p.contact && p.contact.wechat) || "",
+      personEmail: (p.contact && p.contact.email) || ""
     };
   }
 
@@ -763,6 +794,16 @@
             : (me.isAdmin && !m.cover ? `<figcaption class="setcover"><button data-cover="${m.id}">${T("d_setcover")}</button></figcaption>` : "")}
         </figure>`).join("") + `</div>`;
     }
+    // private contact directory — present only when RLS let this viewer load it
+    let contactHtml = "";
+    if (p.contact && (p.contact.phone || p.contact.wechat || p.contact.email)) {
+      const cr = [];
+      if (p.contact.phone)  cr.push(`<div class="row"><span class="k">${T("d_phone")}</span><span>${esc(p.contact.phone)}</span></div>`);
+      if (p.contact.wechat) cr.push(`<div class="row"><span class="k">${T("d_wechat")}</span><span>${esc(p.contact.wechat)}</span></div>`);
+      if (p.contact.email)  cr.push(`<div class="row"><span class="k">${T("d_email")}</span><span>${esc(p.contact.email)}</span></div>`);
+      contactHtml = `<div class="field-section">${T("d_contact")}</div>${cr.join("")}`;
+    }
+
     const atMax = photos.length >= 5;
     const uploadHtml = me.user
       ? (atMax ? `<p class="muted">${T("d_maxphotos")}</p>`
@@ -784,6 +825,7 @@
       ${photoHtml}
       ${uploadHtml}
       ${kin.length ? `<div class="field-section" style="border:none;margin-top:1rem">${T("d_family")}</div>${kin.join("")}` : ""}
+      ${contactHtml}
       ${(p.confidence === "low" && (ADMIN || me.isAdmin)) ? `<button class="action verify-action" data-verify="${p.id}">${T("d_verify")}</button>` : ""}
       <button class="action" data-edit="${p.id}">${T("d_suggest")}</button>
     `;

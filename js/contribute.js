@@ -43,6 +43,11 @@
         }
       }
     }
+    // the person's stored phone keeps its dialling code — split it back into select + number
+    if (d.personPhone) {
+      const m = String(d.personPhone).match(/^(\+\d{1,4})\s+(.*)$/);
+      if (m && f.elements.personPhoneCountry) { f.elements.personPhoneCountry.value = m[1]; d = Object.assign({}, d, { personPhone: m[2] }); }
+    }
     Object.entries(d).forEach(([k, v]) => {
       const el = f.elements[k];
       if (el && v != null && v !== "") el.value = v;
@@ -124,16 +129,20 @@
         <div class="photo-preview" hidden></div>
       </label>
 
-      <div class="field-section">${T("f_section_contact")}</div>
-      <label>${T("f_contributor")}<input name="contributor" /></label>
-      <label>${T("f_email")}<input name="email" type="email" placeholder="name@example.com" /></label>
-      <label class="full">${T("f_phone")}
+      <div class="field-section person-contact" id="pcontact-section">${T("f_section_personcontact")}</div>
+      <label class="full person-contact">${T("f_phone")}
         <div class="phone-row">
-          <select name="phoneCountry" class="phone-cc">${ccOptions()}</select>
-          <input name="phone" class="phone-num" inputmode="tel" placeholder="12-345 6789" />
+          <select name="personPhoneCountry" class="phone-cc">${ccOptions()}</select>
+          <input name="personPhone" class="phone-num" inputmode="tel" placeholder="12-345 6789" />
         </div>
       </label>
-      <label>${T("f_messaging")}<input name="messaging" placeholder="WeChat / WhatsApp" /></label>
+      <label class="person-contact">${T("f_messaging")}<input name="personWechat" placeholder="WeChat / WhatsApp" /></label>
+      <label class="person-contact">${T("f_email")}<input name="personEmail" type="email" placeholder="name@example.com" /></label>
+      <div class="privacy-note person-contact">${T("f_personcontact_hint")}</div>
+
+      <div class="field-section">${T("f_section_contributor")}</div>
+      <label>${T("f_contributor")}<input name="contributor" /></label>
+      <label>${T("f_yourcontact")}<input name="contributorContact" placeholder="email / phone" /></label>
       <label>${T("f_relationship")}<input name="relationship" placeholder="孫 / grandson…" /></label>
       <label>${T("f_residence")}<input name="contributorLocation" placeholder="Kota Kinabalu, MY" /></label>
       <label class="full checkbox-row"><input type="checkbox" name="contactConsent" value="yes" /> <span>${T("f_consent")}</span></label>
@@ -158,6 +167,8 @@
   function updateLocationMode(f) {
     const isPlace = f.elements.action.value === "add_place";
     f.querySelectorAll(".place-only").forEach(el => { el.hidden = !isPlace; });
+    // a person's own contact details make no sense for an add-a-place submission
+    f.querySelectorAll(".person-contact").forEach(el => { el.hidden = isPlace; });
     const head = f.querySelector("#loc-section");
     if (head) head.textContent = isPlace ? T("f_section_loc") : T("f_section_personloc");
     const lbl = f.querySelector("#pin-label");
@@ -237,10 +248,10 @@
     if (cal && !cal.hidden && cal.value) data.birth = cal.value;
     delete data.birthExact;
 
-    // Phone: prefix the dialling code only when a number was actually entered.
-    if (data.phone && data.phone.trim()) data.phone = (data.phoneCountry || "") + " " + data.phone.trim();
-    else delete data.phone;
-    delete data.phoneCountry;
+    // Person's phone: prefix the dialling code only when a number was actually entered.
+    if (data.personPhone && data.personPhone.trim()) data.personPhone = (data.personPhoneCountry || "") + " " + data.personPhone.trim();
+    else delete data.personPhone;
+    delete data.personPhoneCountry;
 
     // Photo: anyone can attach a file. Signed-in → upload straight to storage (lean);
     // anonymous → embed the downscaled image in the payload (admin-only via RLS, never

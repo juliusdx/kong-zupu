@@ -141,14 +141,22 @@
     const nodes = hier.descendants().filter(d => !d.data.__virtual);
     const links = hier.links().filter(d => !d.source.data.__virtual);
 
+    // Re-row every node onto its generation band. d3.tree positions by DEPTH, so a
+    // separate-root branch (e.g. 永宏's Sabah line at gen 24) would otherwise land in the
+    // top row and pile its band label + era lane on top of gen 1's. Snapping y to a compact
+    // per-generation index keeps each 世 on its own line and the labels/lanes aligned.
+    const gens = Array.from(new Set(nodes.map(d => d.data.gen))).filter(g => g != null).sort((a,b)=>a-b);
+    const genY = {}; gens.forEach((g, i) => { genY[g] = i * V_GAP; });
+    // nodes with a known gen snap to their row; gen-less nodes keep their depth-based y.
+    nodes.forEach(d => { if (genY[d.data.gen] != null) d.y = genY[d.data.gen]; });
+
     // generation bands
-    const gens = Array.from(new Set(nodes.map(d => d.data.gen))).sort((a,b)=>a-b);
     const xs = nodes.map(d => d.x), minX = Math.min(...xs) - 200, maxX = Math.max(...xs) + 200;
     const band = gBands.selectAll("g.gen-band").data(gens, d => d);
     const bandE = band.enter().append("g").attr("class", "gen-band");
     bandE.append("line"); bandE.append("text");
     bandE.merge(band).each(function (gen) {
-      const y = nodes.find(d => d.data.gen === gen).y;
+      const y = genY[gen];
       d3.select(this).select("line").attr("x1", minX).attr("x2", maxX).attr("y1", y - NODE_H/2 - 14).attr("y2", y - NODE_H/2 - 14);
       d3.select(this).select("text").attr("x", minX + 6).attr("y", y - NODE_H/2 - 18).text("第 " + gen + " 世  ·  Gen " + gen);
     });
@@ -303,8 +311,25 @@
   }
 
   function focus(id) {
-    const node = gNodes.selectAll("g.node-card").filter(d => d.data && d.data.id === id).datum();
-    if (!node) return;
+    // A searched person may sit inside a COLLAPSED branch (or be a married-in spouse, which
+    // isn't its own tree node). Expand every ancestor so the target is actually rendered,
+    // then zoom to it and flash it. Previously this bailed silently when the node was hidden,
+    // so search only opened the drawer without moving the tree.
+    const p0 = byId[id]; if (!p0) return;
+    const targetId = p0.spouseOf || id;          // center the blood partner for a spouse
+    let changed = false, cur = byId[targetId]; const guard = new Set();
+    while (cur && !guard.has(cur.id)) {
+      guard.add(cur.id);
+      const par = cur.father ? byId[cur.father] : null;
+      if (par && collapsed.has(par.id)) { collapsed.delete(par.id); changed = true; }
+      cur = par;
+    }
+    if (changed) update();
+    const sel = gNodes.selectAll("g.node-card").filter(d => d.data && d.data.id === targetId);
+    if (sel.empty()) return;
+    const node = sel.datum();
+    sel.classed("focus-flash", true);                       // highlight even if the zoom is skipped
+    setTimeout(() => sel.classed("focus-flash", false), 1800);
     const { W, H } = dims(), scale = 1.1;
     if (!W || !H) return;
     svg.attr("width", W).attr("height", H);

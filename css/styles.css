@@ -122,7 +122,10 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .node-name{font-family:var(--font-cn);font-size:17px;fill:var(--ink);font-weight:600}
 .node-sub{font-family:var(--font);font-size:10px;fill:var(--ink-soft)}
 .node-gen{font-family:var(--font);font-size:9px;fill:var(--gold)}
-.link{fill:none;stroke:var(--line);stroke-width:1.6px}
+.link{fill:none;stroke:#a8895a;stroke-width:2.1px;stroke-opacity:.85}
+/* search/jump highlight: pulse the target card's border gold for ~1.8s */
+@keyframes focus-pulse{0%,100%{stroke-width:1.5px}30%{stroke-width:4px}}
+.node-card.focus-flash>.node-rect{stroke:var(--gold)!important;animation:focus-pulse .6s ease-in-out 2}
 .gen-band text{font-family:var(--font-cn);fill:rgba(120,95,55,.35);font-size:13px}
 .gen-band line{stroke:rgba(176,136,51,.18)}
 .collapse-badge{fill:var(--seal);stroke:#fff;stroke-width:1.5}

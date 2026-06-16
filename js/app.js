@@ -238,6 +238,8 @@
           name: payload.name || "(unnamed)",
           pinyin: payload.pinyin || null,
           ritual_name: payload.ritualName || null,
+          milk_name: payload.milkName || null,
+          aka: payload.aka || null,
           gender: payload.gender || "m",
           gen: payload.gen ? parseInt(payload.gen, 10) : null,
           bio: payload.bio || null,
@@ -255,8 +257,7 @@
       // On approve, apply an "edit" correction to the named person. Most ancestors
       // exist only in the static seed (no live row yet), so we UPDATE first and, when
       // nothing matched, INSERT a row that snapshots the seed person with the edits on
-      // top — same pattern as the place-link path below. (milk name / 字號 aka aren't
-      // persisted: the persons table has no columns for them yet.)
+      // top — same pattern as the place-link path below.
       if (status === "approved" && payload && payload.action === "edit") {
         const pid = payload.relatedTo;
         if (!pid) throw new Error("This correction doesn't say which person it edits.");
@@ -265,6 +266,8 @@
         if (payload.name) fields.name = payload.name;            // name is NOT NULL — never blank it
         if (has("pinyin"))     fields.pinyin = payload.pinyin || null;
         if (has("ritualName")) fields.ritual_name = payload.ritualName || null;
+        if (has("milkName"))   fields.milk_name = payload.milkName || null;
+        if (has("aka"))        fields.aka = payload.aka || null;
         if (payload.gender === "m" || payload.gender === "f") fields.gender = payload.gender;
         if (has("gen") && payload.gen !== "") fields.gen = parseInt(payload.gen, 10);
         if (has("birth"))      fields.birth_year = payload.birth || null;
@@ -282,6 +285,7 @@
           const fullRow = {
             id: pid, name: pObj.name, gen: pObj.gen, pinyin: pObj.pinyin,
             ritual_name: pObj.ritualName, formal_name: pObj.formalName, hao: pObj.hao,
+            milk_name: pObj.milkName, aka: pObj.aka,
             gender: pObj.gender, father_id: pObj.father, spouse_of: pObj.spouseOf,
             birth_year: pObj.birthYear, death_year: pObj.deathYear, lifespan: pObj.lifespan,
             religion: pObj.religion, relation: pObj.relation, bio: pObj.bio,
@@ -339,6 +343,8 @@
                   ritual_name: pObj.ritualName,
                   formal_name: pObj.formalName,
                   hao: pObj.hao,
+                  milk_name: pObj.milkName,
+                  aka: pObj.aka,
                   gender: pObj.gender,
                   father_id: pObj.father,
                   spouse_of: pObj.spouseOf,
@@ -405,6 +411,7 @@
   const camel = r => ({
     id: r.id, gen: r.gen, name: r.name, pinyin: r.pinyin,
     ritualName: r.ritual_name, formalName: r.formal_name, hao: r.hao,
+    milkName: r.milk_name, aka: r.aka,
     gender: r.gender, father: r.father_id, spouseOf: r.spouse_of,
     birthYear: r.birth_year, deathYear: r.death_year, lifespan: r.lifespan,
     religion: r.religion, relation: r.relation, bio: r.bio,

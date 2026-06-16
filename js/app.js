@@ -252,6 +252,50 @@
         const { error: insErr } = await sb.from("persons").upsert(row);
         if (insErr) throw insErr;
       }
+      // On approve, apply an "edit" correction to the named person. Most ancestors
+      // exist only in the static seed (no live row yet), so we UPDATE first and, when
+      // nothing matched, INSERT a row that snapshots the seed person with the edits on
+      // top — same pattern as the place-link path below. (milk name / 字號 aka aren't
+      // persisted: the persons table has no columns for them yet.)
+      if (status === "approved" && payload && payload.action === "edit") {
+        const pid = payload.relatedTo;
+        if (!pid) throw new Error("This correction doesn't say which person it edits.");
+        const has = k => Object.prototype.hasOwnProperty.call(payload, k);
+        const fields = {};
+        if (payload.name) fields.name = payload.name;            // name is NOT NULL — never blank it
+        if (has("pinyin"))     fields.pinyin = payload.pinyin || null;
+        if (has("ritualName")) fields.ritual_name = payload.ritualName || null;
+        if (payload.gender === "m" || payload.gender === "f") fields.gender = payload.gender;
+        if (has("gen") && payload.gen !== "") fields.gen = parseInt(payload.gen, 10);
+        if (has("birth"))      fields.birth_year = payload.birth || null;
+        if (has("bio"))        fields.bio = payload.bio || null;
+        if (has("living")) {
+          fields.living = payload.living === "true";
+          fields.visibility = fields.living ? "member" : "public";
+        }
+        const { data: upData, error: upErr } = await sb.from("persons")
+          .update(fields).eq("id", pid).select();
+        if (upErr) throw upErr;
+        if (!upData || upData.length === 0) {
+          const pObj = personById(pid);
+          if (!pObj) throw new Error("Unknown person for this correction: " + pid);
+          const fullRow = {
+            id: pid, name: pObj.name, gen: pObj.gen, pinyin: pObj.pinyin,
+            ritual_name: pObj.ritualName, formal_name: pObj.formalName, hao: pObj.hao,
+            gender: pObj.gender, father_id: pObj.father, spouse_of: pObj.spouseOf,
+            birth_year: pObj.birthYear, death_year: pObj.deathYear, lifespan: pObj.lifespan,
+            religion: pObj.religion, relation: pObj.relation, bio: pObj.bio,
+            birth_place: pObj.birthPlace, residence_place: pObj.residencePlace,
+            burial_place: pObj.burialPlace, living: !!pObj.living,
+            visibility: pObj.living ? "member" : "public",
+            confidence: pObj.confidence || "low", source: "contribution"
+          };
+          Object.assign(fullRow, fields);   // edits override the seed snapshot
+          Object.keys(fullRow).forEach(k => fullRow[k] === undefined && delete fullRow[k]);
+          const { error: insErr } = await sb.from("persons").upsert(fullRow);
+          if (insErr) throw insErr;
+        }
+      }
       // On approve, promote a location contribution onto the map.
       if (status === "approved" && payload && payload.action === "add_place") {
         const lat = parseFloat(payload.lat), lng = parseFloat(payload.lng);

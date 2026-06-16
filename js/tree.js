@@ -330,7 +330,7 @@
     const node = sel.datum();
     sel.classed("focus-flash", true);                       // highlight even if the zoom is skipped
     setTimeout(() => sel.classed("focus-flash", false), 1800);
-    const { W, H } = dims(), scale = 1.1;
+    const { W, H } = dims(), scale = 1.3;   // zoom in on the searched node
     if (!W || !H) return;
     svg.attr("width", W).attr("height", H);
     svg.transition().duration(450).call(zoom.transform,

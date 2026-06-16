@@ -76,13 +76,13 @@
     if (n) document.getElementById("admin-dl").onclick = downloadOverrides;
   }
 
-  function show(view) {
+  function show(view, opts) {
     $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === view));
     $$(".view").forEach(v => v.classList.remove("active"));
     $("#view-" + view).classList.add("active");
     if (view === "map") { MapView.init(); mapReady = true; }
     if (view === "tree") {
-      setTimeout(() => Tree.fit(), 50);
+      if (!opts || !opts.noFit) setTimeout(() => Tree.fit(), 50);   // skip when caller will focus a node
       if (currentPersonId) setTimeout(() => renderBreadcrumb(currentPersonId), 60); else hideBreadcrumb();
     } else hideBreadcrumb();
     if (view === "review") buildReview();
@@ -762,7 +762,10 @@
   function pickSearch(id) {
     closeSearch();
     $("#search").value = "";
-    show("tree"); Tree.focus(id); openPerson(id);
+    // suppress show()'s auto-fit (it would override the node-centred zoom), then focus
+    // after a tick so the canvas is laid out and dims() is ready.
+    show("tree", { noFit: true }); openPerson(id);
+    setTimeout(() => Tree.focus(id), 60);
   }
   function closeSearch() {
     const box = $("#search-results");

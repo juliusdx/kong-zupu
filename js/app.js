@@ -282,20 +282,8 @@
         if (!upData || upData.length === 0) {
           const pObj = personById(pid);
           if (!pObj) throw new Error("Unknown person for this correction: " + pid);
-          const fullRow = {
-            id: pid, name: pObj.name, gen: pObj.gen, pinyin: pObj.pinyin,
-            ritual_name: pObj.ritualName, formal_name: pObj.formalName, hao: pObj.hao,
-            milk_name: pObj.milkName, aka: pObj.aka,
-            gender: pObj.gender, father_id: pObj.father, spouse_of: pObj.spouseOf,
-            birth_year: pObj.birthYear, death_year: pObj.deathYear, lifespan: pObj.lifespan,
-            religion: pObj.religion, relation: pObj.relation, bio: pObj.bio,
-            birth_place: pObj.birthPlace, residence_place: pObj.residencePlace,
-            burial_place: pObj.burialPlace, living: !!pObj.living,
-            visibility: pObj.living ? "member" : "public",
-            confidence: pObj.confidence || "low", source: "contribution"
-          };
+          const fullRow = seedPersonRow(pObj);
           Object.assign(fullRow, fields);   // edits override the seed snapshot
-          Object.keys(fullRow).forEach(k => fullRow[k] === undefined && delete fullRow[k]);
           const { error: insErr } = await sb.from("persons").upsert(fullRow);
           if (insErr) throw insErr;
         }
@@ -571,6 +559,60 @@
     };
   }
 
+  // Snapshot an in-memory (seed) person into a live persons-table row. Used whenever a
+  // seed-only ancestor first needs a DB row — approved edits and admin verification.
+  // undefined fields are dropped so we never send columns the row doesn't have a value for.
+  function seedPersonRow(p) {
+    const row = {
+      id: p.id, name: p.name, gen: p.gen, pinyin: p.pinyin,
+      ritual_name: p.ritualName, formal_name: p.formalName, hao: p.hao,
+      milk_name: p.milkName, aka: p.aka,
+      gender: p.gender, father_id: p.father, spouse_of: p.spouseOf,
+      birth_year: p.birthYear, death_year: p.deathYear, lifespan: p.lifespan,
+      religion: p.religion, relation: p.relation, bio: p.bio,
+      birth_place: p.birthPlace, residence_place: p.residencePlace,
+      burial_place: p.burialPlace, living: !!p.living,
+      visibility: p.living ? "member" : "public",
+      confidence: p.confidence || "low", source: "contribution"
+    };
+    Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
+    return row;
+  }
+
+  // Clear a person's ⚠ "needs verification" badge by lifting confidence to "high".
+  // Works in both admin modes: a signed-in Supabase admin writes it to the live DB
+  // (update-or-insert, same as approved edits); ?admin=1 records it into the committed
+  // overrides.js export, matching the existing candidate-pick flow.
+  async function markVerified(id) {
+    const p = personById(id); if (!p) return;
+    const me = Auth.state();
+    if (me.isAdmin && Auth.LIVE && Auth.client()) {
+      const sb = Auth.client();
+      try {
+        const { data, error } = await sb.from("persons")
+          .update({ confidence: "high" }).eq("id", id).select();
+        if (error) throw error;
+        if (!data || data.length === 0) {              // seed-only person: insert a snapshot
+          const row = seedPersonRow(p); row.confidence = "high";
+          const { error: insErr } = await sb.from("persons").upsert(row);
+          if (insErr) throw insErr;
+        }
+        await loadLiveData();                          // re-renders the tree, refreshes the count
+        openPerson(id);                                // rebuild drawer → badge + button gone
+      } catch (e) { alert(I18N.t("d_verify_fail") + (e.message || e)); }
+      return;
+    }
+    if (ADMIN) {
+      pending[id] = Object.assign(pending[id] || {}, { confidence: "high" });
+      applyOverride(id, { confidence: "high" });
+      Tree.setOptions({});                             // redraw without the low-confidence styling
+      openPerson(id);
+      refreshAdminBar();                               // enable the overrides.js download
+      updateVerifyCount();
+      if ($("#verify-panel").classList.contains("open")) buildVerifyList();
+    }
+  }
+
   /* ---- Person drawer ---- */
   function openPerson(id) {
     const p = personById(id);
@@ -658,9 +700,12 @@
       ${photoHtml}
       ${uploadHtml}
       ${kin.length ? `<div class="field-section" style="border:none;margin-top:1rem">${T("d_family")}</div>${kin.join("")}` : ""}
+      ${(p.confidence === "low" && (ADMIN || me.isAdmin)) ? `<button class="action verify-action" data-verify="${p.id}">${T("d_verify")}</button>` : ""}
       <button class="action" data-edit="${p.id}">${T("d_suggest")}</button>
     `;
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
+    const vBtn = $("#drawer-body [data-verify]");
+    if (vBtn) vBtn.onclick = () => markVerified(p.id);
     $("#drawer-body [data-edit]").onclick = () => {
       Contribute.prefill(personPrefill(p));   // carry this person's data into the form
       closeDrawer();

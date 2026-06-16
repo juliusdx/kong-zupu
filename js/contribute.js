@@ -47,6 +47,8 @@
       const el = f.elements[k];
       if (el && v != null && v !== "") el.value = v;
     });
+    // show this person's existing map location, if any, so an edit starts from the real pin
+    if (d.lat != null && d.lat !== "" && d.lng != null && d.lng !== "") setPin(f, { lat: d.lat, lng: d.lng });
   }
 
   function build() {
@@ -93,8 +95,8 @@
       <label class="full">${T("f_place")}<input name="place" placeholder="Kota Kinabalu / 山打根…" /></label>
       <label class="full">${T("f_bio")}<textarea name="bio"></textarea></label>
 
-      <div class="field-section">${T("f_section_loc")}</div>
-      <label>${T("f_placetype")}
+      <div class="field-section" id="loc-section">${T("f_section_loc")}</div>
+      <label class="place-only">${T("f_placetype")}
         <select name="placeType">
           <option value="hall">${T("pt_hall")}</option>
           <option value="grave">${T("pt_grave")}</option>
@@ -104,14 +106,15 @@
           <option value="diaspora">${T("pt_diaspora")}</option>
         </select>
       </label>
-      <label>${T("f_placename")}<input name="placeName" placeholder="例：起瀾公墓 / 古達聖會" /></label>
+      <label class="place-only">${T("f_placename")}<input name="placeName" placeholder="例：起瀾公墓 / 古達聖會" /></label>
       <div class="full pin-field">
-        <span class="fd-label">${T("f_pin")}</span>
+        <span class="fd-label" id="pin-label">${T("f_pin")}</span>
         <div class="pin-row">
           <button type="button" class="action pin-pick-btn" id="pin-pick">${T("f_pin_btn")}</button>
           <span class="pin-readout muted" id="pin-readout">${T("f_pin_none")}</span>
           <button type="button" class="pin-clear" id="pin-clear" hidden>${T("f_pin_clear")}</button>
         </div>
+        <span class="muted fd-hint" id="pin-hint"></span>
         <input type="hidden" name="lat" />
         <input type="hidden" name="lng" />
       </div>
@@ -146,7 +149,32 @@
     // don't stack duplicate handlers and double-submit the contribution.
     f.onsubmit = submit;
     wire(f);
-    if (prefillData) applyPrefill(f, prefillData);
+    if (prefillData) { applyPrefill(f, prefillData); updateLocationMode(f); }
+  }
+
+  // The map pin means different things by action: for a person (add child/spouse/edit)
+  // it's THAT family member's own location → a named dot on the map; for "add a location"
+  // it's a formal place (祠堂/grave/…). Relabel and show/hide the place-only fields to match.
+  function updateLocationMode(f) {
+    const isPlace = f.elements.action.value === "add_place";
+    f.querySelectorAll(".place-only").forEach(el => { el.hidden = !isPlace; });
+    const head = f.querySelector("#loc-section");
+    if (head) head.textContent = isPlace ? T("f_section_loc") : T("f_section_personloc");
+    const lbl = f.querySelector("#pin-label");
+    if (lbl) lbl.textContent = isPlace ? T("f_pin") : T("f_pin_person");
+    const hint = f.querySelector("#pin-hint");
+    if (hint) hint.textContent = isPlace ? "" : T("f_pin_person_hint");
+  }
+
+  // the name shown in the picker banner: the family member for person actions, else the place
+  function pinSubjectName(f) {
+    if (f.elements.action.value !== "add_place") {
+      const sel = f.elements.relatedTo, opt = sel && sel.options[sel.selectedIndex];
+      const nm = f.elements.name && f.elements.name.value.trim();
+      return nm || (opt && opt.textContent.trim()) || T("f_pin_new");
+    }
+    const pn = f.elements.placeName;
+    return (pn && pn.value.trim()) || T("f_pin_new");
   }
 
   // Hook up the interactive controls after the form HTML is (re)built.
@@ -158,12 +186,14 @@
       f.querySelector(".dt-text").hidden = cal;
       f.querySelector(".dt-cal").hidden = !cal;
     });
+    // action drives whether the location is a person's own dot or a formal place
+    f.elements.action.addEventListener("change", () => updateLocationMode(f));
+    updateLocationMode(f);
     // map pin: hand off to the shared picker (map view + address search), fill lat/lng
     const pick = f.querySelector("#pin-pick");
     if (pick) pick.onclick = async () => {
       if (!window.contribPickLocation) return;
-      const nm = f.elements.placeName;
-      const coords = await window.contribPickLocation({ name: (nm && nm.value.trim()) || T("f_pin_new") });
+      const coords = await window.contribPickLocation({ name: pinSubjectName(f) });
       if (coords) setPin(f, coords);
     };
     const clr = f.querySelector("#pin-clear");

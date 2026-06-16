@@ -637,7 +637,9 @@
       living: p.living ? "true" : "false",
       birth: p.birthYear || "",
       place: placeName(p.birthPlace) || placeName(p.residencePlace) || "",
-      bio: p.bio || ""
+      bio: p.bio || "",
+      lat: p.lat != null ? p.lat : "",
+      lng: p.lng != null ? p.lng : ""
     };
   }
 

@@ -345,6 +345,23 @@
       ]);
       (pl.data || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
       (pp.data || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
+      // Gated detail for LIVING members: birth year / bio live in person_details,
+      // which RLS exposes only to admins, approved members, or self. Non-approved
+      // members get nothing back here, so they see only the basic skeleton above.
+      // Guarded separately so the app still works before the Stage-2 migration is run
+      // (missing table → ignore, keep basic info).
+      try {
+        const { data: det } = await sb.from("person_details").select("*");
+        (det || []).forEach(d => {
+          const p = LINEAGE.persons.find(x => x.id === d.person_id);
+          if (!p) return;
+          if (d.birth_year) p.birthYear = d.birth_year;
+          if (d.death_year) p.deathYear = d.death_year;
+          if (d.lifespan)   p.lifespan  = d.lifespan;
+          if (d.religion)   p.religion  = d.religion;
+          if (d.bio)        p.bio       = d.bio;
+        });
+      } catch (_) { /* person_details not migrated yet — basic info only */ }
       mediaByPerson = {}; mediaByPlace = {};
       (md.data || []).forEach(m => {
         if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);

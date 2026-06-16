@@ -87,6 +87,26 @@ formalName, hao, milkName, aka) — so filling those in makes a person findable 
 - `n9_*` — 九房 起瀨公 house (done)
 - `n8_*` — 八房 起清公 house (done)
 - `f5_*` — 起瀾公 五大房 = 紹泗's four brothers 通漢/通澤/紹淮/紹淡 (done)
+- `mh_*` — Sabah branch imported from a relative's **MyHeritage** tree (永宏 → Yu Chong
+  b.1912 → ~76 people, gens 24–28, all `confidence:"low"`). ⚠ Its 永宏 root is kept
+  **unlinked** (own flagged root) — confirm with the family whether it grafts onto the
+  `k_daxin`/`k_yonghong` spine before wiring a `father` (birth-years don't cleanly match 俊明).
+  **PRIVACY:** only the **14 deceased anchors** (永宏, En Zhao, Yu Chong, Choon Kiaw,
+  Zhun Fah + wife, the Chong in-laws, Clare, Roland, John, Daniel, 2× Unknown) live in this
+  PUBLIC `lineage.js`. The **62 living `mh_*` members are NOT here** — `lineage.js` ships to
+  GitHub Pages (world-readable), so living people are gated in **Supabase** instead:
+  - `supabase/migration_approved_members.sql` — run ONCE: adds `profiles.approved`,
+    `is_approved()`, and a `person_details` table (birth year / bio) gated to admins /
+    approved members / self. Non-approved members see living people as a basic skeleton.
+  - `supabase/seed_living_members.sql` — run AFTER the migration: inserts the 62 living
+    members (`visibility='member'`, `is_minor=true` for 7 undated/young ones) as a
+    basic `persons` row + a gated `person_details` row. **GITIGNORED** — it contains living
+    relatives' PII (names + birth years), so it is kept local only and never pushed to the
+    public repo. Regenerate it from source if lost.
+  - `js/app.js loadLiveData()` now also fetches `person_details` (guarded) and merges it,
+    so approved members see full detail; everyone else gets basic info only.
+  To regenerate the SQL, the canonical living data + generator were scratch scripts; the
+  authoritative copy is now the two SQL files (edit them directly, or re-import from source).
 - **New branches:** pick a fresh short prefix (e.g. `n7_` for 七房, `ll_` for 李朗/Shenzhen).
 
 ### Generation-numbering seam (important)

@@ -256,6 +256,37 @@ const ll_chaoyang = [
 ];
 
 
+// ==========================================
+// Sabah Branch — DECEASED ANCHORS ONLY (public tier)
+// ------------------------------------------------------------------
+// The ~62 LIVING members of this branch have been MOVED OUT of this public
+// seed into Supabase (member tier, RLS-gated) — see supabase/seed_living_members.sql.
+// Rationale: data/lineage.js ships to GitHub Pages and is world-readable, so it must
+// hold only PUBLIC (deceased) people. Living relatives are gated to signed-in members.
+// Only the deceased ancestors that ANCHOR the tree stay here; their living descendants
+// re-attach by id once a signed-in member's session loads the Supabase rows.
+// ⚠ 永宏 root + the Yu Chong line still flagged confidence:"low" — family to verify.
+// Recently-deceased kept public per the family privacy model (deceased = public):
+//   Clare(2006), John(1995), Daniel — move any to 'member' if you prefer.
+// ==========================================
+const mh_sabah = [
+  { id: "mh_yonghong", gen: 24, name: "永宏 Kong", pinyin: "Yong Hong", gender: "m", deceased: true, relation: "MyHeritage 樹根", note: "Source-tree root (永宏 Kong, deceased). ⚠ Reconcile with book 永宏 k_yonghong — likely a later/different 永宏; graft point onto the k_daxin spine to be confirmed.", confidence: "low" },
+  { id: "mh_enzhao",   gen: 24, name: "En Zhao Kong", pinyin: "En Zhao", gender: "f", spouseOf: "mh_yonghong", deceased: true, note: "Married in; née Lei (born Lei) → 雷氏?", confidence: "low" },
+  { id: "mh_yezhun",   gen: 24, name: "Ye Zhun Chong", pinyin: "Ye Zhun", gender: "m", deceased: true, relation: "親家 (in-law)", note: "Father of Choon Kiaw (mh_choonkiaw), who married into the Kong line. Surname Chong — not Kong blood. Own flagged root.", confidence: "low" },
+  { id: "mh_choikiaw_c", gen: 24, name: "Choi Kiaw Chong", pinyin: "Choi Kiaw", gender: "f", spouseOf: "mh_yezhun", deceased: true, note: "Mother of Choon Kiaw; née Shim (born Shim).", confidence: "low" },
+  { id: "mh_yuchong",  gen: 25, father: "mh_yonghong", name: "Yu Chong Kong", pinyin: "Yu Chong", gender: "m", birthYear: "1912", deathYear: "1974", relation: "main line", confidence: "low" },
+  { id: "mh_choonkiaw", gen: 25, name: "Choon Kiaw Kong", pinyin: "Choon Kiaw", gender: "f", spouseOf: "mh_yuchong", birthYear: "1913", deathYear: "1989", note: "Married in; née Chong (born Chong). Parents: 父 Ye Zhun Chong (mh_yezhun), 母 Choi Kiaw Chong née Shim (mh_choikiaw_c).", confidence: "low" },
+  { id: "mh_zhunfah",  gen: 25, father: "mh_yonghong", name: "Zhun Fah Kong", pinyin: "Zhun Fah", gender: "m", relation: "Yu Chong 之兄弟", confidence: "low" },
+  { id: "mh_lofong",   gen: 25, name: "Lo Fong Kong", pinyin: "Lo Fong", gender: "f", spouseOf: "mh_zhunfah", deceased: true, note: "Married in; née Chin (born Chin).", confidence: "low" },
+  { id: "mh_clare",    gen: 26, father: "mh_yuchong", name: "Clare Lai", pinyin: "Clare", gender: "f", birthYear: "1939", deathYear: "2006", marriedOut: "嫁 Lai", note: "Née Kong Siew Ching (born Kong Siew Ching). Married Roland Lai.", confidence: "low" },
+  { id: "mh_roland_lai", gen: 26, name: "Roland Lai Lip Chung", pinyin: "Roland Lai", gender: "m", spouseOf: "mh_clare", birthYear: "1938", deceased: true, note: "Married in (Lai family).", confidence: "low" },
+  { id: "mh_john",     gen: 26, father: "mh_yuchong", name: "John Ful Chung Kong", pinyin: "John", gender: "m", birthYear: "1947", deathYear: "1995", confidence: "low" },
+  { id: "mh_daniel",   gen: 26, father: "mh_yuchong", name: "Daniel Kong", pinyin: "Daniel", gender: "m", birthYear: "1952", deceased: true, confidence: "low" },
+  { id: "mh_unknown1", gen: 26, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
+  { id: "mh_unknown2", gen: 26, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
+];
+
+
 window.LINEAGE = {
 
   generationPoem: {
@@ -320,6 +351,7 @@ window.LINEAGE = {
   // --- PERSONS --------------------------------------------------------------
   persons: [
     ...ll_chaoyang,
+    ...mh_sabah,
 
     // ===== DEEP ANCESTRY (Gen 1–12) — pt1 pp.18–27 =====
     { id: "a01",  gen: 1, name: "江八郎", pinyin: "Baliang", style: "字文明", gender: "m", relation: "始祖 Founding ancestor", birthPlace: "p_ninghua", residencePlace: "p_shanghang", bio: "由寧化石壁移來上杭三坪鄉開基五業。所生三大房：長萬里、次萬戴、三萬頃。", confidence: "med" },

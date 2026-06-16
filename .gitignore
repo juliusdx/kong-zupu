@@ -13,6 +13,13 @@ npm-debug.log*
 .env
 .env.local
 
+# living-member seed holds PII (names + birth years) of LIVING relatives.
+# It is run once in Supabase (gated by RLS) and kept local — NEVER publish it.
+supabase/seed_living_members.sql
+
+# local Claude Code / editor workspace config
+.claude/
+
 # the original family book scans are private; keep them OUT of the public repo
 *.pdf
 Kong_Family_book*

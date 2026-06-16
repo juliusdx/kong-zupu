@@ -4,7 +4,32 @@
   const SPOUSE_W = 96, SP_GAP = 10;                 // spouse mini-card width + gap from main card
   const SPOUSE_DX = NODE_W / 2 + SP_GAP + SPOUSE_W / 2;   // spouse centre, fully right of main card
   const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
+  // label fitting: usable text width with / without an avatar on the left, plus the
+  // rightward shift applied to name+sub so they clear the avatar instead of overlapping it.
+  const LBL_W = NODE_W - 14;       // full width, no photo
+  const LBL_W_PHOTO = 84;          // narrower when an avatar occupies the left of the card
+  const LBL_X_PHOTO = 16;          // shift name/sub right, past the avatar
   const HOME_DEPTH = 3;   // first-load view shows generations 1..HOME_DEPTH, deeper branches collapsed
+
+  // Fit an SVG <text> into maxW px: first shrink the font (down to minPx) so the WHOLE
+  // name stays readable, and only ellipsis-truncate if it still won't fit at the floor.
+  // basePx resets the font each render so a reused element doesn't keep an earlier shrink.
+  function fitText(el, full, maxW, basePx, minPx) {
+    el.textContent = full || "";
+    el.style.fontSize = basePx + "px";
+    if (!full) return;
+    let w = el.getComputedTextLength();
+    if (w <= maxW) return;
+    const size = Math.max(minPx, basePx * (maxW / w));   // linear first estimate
+    el.style.fontSize = size + "px";
+    if (el.getComputedTextLength() <= maxW) return;
+    let s = full;                                         // still too wide at the floor → trim
+    while (s.length > 1) {
+      s = s.slice(0, -1);
+      el.textContent = s.replace(/[\s·]+$/, "") + "…";
+      if (el.getComputedTextLength() <= maxW) break;
+    }
+  }
   let svg, g, gLinks, gNodes, gBands, gSwim, zoom, ro;
   let opts = { daughters: true, pinyin: true, swim: true, photos: true };
   let collapsed = new Set();
@@ -174,14 +199,20 @@
       .on("click", (e, d) => { e.stopPropagation(); onSelect(d.data.id); });
     all.select("rect.node-rect")
       .attr("class", d => "node-rect " + (d.data.gender === "f" ? "female" : "male") + (d.data.confidence === "low" ? " low" : ""));
-    all.select("text.node-name").text(d => d.data.name);
-    all.select("text.node-sub").text(d => {
+    all.select("text.node-name").each(function (d) {
+      const photo = opts.photos && d.data.photo;
+      d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
+      fitText(this, d.data.name, photo ? LBL_W_PHOTO : LBL_W, 17, 9.5);
+    });
+    all.select("text.node-sub").each(function (d) {
       let s = opts.pinyin ? (d.data.pinyin || "") : "";
       if (d.data.ritualName) s += (s ? " · " : "") + "禮名 " + d.data.ritualName;
-      return s.length > 24 ? s.slice(0, 23) + "…" : s;   // spouse shown on its own card, not here
+      const photo = opts.photos && d.data.photo;   // spouse shown on its own card, not here
+      d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
+      fitText(this, s, photo ? LBL_W_PHOTO : LBL_W, 10, 8);
     });
-    all.select("text.node-gen").text(d => relLabel(d.data));
-    all.select("text.node-years").text(d => yearStr(d.data));
+    all.select("text.node-gen").each(function (d) { fitText(this, relLabel(d.data), LBL_W, 9, 7); });
+    all.select("text.node-years").each(function (d) { fitText(this, yearStr(d.data), LBL_W, 9, 7); });
 
     // candidate flag (unresolved placeholder generations)
     all.selectAll(".cand-flag").remove();
@@ -232,9 +263,11 @@
         gLinks.append("path").attr("class", "link").attr("style", "stroke-dasharray:4 3")
           .attr("d", `M${d.x + NODE_W/2},${d.y} L${d.x + SPOUSE_DX - SPOUSE_W/2},${d.y}`);
         m.append("rect").attr("class", "node-rect spouse").attr("width", SPOUSE_W).attr("height", 38).attr("x", -SPOUSE_W/2).attr("y", -19).attr("rx", 6);
-        m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1").style("font-size", "14px").text(sp.name);
+        const spName = m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1");
+        fitText(spName.node(), sp.name, SPOUSE_W - 12, 14, 9);
         const ss = sp.ritualName ? "禮名 " + sp.ritualName : (sp.pinyin || "");
-        m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12").text(ss.length > 15 ? ss.slice(0, 14) + "…" : ss);
+        const spSub = m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12");
+        fitText(spSub.node(), ss, SPOUSE_W - 12, 10, 8);
       });
     }
     node.exit().remove();

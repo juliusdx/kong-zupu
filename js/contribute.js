@@ -4,10 +4,37 @@
   const LIVE = !!(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
   const T = k => (window.I18N ? I18N.t(k) : k);
 
+  // When a visitor clicks "Suggest a correction" on a person, the form is rebuilt
+  // pre-filled with that person's current values so they correct real data instead of
+  // facing a blank slate. Held here so a language-toggle rebuild keeps the prefill.
+  let prefillData = null;
+
   function personOptions() {
     return LINEAGE.persons.filter(p => !p.spouseOf)
       .sort((a,b)=>a.gen-b.gen)
       .map(p => `<option value="${p.id}">第${p.gen}世 · ${p.name} ${p.pinyin||""}</option>`).join("");
+  }
+
+  // Fill the freshly-built form from a prefill object (field name -> value). Fields the
+  // object doesn't mention are left at their defaults. Ensures the edited person is
+  // selectable even if they're a married-in spouse (not in the default relatedTo list).
+  function applyPrefill(f, d) {
+    if (d.relatedTo) {
+      const sel = f.elements.relatedTo;
+      if (sel && !Array.from(sel.options).some(o => o.value === d.relatedTo)) {
+        const who = LINEAGE.persons.find(p => p.id === d.relatedTo);
+        if (who) {
+          const o = document.createElement("option");
+          o.value = who.id;
+          o.textContent = `第${who.gen}世 · ${who.name} ${who.pinyin || ""}`;
+          sel.appendChild(o);
+        }
+      }
+    }
+    Object.entries(d).forEach(([k, v]) => {
+      const el = f.elements[k];
+      if (el && v != null && v !== "") el.value = v;
+    });
   }
 
   function build() {
@@ -72,8 +99,17 @@
         <span class="muted">${LIVE ? T("f_note_live") : T("f_note_demo")}</span>
       </div>
     `;
-    f.addEventListener("submit", submit);
+    // onsubmit (not addEventListener) so repeated builds — language toggle, prefill —
+    // don't stack duplicate handlers and double-submit the contribution.
+    f.onsubmit = submit;
+    if (prefillData) applyPrefill(f, prefillData);
   }
+
+  // Open the form pre-filled to correct an existing person, then let the caller show it.
+  function startEdit(data) { prefillData = data; build(); }
+  // Drop any stale correction prefill so a normal "Contribute" visit starts blank.
+  // No-op (preserves in-progress typing) unless a prefill is actually active.
+  function reset() { if (prefillData) { prefillData = null; build(); } }
 
   async function submit(e) {
     e.preventDefault();
@@ -90,6 +126,7 @@
         });
         if (!res.ok) throw new Error(await res.text());
         alert(T("f_thanks_live"));
+        prefillData = null;
         e.target.reset();
       } catch (err) {
         alert(T("f_fail") + err.message);
@@ -109,5 +146,5 @@
     alert(T("f_thanks_demo"));
   }
 
-  window.Contribute = { build, LIVE };
+  window.Contribute = { build, prefill: startEdit, reset, LIVE };
 })();

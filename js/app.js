@@ -8,6 +8,7 @@
   let mapReady = false;
   let currentPersonId = null;
   let currentPlaceId = null;
+  let suppressHistory = false;   // true while replaying a popstate, so we don't re-push
 
   /* ---- Overrides + Admin mode ---------------------------------------------
    * Admin mode is enabled with ?admin=1 in the URL (optionally gated by a
@@ -87,6 +88,46 @@
     } else hideBreadcrumb();
     if (view === "review") buildReview();
     if (view === "sources") buildSources();
+    pushNav();
+  }
+
+  /* ---- Browser history / back-button support ------------------------------
+   * The app is a single page with no URL changes, so the browser Back button used
+   * to do nothing (or leave the site). We mirror each navigable state — which view
+   * is active, and which person/place drawer is open — into history.pushState, and
+   * replay it on popstate. Back from the contribute form returns to the open drawer
+   * the user came from; back from a drawer closes it; back between tabs switches view. */
+  function activeView() {
+    const v = $(".view.active");
+    return v ? v.id.replace(/^view-/, "") : "tree";
+  }
+  function navSnapshot() {
+    const drawerOpen = $("#drawer").classList.contains("open");
+    return {
+      view: activeView(),
+      personId: drawerOpen ? currentPersonId : null,
+      placeId: drawerOpen ? currentPlaceId : null
+    };
+  }
+  // Push a history entry for the current UI, unless we're replaying history or the
+  // state is unchanged (drawer refreshes — photo upload, language toggle — re-open the
+  // same person and must not spawn duplicate entries).
+  function pushNav() {
+    if (suppressHistory) return;
+    const s = navSnapshot(), cur = history.state;
+    if (cur && cur.view === s.view && cur.personId === s.personId && cur.placeId === s.placeId) return;
+    history.pushState(s, "");
+  }
+  function applyNav(s) {
+    suppressHistory = true;
+    try {
+      show(s.view);
+      if (s.personId) openPerson(s.personId);
+      else if (s.placeId) openPlace(s.placeId);
+      else closeDrawer();
+    } finally {
+      suppressHistory = false;
+    }
   }
 
   /* ---- Auth UI + admin review --------------------------------------------- */
@@ -457,6 +498,28 @@
     } catch (e) { alert(I18N.t("r_failed") + e.message); }
   }
 
+  // Map a person onto the contribution form's field names so "Suggest a correction"
+  // opens pre-filled instead of blank. Place fields are stored as ids, so resolve them
+  // to the human place name the freetext input expects.
+  function personPrefill(p) {
+    const placeName = pid => { const pl = pid && placeById(pid); return pl ? pl.name : ""; };
+    return {
+      action: "edit",
+      relatedTo: p.id,
+      name: p.name || "",
+      pinyin: p.pinyin || "",
+      ritualName: p.ritualName || "",
+      milkName: p.milkName || "",
+      aka: p.aka || "",
+      gender: p.gender === "f" ? "f" : "m",
+      gen: p.gen != null ? p.gen : "",
+      living: p.living ? "true" : "false",
+      birth: p.birthYear || "",
+      place: placeName(p.birthPlace) || placeName(p.residencePlace) || "",
+      bio: p.bio || ""
+    };
+  }
+
   /* ---- Person drawer ---- */
   function openPerson(id) {
     const p = personById(id);
@@ -547,7 +610,11 @@
       <button class="action" data-edit="${p.id}">${T("d_suggest")}</button>
     `;
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
-    $("#drawer-body [data-edit]").onclick = () => { closeDrawer(); show("contribute"); };
+    $("#drawer-body [data-edit]").onclick = () => {
+      Contribute.prefill(personPrefill(p));   // carry this person's data into the form
+      closeDrawer();
+      show("contribute");
+    };
     if (ADMIN) $$("#drawer-body [data-pick]").forEach(b =>
       b.onclick = () => chooseCandidate(p.id, p.candidates[+b.dataset.pick]));
     if (me.user && !atMax) {
@@ -573,6 +640,7 @@
       });
     $("#drawer").classList.add("open");
     $("#drawer-scrim").classList.add("open");
+    pushNav();
   }
   function placeLink(id) {
     const pl = placeById(id); if (!pl) return id;
@@ -650,6 +718,7 @@
     }
     $("#drawer").classList.add("open");
     $("#drawer-scrim").classList.add("open");
+    pushNav();
   }
 
   /* Member suggests an exact GPS by dropping a pin on the map → review queue. */
@@ -1231,7 +1300,12 @@
       if (currentPersonId && !$("#tree-breadcrumb").hidden) renderBreadcrumb(currentPersonId);
     });
 
-    $$(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
+    $$(".tab").forEach(t => t.onclick = () => {
+      // Clicking the Contribute tab directly is a fresh start — drop any stale
+      // correction prefill left over from a previous "Suggest a correction".
+      if (t.dataset.view === "contribute") Contribute.reset();
+      show(t.dataset.view);
+    });
     $("#drawer-close").onclick = closeDrawer;
     $("#drawer-scrim").onclick = closeDrawer;
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });
@@ -1298,6 +1372,10 @@
     });
 
     window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); if ($("#proofreader").classList.contains("open")) pfRender(); });
+
+    // Browser Back/Forward replays the stored view + drawer state.
+    window.addEventListener("popstate", e => applyNav(e.state || { view: "tree", personId: null, placeId: null }));
+    history.replaceState(navSnapshot(), "");   // seed the initial (tree, no drawer) entry
 
     setupAuth();
     Auth.init().then(loadLiveData);

@@ -162,6 +162,14 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 
 .badge.verified{background:#e6f0e8;color:#2d6b4f;border:1px solid #9ccaad}
 
+/* person map dots — a coloured dot + always-visible name label (diaspora view) */
+.person-pin-wrap{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;transform:translateX(-7px)}
+.person-pin-wrap .person-dot{width:14px;height:14px;border-radius:50%;flex:none;
+  background:#2d6b4f;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.person-pin-wrap.living .person-dot{background:#9e2b25}
+.person-pin-wrap .person-name{font-size:.74rem;font-weight:600;color:#2b2118;
+  background:rgba(255,253,248,.86);padding:1px 5px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+
 /* CONTRIBUTE ------------------------------------------------------ */
 .contrib-wrap,.about-wrap{max-width:760px;margin:0 auto;padding:1.6rem 1.2rem}
 .contrib-wrap h2,.about-wrap h2{font-size:1.3rem;margin-bottom:.4rem}

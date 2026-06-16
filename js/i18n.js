@@ -58,6 +58,7 @@
       mt_origin: "祖籍 Origin (Fujian/GD)", mt_residence: "遷居 Migration stops",
       mt_grave: "墓 Graves", mt_hall: "祠堂 Ancestral halls",
       mt_church: "教會墳場 Church grounds", mt_diaspora: "沙巴 Diaspora (Sabah)",
+      mt_person: "親人 Family members",
       mt_note: "Pins marked “approx.” are town-level — replace with exact GPS via Contribute.",
 
       c_h: "Add or correct a record",
@@ -129,7 +130,7 @@
       pl_suggest_loc: "📍 Pin the exact location",
       pl_view_map: "View on map →", pl_photos: "Location photos",
       pl_addphoto: "＋ Add a location photo",
-      m_details: "Details & photos →",
+      m_details: "Details & photos →", m_intree: "View in tree →",
       pick_hint: "Click the map to place",
       pick_drag: "Drag the pin to fine-tune, then save.",
       pick_save: "Save this location", pick_cancel: "Cancel",
@@ -220,6 +221,7 @@
       mt_origin: "祖籍（閩／粵）", mt_residence: "遷居",
       mt_grave: "墳墓", mt_hall: "祠堂",
       mt_church: "教會墳場", mt_diaspora: "沙巴僑居",
+      mt_person: "親人",
       mt_note: "標示「約」的座標僅到鄉鎮級，請透過「貢獻」提供精確座標。",
 
       c_h: "新增或修正記錄",
@@ -289,7 +291,7 @@
       pl_suggest_loc: "📍 標出精確位置",
       pl_view_map: "在地圖檢視 →", pl_photos: "地點相片",
       pl_addphoto: "＋ 新增地點相片",
-      m_details: "詳情與相片 →",
+      m_details: "詳情與相片 →", m_intree: "在族譜中檢視 →",
       pick_hint: "點地圖標出位置：",
       pick_drag: "可拖曳圖釘微調，然後儲存。",
       pick_save: "儲存此位置", pick_cancel: "取消",

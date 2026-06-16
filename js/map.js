@@ -20,10 +20,11 @@
     // Draw on first ready. Listen to BOTH load and idle so a slow/blocked tile
     // server (e.g. behind the Great Firewall) can't stop pins from appearing —
     // the inline style loads regardless of tiles.
-    const onReady = () => { if (ready) return; ready = true; drawMigration(); drawPins(); fit(); };
+    const onReady = () => { if (ready) return; ready = true; drawMigration(); drawPins(); drawPeople(); fit(); };
     map.on("load", onReady);
     map.once("idle", onReady);
   }
+  const num = x => typeof x === "number" && !isNaN(x);
 
   function drawMigration() {
     const P = id => LINEAGE.places.find(p => p.id === id);
@@ -77,26 +78,51 @@
     });
   }
 
+  // Named dots for people who carry their own lat/lng — "where the family dispersed to".
+  // Living members are member-tier in the DB, so non-signed-in visitors simply won't have
+  // those rows loaded; only public (e.g. deceased) people show their dot to everyone.
+  function drawPeople() {
+    const T = k => (window.I18N ? I18N.t(k) : k);
+    LINEAGE.persons.forEach(p => {
+      if (!num(p.lng) || !num(p.lat)) return;
+      const wrap = document.createElement("div");
+      wrap.className = "person-pin-wrap" + (p.living ? " living" : "");
+      wrap.dataset.group = "person";
+      if (layerVisible["person"] === false) wrap.style.display = "none";
+      wrap.innerHTML = `<span class="person-dot"></span><span class="person-name">${p.name}</span>`;
+      const sub = [p.pinyin, p.gen != null ? "第" + p.gen + "世" : ""].filter(Boolean).join(" · ");
+      const html = `<div class="map-pin"><h4>${p.name}</h4>
+        ${sub ? `<div>${sub}</div>` : ""}
+        <div style="margin-top:.5rem"><a class="pin-details" data-person="${p.id}" style="color:#3d6b8e;cursor:pointer;font-size:.78rem">${T("m_intree")}</a></div>
+      </div>`;
+      const popup = new maplibregl.Popup({ offset: 14 }).setHTML(html);
+      popup.on("open", () => {
+        const a = popup.getElement().querySelector(".pin-details");
+        if (a) a.addEventListener("click", () => popup.remove());
+      });
+      const m = new maplibregl.Marker({ element: wrap, anchor: "left" })
+        .setLngLat([p.lng, p.lat]).setPopup(popup).addTo(map);
+      markers.push({ marker: m, group: "person", el: wrap });
+    });
+  }
+
   function setLayer(group, visible) {
     layerVisible[group] = visible;
     markers.filter(m => m.group === group).forEach(m => m.el.style.display = visible ? "" : "none");
   }
   function clearPins() { markers.forEach(m => m.marker.remove()); markers = []; }
-  function refresh() {            // redraw pins after live data merges new places
+  function refresh() {            // redraw pins after live data merges new places/people
     if (!built) return;
-    clearPins(); drawPins(); fit();
+    clearPins(); drawPins(); drawPeople(); fit();
   }
   function relabel() {            // rebuild popups in the current language (no refit)
     if (!built || !markers.length) return;
-    clearPins(); drawPins();
+    clearPins(); drawPins(); drawPeople();
   }
   function fit() {
     const b = new maplibregl.LngLatBounds();
-    LINEAGE.places.forEach(p => {
-      if (typeof p.lng === "number" && typeof p.lat === "number" && !isNaN(p.lng) && !isNaN(p.lat)) {
-        b.extend([p.lng, p.lat]);
-      }
-    });
+    LINEAGE.places.forEach(p => { if (num(p.lng) && num(p.lat)) b.extend([p.lng, p.lat]); });
+    LINEAGE.persons.forEach(p => { if (num(p.lng) && num(p.lat)) b.extend([p.lng, p.lat]); });
     if (!b.isEmpty()) map.fitBounds(b, { padding: 60, duration: 0 });
   }
 

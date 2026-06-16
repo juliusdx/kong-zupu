@@ -255,6 +255,8 @@
         };
         if (payload.action === "add_spouse") row.spouse_of = payload.relatedTo;
         else row.father_id = payload.relatedTo;
+        const plat = parseFloat(payload.lat), plng = parseFloat(payload.lng);   // dropped pin → person's map dot
+        if (isFinite(plat) && isFinite(plng)) { row.lat = plat; row.lng = plng; }
         const { error: insErr } = await sb.from("persons").upsert(row);
         if (insErr) throw insErr;
         await attachContribPhoto(row.id, payload.photo, row.visibility);
@@ -275,6 +277,8 @@
         if (has("aka"))        fields.aka = payload.aka || null;
         if (payload.gender === "m" || payload.gender === "f") fields.gender = payload.gender;
         if (has("gen") && payload.gen !== "") fields.gen = parseInt(payload.gen, 10);
+        const elat = parseFloat(payload.lat), elng = parseFloat(payload.lng);   // dropped pin → person's map dot
+        if (isFinite(elat) && isFinite(elng)) { fields.lat = elat; fields.lng = elng; }
         if (has("birth"))      fields.birth_year = payload.birth || null;
         if (has("bio"))        fields.bio = payload.bio || null;
         if (has("living")) {
@@ -413,6 +417,7 @@
     birthYear: r.birth_year, deathYear: r.death_year, lifespan: r.lifespan,
     religion: r.religion, relation: r.relation, bio: r.bio,
     birthPlace: r.birth_place, residencePlace: r.residence_place, burialPlace: r.burial_place,
+    lat: r.lat, lng: r.lng,
     living: r.living, confidence: r.confidence, _live: true
   });
   const camelPlace = r => ({
@@ -648,7 +653,7 @@
       birth_year: p.birthYear, death_year: p.deathYear, lifespan: p.lifespan,
       religion: p.religion, relation: p.relation, bio: p.bio,
       birth_place: p.birthPlace, residence_place: p.residencePlace,
-      burial_place: p.burialPlace, living: !!p.living,
+      burial_place: p.burialPlace, lat: p.lat, lng: p.lng, living: !!p.living,
       visibility: p.living ? "member" : "public",
       confidence: p.confidence || "low", source: "contribution"
     };
@@ -1512,6 +1517,11 @@
     document.addEventListener("click", e => {
       const a = e.target.closest("[data-place]");
       if (a) { e.preventDefault(); openPlace(a.dataset.place); }
+    });
+    // person links from map dots → jump to them on the tree and open the drawer
+    document.addEventListener("click", e => {
+      const a = e.target.closest("[data-person]");
+      if (a) { e.preventDefault(); show("tree", { noFit: true }); openPerson(a.dataset.person); Tree.focus(a.dataset.person); }
     });
 
     // photo lightbox — click any thumbnail (drawer grid or tree avatar) to expand

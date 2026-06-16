@@ -359,6 +359,7 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .contrib-card .cc-head{font-size:.76rem;color:#9a8a6e;margin-bottom:.5rem}
 .contrib-card .row{display:flex;gap:.6rem;padding:.15rem 0;font-size:.88rem;border-bottom:1px dotted #e3d9c2}
 .contrib-card .row .k{min-width:120px;color:#7a6a4e;text-transform:capitalize}
+.contrib-card .cc-photo{max-width:160px;max-height:160px;border-radius:8px;border:1px solid var(--line);display:block}
 .cc-actions{margin-top:.7rem;display:flex;gap:.6rem}
 .cc-actions button{padding:.4rem .9rem;border-radius:7px;font:inherit;font-weight:700;cursor:pointer}
 .cc-actions .primary{background:var(--seal);color:#fff;border:1px solid var(--seal)}

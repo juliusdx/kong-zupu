@@ -176,7 +176,6 @@
       $("#tab-review").style.display = st.isAdmin ? "" : "none";
       if (!st.isAdmin && $("#view-review").classList.contains("active")) show("tree");
       if ($("#view-sources").classList.contains("active")) buildSources();   // refresh lock state
-      Contribute.build();   // sign-in state flips the photo field between upload and URL
     });
   }
 
@@ -217,12 +216,16 @@
           <button class="ghost" data-reject="${c.id}">${T("r_reject")}</button>
         </div></div>`;
     }
+    // the photo (a data: or http URL) renders as a thumbnail, not as a giant text row
     const rows = Object.entries(p)
-      .filter(([k, v]) => v && !["status", "submittedAt"].includes(k))
+      .filter(([k, v]) => v && !["status", "submittedAt", "photo"].includes(k))
       .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
+    const photoHtml = p.photo
+      ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(p.photo)}" alt=""></span></div>`
+      : "";
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
-      ${rows}
+      ${rows}${photoHtml}
       <div class="cc-actions">
         <button class="primary" data-approve="${c.id}">${I18N.t("r_approve")}</button>
         <button class="ghost" data-reject="${c.id}">${I18N.t("r_reject")}</button>
@@ -528,6 +531,20 @@
   }
   window.uploadContributionPhoto = uploadContributionPhoto;
 
+  // Anonymous contributors can't write to storage (RLS), so embed the downscaled photo as
+  // a data URL inside the contribution payload. Contributions are admin-only to READ, so
+  // the unvetted image is never publicly reachable; the editor uploads it on approval.
+  async function fileToContribImage(file) {
+    const small = await downscaleImage(file, 1280, 0.8);
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(small);
+    });
+  }
+  window.fileToContribImage = fileToContribImage;
+
   // Bridge for the contribution form's "Pick on map": switch to the map, run the shared
   // picker (search + drop pin), then return to the form. Resolves {lat,lng} or null.
   async function contribPickLocation(opts) {
@@ -538,18 +555,33 @@
   }
   window.contribPickLocation = contribPickLocation;
 
-  // On approval, link a contributed photo URL to the (now-created) person as an approved
-  // media row so it shows on the tree/drawer. Best-effort: a photo hiccup must not undo
-  // an otherwise-good approval, so failures warn rather than throw.
-  async function attachContribPhoto(personId, url, visibility) {
-    if (!url || !/^https?:\/\//.test(url)) return;
+  // On approval, link a contributed photo to the (now-created) person as an approved media
+  // row so it shows on the tree/drawer. `photo` is either an http(s) URL (signed-in
+  // contributor uploaded it at submit) or a data: URL (anonymous contributor embedded it),
+  // which the admin now uploads to storage. Best-effort: a photo hiccup must not undo an
+  // otherwise-good approval, so failures warn rather than throw.
+  async function attachContribPhoto(personId, photo, visibility) {
+    if (!photo) return;
     const sb = Auth.client(), st = Auth.state();
     if (!sb || !st.user) return;
-    const { error } = await sb.from("media").insert({
-      person_id: personId, url, uploaded_by: st.user.id,
-      approved: true, visibility: visibility || "member"
-    });
-    if (error) console.warn("contrib photo link failed", error);
+    try {
+      let url = photo;
+      if (/^data:/.test(photo)) {
+        const blob = await (await fetch(photo)).blob();
+        const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const path = personId + "/" + Date.now() + "_contrib." + ext;
+        const up = await sb.storage.from("photos").upload(path, blob, { upsert: false, contentType: blob.type });
+        if (up.error) throw up.error;
+        url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+      } else if (!/^https?:\/\//.test(photo)) {
+        return;   // not a URL or data URL — ignore
+      }
+      const { error } = await sb.from("media").insert({
+        person_id: personId, url, uploaded_by: st.user.id,
+        approved: true, visibility: visibility || "member"
+      });
+      if (error) throw error;
+    } catch (e) { console.warn("contrib photo link failed", e); }
   }
   async function approvePhoto(mediaId) {
     const sb = Auth.client();

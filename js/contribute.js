@@ -20,8 +20,6 @@
   const ccOptions = () => COUNTRY_CODES
     .map(([v, label]) => `<option value="${v}"${v === "+60" ? " selected" : ""}>${label}</option>`).join("");
 
-  const signedIn = () => !!(window.Auth && Auth.state && Auth.state().user);
-
   function personOptions() {
     return LINEAGE.persons.filter(p => !p.spouseOf)
       .sort((a,b)=>(a.gen||0)-(b.gen||0))
@@ -117,13 +115,11 @@
         <input type="hidden" name="lat" />
         <input type="hidden" name="lng" />
       </div>
-      ${signedIn()
-        ? `<label class="full">${T("f_photo_upload")}
-            <input type="file" name="photoFile" accept="image/*" class="photo-file" />
-            <span class="muted photo-hint">${T("f_photo_hint")}</span>
-            <div class="photo-preview" hidden></div>
-          </label>`
-        : `<label class="full">${T("f_photo")}<input name="photo" placeholder="https://…" /></label>`}
+      <label class="full">${T("f_photo_upload")}
+        <input type="file" name="photoFile" accept="image/*" class="photo-file" />
+        <span class="muted photo-hint">${T("f_photo_hint")}</span>
+        <div class="photo-preview" hidden></div>
+      </label>
 
       <div class="field-section">${T("f_section_contact")}</div>
       <label>${T("f_contributor")}<input name="contributor" /></label>
@@ -216,14 +212,18 @@
     else delete data.phone;
     delete data.phoneCountry;
 
-    // Photo: a signed-in contributor's file is uploaded now → public URL in payload.photo;
-    // an editor links it to the new person on approval. (Anon contributors use the URL field.)
+    // Photo: anyone can attach a file. Signed-in → upload straight to storage (lean);
+    // anonymous → embed the downscaled image in the payload (admin-only via RLS, never
+    // public), and an editor uploads + links it on approval. Either way payload.photo
+    // carries it forward; attachContribPhoto() handles both on approval.
     const fileInput = f.querySelector(".photo-file");
     const file = fileInput && fileInput.files && fileInput.files[0];
-    if (file && window.uploadContributionPhoto) {
+    const isSignedIn = !!(window.Auth && Auth.state && Auth.state().user);
+    if (file) {
       try {
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = T("f_uploading"); }
-        data.photo = await window.uploadContributionPhoto(file);
+        if (isSignedIn && window.uploadContributionPhoto) data.photo = await window.uploadContributionPhoto(file);
+        else if (window.fileToContribImage) data.photo = await window.fileToContribImage(file);
       } catch (err) {
         alert(T("f_photo_fail") + (err.message || err));
       } finally {

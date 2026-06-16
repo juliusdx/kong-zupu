@@ -178,6 +178,51 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .field-section{grid-column:1/-1;border-top:1px solid var(--line);padding-top:.8rem;margin-top:.3rem;font-family:var(--font-cn);color:var(--ink)}
 .privacy-note{grid-column:1/-1;background:#fff8ea;border:1px solid var(--gold);border-radius:8px;padding:.7rem .9rem;font-size:.8rem}
 
+/* shared label for the composite (non-<label>) fields: date toggle, map pin */
+#contrib-form .fd-label{font-size:.82rem;color:var(--ink-soft)}
+#contrib-form .fd-hint{font-size:.72rem}
+#contrib-form .date-field,#contrib-form .pin-field{display:flex;flex-direction:column;gap:.35rem}
+
+/* birth-date mode toggle */
+.date-toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content}
+.date-toggle .dt-btn{background:#fffdf8;border:none;padding:.35rem .8rem;font-size:.8rem;color:var(--ink-soft);cursor:pointer}
+.date-toggle .dt-btn+.dt-btn{border-left:1px solid var(--line)}
+.date-toggle .dt-btn.active{background:var(--gold,#c9a24a);color:#2b2118;font-weight:600}
+#contrib-form .date-input{max-width:280px}
+
+/* map-pin field */
+.pin-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.pin-pick-btn{cursor:pointer}
+.pin-readout{font-size:.85rem}
+.pin-readout:not(.muted){color:var(--ink);font-weight:600}
+.pin-clear{background:none;border:none;color:var(--seal);font-size:.78rem;cursor:pointer;text-decoration:underline}
+
+/* photo upload (signed-in) */
+.photo-hint{font-size:.72rem}
+.photo-preview{margin-top:.4rem}
+.photo-preview img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+
+/* phone country-code + number */
+.phone-row{display:flex;gap:.5rem}
+#contrib-form .phone-cc{flex:0 0 auto;max-width:140px}
+#contrib-form .phone-num{flex:1 1 auto;min-width:0}
+
+/* consent checkbox sits inline, not stacked like the other labels */
+#contrib-form .checkbox-row{flex-direction:row;align-items:center;gap:.5rem;cursor:pointer}
+#contrib-form .checkbox-row input{width:auto;flex:none}
+
+/* address search inside the pin-picker banner */
+.pick-banner .pick-search{position:relative;display:flex;flex-direction:column}
+.pick-search-input{border:1px solid rgba(243,233,214,.4);border-radius:6px;padding:.4rem .6rem;
+  background:rgba(255,255,255,.95);color:#2b2118;font-size:.82rem;min-width:220px}
+.pick-results{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:6;max-height:230px;overflow:auto;
+  background:#fffdf8;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.pick-results .pick-result{display:block;width:100%;text-align:left;background:none;border:none;
+  border-bottom:1px solid #eee3cc;padding:.45rem .6rem;font-size:.8rem;color:var(--ink);cursor:pointer;line-height:1.3}
+.pick-results .pick-result:last-child{border-bottom:none}
+.pick-results .pick-result:hover{background:#f3ead2}
+.pick-results .pick-result.muted{color:#9a8a6e;cursor:default}
+
 /* ABOUT ----------------------------------------------------------- */
 .about-wrap h3{margin:1.4rem 0 .4rem;font-size:1.05rem;color:var(--seal)}
 .about-wrap p{line-height:1.65}

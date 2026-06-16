@@ -176,6 +176,7 @@
       $("#tab-review").style.display = st.isAdmin ? "" : "none";
       if (!st.isAdmin && $("#view-review").classList.contains("active")) show("tree");
       if ($("#view-sources").classList.contains("active")) buildSources();   // refresh lock state
+      Contribute.build();   // sign-in state flips the photo field between upload and URL
     });
   }
 
@@ -253,6 +254,7 @@
         else row.father_id = payload.relatedTo;
         const { error: insErr } = await sb.from("persons").upsert(row);
         if (insErr) throw insErr;
+        await attachContribPhoto(row.id, payload.photo, row.visibility);
       }
       // On approve, apply an "edit" correction to the named person. Most ancestors
       // exist only in the static seed (no live row yet), so we UPDATE first and, when
@@ -279,14 +281,18 @@
         const { data: upData, error: upErr } = await sb.from("persons")
           .update(fields).eq("id", pid).select();
         if (upErr) throw upErr;
+        let vis = fields.visibility;
         if (!upData || upData.length === 0) {
           const pObj = personById(pid);
           if (!pObj) throw new Error("Unknown person for this correction: " + pid);
           const fullRow = seedPersonRow(pObj);
           Object.assign(fullRow, fields);   // edits override the seed snapshot
+          vis = vis || fullRow.visibility;
           const { error: insErr } = await sb.from("persons").upsert(fullRow);
           if (insErr) throw insErr;
         }
+        const cur = personById(pid);
+        await attachContribPhoto(pid, payload.photo, vis || (cur && cur.living ? "member" : "public"));
       }
       // On approve, promote a location contribution onto the map.
       if (status === "approved" && payload && payload.action === "add_place") {
@@ -506,6 +512,45 @@
     if (ins.error) throw ins.error;
   }
   const uploadPhoto = (personId, file) => uploadMedia({ personId }, file);
+
+  // Upload a photo chosen on the CONTRIBUTION form (the person doesn't exist yet, so we
+  // can't insert a media row). Store the file in the public photos bucket and return its
+  // URL; an editor links it to the new person on approval (see attachContribPhoto).
+  async function uploadContributionPhoto(file) {
+    const sb = Auth.client(), st = Auth.state();
+    if (!sb || !st.user) throw new Error("Sign in to upload a photo.");
+    file = await downscaleImage(file);
+    const safe = file.name.replace(/[^\w.\-]/g, "_");
+    const path = "contrib/" + st.user.id + "/" + Date.now() + "_" + safe;
+    const up = await sb.storage.from("photos").upload(path, file, { upsert: false });
+    if (up.error) throw up.error;
+    return sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+  }
+  window.uploadContributionPhoto = uploadContributionPhoto;
+
+  // Bridge for the contribution form's "Pick on map": switch to the map, run the shared
+  // picker (search + drop pin), then return to the form. Resolves {lat,lng} or null.
+  async function contribPickLocation(opts) {
+    show("map");
+    const coords = await MapView.pickLocation({ name: (opts && opts.name) || (I18N.t("f_pin_new")) });
+    show("contribute");
+    return coords;
+  }
+  window.contribPickLocation = contribPickLocation;
+
+  // On approval, link a contributed photo URL to the (now-created) person as an approved
+  // media row so it shows on the tree/drawer. Best-effort: a photo hiccup must not undo
+  // an otherwise-good approval, so failures warn rather than throw.
+  async function attachContribPhoto(personId, url, visibility) {
+    if (!url || !/^https?:\/\//.test(url)) return;
+    const sb = Auth.client(), st = Auth.state();
+    if (!sb || !st.user) return;
+    const { error } = await sb.from("media").insert({
+      person_id: personId, url, uploaded_by: st.user.id,
+      approved: true, visibility: visibility || "member"
+    });
+    if (error) console.warn("contrib photo link failed", error);
+  }
   async function approvePhoto(mediaId) {
     const sb = Auth.client();
     const { error } = await sb.from("media").update({ approved: true }).eq("id", mediaId);

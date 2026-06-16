@@ -100,8 +100,19 @@
     if (!b.isEmpty()) map.fitBounds(b, { padding: 60, duration: 0 });
   }
 
-  /* Interactive pin-correction: let the visitor click/drag a marker to suggest
-     an exact GPS for `place`. Resolves to {lat,lng} on save, or null on cancel. */
+  // Free OSM (Nominatim) forward-geocoding for the picker's address search. Light use
+  // only; the browser sends a Referer which satisfies the usage policy for this volume.
+  async function geocode(q) {
+    const lang = (window.I18N && I18N.getLang) ? I18N.getLang() : "en";
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=6&q=" + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { "Accept-Language": lang === "zh" ? "zh,en" : "en" } });
+    if (!res.ok) return [];
+    return res.json();   // [{ lat, lon, display_name }, …]
+  }
+
+  /* Interactive pin picker: search an address, then click/drag a marker to set an exact
+     GPS for `place`. Resolves to {lat,lng} on save, or null on cancel. Shared by the
+     place-correction flow and the contribution form's "Pick on map". */
   function pickLocation(place) {
     const T = k => (window.I18N ? I18N.t(k) : k);
     return new Promise(resolve => {
@@ -120,14 +131,17 @@
         banner.innerHTML =
           `<div class="pick-msg"><span>${T("pick_hint")} <b>${place.name}</b></span>` +
           `<span class="pick-sub">${T("pick_drag")}</span></div>` +
+          `<div class="pick-search">` +
+          `<input class="pick-search-input" type="search" placeholder="${T("pick_search")}" />` +
+          `<div class="pick-results" hidden></div></div>` +
           `<div class="pick-btns">` +
           `<button class="pick-save" disabled>${T("pick_save")}</button>` +
           `<button class="pick-cancel">${T("pick_cancel")}</button></div>`;
         document.getElementById("map-canvas").appendChild(banner);
         const saveBtn = banner.querySelector(".pick-save");
 
-        const onClick = e => {
-          const { lng, lat } = e.lngLat;
+        // drop (or move) the draggable marker and enable Save
+        const placeMarker = (lng, lat, fly) => {
           if (!marker) {
             const el = document.createElement("div");
             el.className = "pick-marker";
@@ -135,11 +149,40 @@
               .setLngLat([lng, lat]).addTo(map);
           } else marker.setLngLat([lng, lat]);
           saveBtn.disabled = false;
+          if (fly) map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 13) });
         };
+
+        const onClick = e => placeMarker(e.lngLat.lng, e.lngLat.lat, false);
         map.on("click", onClick);
+
+        // address search → results dropdown → pick one to fly + drop the marker
+        const input = banner.querySelector(".pick-search-input");
+        const results = banner.querySelector(".pick-results");
+        let seq = 0, timer = null;
+        const runSearch = async () => {
+          const q = input.value.trim();
+          if (q.length < 3) { results.hidden = true; results.innerHTML = ""; return; }
+          const mine = ++seq;
+          results.hidden = false;
+          results.innerHTML = `<div class="pick-result muted">${T("pick_searching")}</div>`;
+          let hits = [];
+          try { hits = await geocode(q); } catch (_) { /* offline / blocked → no results */ }
+          if (mine !== seq) return;   // a newer keystroke superseded this one
+          if (!hits.length) { results.innerHTML = `<div class="pick-result muted">${T("pick_noresults")}</div>`; return; }
+          results.innerHTML = hits.map((h, i) =>
+            `<button type="button" class="pick-result" data-i="${i}">${h.display_name}</button>`).join("");
+          results.querySelectorAll(".pick-result[data-i]").forEach(b => b.onclick = () => {
+            const h = hits[+b.dataset.i];
+            placeMarker(parseFloat(h.lon), parseFloat(h.lat), true);
+            results.hidden = true; input.value = h.display_name.split(",")[0];
+          });
+        };
+        input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(runSearch, 450); });
+        input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(timer); runSearch(); } });
 
         const cleanup = () => {
           map.off("click", onClick);
+          clearTimeout(timer);
           map.getCanvas().style.cursor = "";
           if (marker) marker.remove();
           banner.remove();

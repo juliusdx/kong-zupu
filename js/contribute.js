@@ -9,10 +9,24 @@
   // facing a blank slate. Held here so a language-toggle rebuild keeps the prefill.
   let prefillData = null;
 
+  // Country dialling codes, family geography first (Sabah / China / SE-Asia diaspora).
+  const COUNTRY_CODES = [
+    ["+60","🇲🇾 +60"], ["+86","🇨🇳 +86"], ["+65","🇸🇬 +65"], ["+852","🇭🇰 +852"],
+    ["+886","🇹🇼 +886"], ["+62","🇮🇩 +62"], ["+673","🇧🇳 +673"], ["+66","🇹🇭 +66"],
+    ["+63","🇵🇭 +63"], ["+84","🇻🇳 +84"], ["+61","🇦🇺 +61"], ["+64","🇳🇿 +64"],
+    ["+44","🇬🇧 +44"], ["+1","🇺🇸/🇨🇦 +1"], ["+91","🇮🇳 +91"], ["+81","🇯🇵 +81"],
+    ["+82","🇰🇷 +82"], ["+49","🇩🇪 +49"], ["+33","🇫🇷 +33"], ["+971","🇦🇪 +971"]
+  ];
+  const ccOptions = () => COUNTRY_CODES
+    .map(([v, label]) => `<option value="${v}"${v === "+60" ? " selected" : ""}>${label}</option>`).join("");
+
+  const signedIn = () => !!(window.Auth && Auth.state && Auth.state().user);
+
   function personOptions() {
     return LINEAGE.persons.filter(p => !p.spouseOf)
-      .sort((a,b)=>a.gen-b.gen)
-      .map(p => `<option value="${p.id}">第${p.gen}世 · ${p.name} ${p.pinyin||""}</option>`).join("");
+      .sort((a,b)=>(a.gen||0)-(b.gen||0))
+      // a missing generation must not render as "第null世" — drop the prefix when unknown
+      .map(p => `<option value="${p.id}">${p.gen != null ? "第" + p.gen + "世 · " : ""}${p.name} ${p.pinyin||""}</option>`).join("");
   }
 
   // Fill the freshly-built form from a prefill object (field name -> value). Fields the
@@ -68,8 +82,17 @@
       <label>${T("f_living")}
         <select name="living"><option value="true">${T("f_living_yes")}</option><option value="false">${T("f_living_no")}</option></select>
       </label>
-      <label>${T("f_birth")}<input name="birth" placeholder="1948 / 民國… / 光緒…" /></label>
-      <label>${T("f_place")}<input name="place" placeholder="Kota Kinabalu / 山打根…" /></label>
+      <div class="full date-field">
+        <span class="fd-label">${T("f_birth")}</span>
+        <div class="date-toggle" role="group">
+          <button type="button" class="dt-btn active" data-mode="text">${T("f_date_text")}</button>
+          <button type="button" class="dt-btn" data-mode="cal">${T("f_date_cal")}</button>
+        </div>
+        <input name="birth" class="date-input dt-text" placeholder="1948 / 民國… / 光緒…" />
+        <input name="birthExact" type="date" class="date-input dt-cal" hidden />
+        <span class="muted fd-hint">${T("f_date_hint")}</span>
+      </div>
+      <label class="full">${T("f_place")}<input name="place" placeholder="Kota Kinabalu / 山打根…" /></label>
       <label class="full">${T("f_bio")}<textarea name="bio"></textarea></label>
 
       <div class="field-section">${T("f_section_loc")}</div>
@@ -84,13 +107,37 @@
         </select>
       </label>
       <label>${T("f_placename")}<input name="placeName" placeholder="例：起瀾公墓 / 古達聖會" /></label>
-      <label>${T("f_lat")}<input name="lat" placeholder="6.883" /></label>
-      <label>${T("f_lng")}<input name="lng" placeholder="116.848" /></label>
-      <label class="full">${T("f_photo")}<input name="photo" /></label>
+      <div class="full pin-field">
+        <span class="fd-label">${T("f_pin")}</span>
+        <div class="pin-row">
+          <button type="button" class="action pin-pick-btn" id="pin-pick">${T("f_pin_btn")}</button>
+          <span class="pin-readout muted" id="pin-readout">${T("f_pin_none")}</span>
+          <button type="button" class="pin-clear" id="pin-clear" hidden>${T("f_pin_clear")}</button>
+        </div>
+        <input type="hidden" name="lat" />
+        <input type="hidden" name="lng" />
+      </div>
+      ${signedIn()
+        ? `<label class="full">${T("f_photo_upload")}
+            <input type="file" name="photoFile" accept="image/*" class="photo-file" />
+            <span class="muted photo-hint">${T("f_photo_hint")}</span>
+            <div class="photo-preview" hidden></div>
+          </label>`
+        : `<label class="full">${T("f_photo")}<input name="photo" placeholder="https://…" /></label>`}
 
       <div class="field-section">${T("f_section_contact")}</div>
       <label>${T("f_contributor")}<input name="contributor" /></label>
-      <label>${T("f_contact")}<input name="contact" /></label>
+      <label>${T("f_email")}<input name="email" type="email" placeholder="name@example.com" /></label>
+      <label class="full">${T("f_phone")}
+        <div class="phone-row">
+          <select name="phoneCountry" class="phone-cc">${ccOptions()}</select>
+          <input name="phone" class="phone-num" inputmode="tel" placeholder="12-345 6789" />
+        </div>
+      </label>
+      <label>${T("f_messaging")}<input name="messaging" placeholder="WeChat / WhatsApp" /></label>
+      <label>${T("f_relationship")}<input name="relationship" placeholder="孫 / grandson…" /></label>
+      <label>${T("f_residence")}<input name="contributorLocation" placeholder="Kota Kinabalu, MY" /></label>
+      <label class="full checkbox-row"><input type="checkbox" name="contactConsent" value="yes" /> <span>${T("f_consent")}</span></label>
 
       <div class="privacy-note">${T("f_privacy")}</div>
 
@@ -102,7 +149,49 @@
     // onsubmit (not addEventListener) so repeated builds — language toggle, prefill —
     // don't stack duplicate handlers and double-submit the contribution.
     f.onsubmit = submit;
+    wire(f);
     if (prefillData) applyPrefill(f, prefillData);
+  }
+
+  // Hook up the interactive controls after the form HTML is (re)built.
+  function wire(f) {
+    // birth-date mode toggle: show the calendar OR the free-text year/era input
+    f.querySelectorAll(".dt-btn").forEach(b => b.onclick = () => {
+      f.querySelectorAll(".dt-btn").forEach(x => x.classList.toggle("active", x === b));
+      const cal = b.dataset.mode === "cal";
+      f.querySelector(".dt-text").hidden = cal;
+      f.querySelector(".dt-cal").hidden = !cal;
+    });
+    // map pin: hand off to the shared picker (map view + address search), fill lat/lng
+    const pick = f.querySelector("#pin-pick");
+    if (pick) pick.onclick = async () => {
+      if (!window.contribPickLocation) return;
+      const nm = f.elements.placeName;
+      const coords = await window.contribPickLocation({ name: (nm && nm.value.trim()) || T("f_pin_new") });
+      if (coords) setPin(f, coords);
+    };
+    const clr = f.querySelector("#pin-clear");
+    if (clr) clr.onclick = () => setPin(f, null);
+    // photo file → quick thumbnail preview
+    const file = f.querySelector(".photo-file");
+    if (file) file.onchange = () => {
+      const prev = f.querySelector(".photo-preview"); if (!prev) return;
+      const ff = file.files && file.files[0];
+      if (ff) { prev.hidden = false; prev.innerHTML = `<img src="${URL.createObjectURL(ff)}" alt="">`; }
+      else { prev.hidden = true; prev.innerHTML = ""; }
+    };
+  }
+
+  function setPin(f, coords) {
+    const ro = f.querySelector("#pin-readout"), clr = f.querySelector("#pin-clear");
+    if (coords) {
+      f.elements.lat.value = coords.lat; f.elements.lng.value = coords.lng;
+      ro.textContent = "📍 " + (+coords.lat).toFixed(5) + ", " + (+coords.lng).toFixed(5);
+      ro.classList.remove("muted"); if (clr) clr.hidden = false;
+    } else {
+      f.elements.lat.value = ""; f.elements.lng.value = "";
+      ro.textContent = T("f_pin_none"); ro.classList.add("muted"); if (clr) clr.hidden = true;
+    }
   }
 
   // Open the form pre-filled to correct an existing person, then let the caller show it.
@@ -113,7 +202,39 @@
 
   async function submit(e) {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
+    const f = e.target;
+    const data = Object.fromEntries(new FormData(f).entries());
+    const submitBtn = f.querySelector('button[type="submit"]');
+
+    // Birth date: if the calendar mode is showing and filled, it wins over the text input.
+    const cal = f.querySelector(".dt-cal");
+    if (cal && !cal.hidden && cal.value) data.birth = cal.value;
+    delete data.birthExact;
+
+    // Phone: prefix the dialling code only when a number was actually entered.
+    if (data.phone && data.phone.trim()) data.phone = (data.phoneCountry || "") + " " + data.phone.trim();
+    else delete data.phone;
+    delete data.phoneCountry;
+
+    // Photo: a signed-in contributor's file is uploaded now → public URL in payload.photo;
+    // an editor links it to the new person on approval. (Anon contributors use the URL field.)
+    const fileInput = f.querySelector(".photo-file");
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if (file && window.uploadContributionPhoto) {
+      try {
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = T("f_uploading"); }
+        data.photo = await window.uploadContributionPhoto(file);
+      } catch (err) {
+        alert(T("f_photo_fail") + (err.message || err));
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = LIVE ? T("f_submit_live") : T("f_submit_demo"); }
+      }
+    }
+    delete data.photoFile;
+
+    // Drop empties so the stored payload and the reviewer's card stay clean.
+    Object.keys(data).forEach(k => { if (data[k] === "" || data[k] == null) delete data[k]; });
+
     data.submittedAt = new Date().toISOString();
     data.status = "pending";
 
@@ -127,7 +248,7 @@
         if (!res.ok) throw new Error(await res.text());
         alert(T("f_thanks_live"));
         prefillData = null;
-        e.target.reset();
+        build();                 // fresh, fully-reset form (clears pin readout, toggle, preview)
       } catch (err) {
         alert(T("f_fail") + err.message);
         download(data);

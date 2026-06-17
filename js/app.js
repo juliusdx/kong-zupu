@@ -77,13 +77,31 @@
     if (n) document.getElementById("admin-dl").onclick = downloadOverrides;
   }
 
+  // Size the tree/map canvas to exactly fill the space below the header + toolbar, using
+  // live element heights instead of a fixed magic number. The header height varies a lot
+  // (esp. on mobile, where tabs/search wrap), so calc(100vh - 165px) overflowed the page;
+  // this keeps the canvas flush with the viewport at any width. window.innerHeight tracks
+  // the *visible* height, so it also handles mobile browser chrome.
+  function sizeCanvas() {
+    const header = $(".site-header");
+    const hh = header ? header.getBoundingClientRect().height : 0;
+    [["#view-tree", "#tree-canvas", ".tree-toolbar"], ["#view-map", "#map-canvas", ".map-toolbar"]]
+      .forEach(([vs, cs, ts]) => {
+        const view = $(vs); if (!view || !view.classList.contains("active")) return;
+        const canvas = $(cs), toolbar = view.querySelector(ts);
+        const tbh = toolbar ? toolbar.getBoundingClientRect().height : 0;
+        if (canvas) canvas.style.height = Math.max(240, Math.round(window.innerHeight - hh - tbh)) + "px";
+      });
+  }
+
   function show(view, opts) {
     $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === view));
     $$(".view").forEach(v => v.classList.remove("active"));
     $("#view-" + view).classList.add("active");
+    sizeCanvas();
     if (view === "map") { MapView.init(); mapReady = true; }
     if (view === "tree") {
-      if (!opts || !opts.noFit) setTimeout(() => Tree.fit(), 50);   // skip when caller will focus a node
+      if (!opts || !opts.noFit) setTimeout(() => { sizeCanvas(); Tree.fit(); }, 50);   // skip when caller will focus a node
       if (currentPersonId) setTimeout(() => renderBreadcrumb(currentPersonId), 60); else hideBreadcrumb();
     } else hideBreadcrumb();
     if (view === "review") buildReview();
@@ -1598,7 +1616,9 @@
       else if (e.key === "ArrowRight") pfGo(1);
     });
 
-    window.addEventListener("resize", () => { Tree.onResize(); positionBreadcrumb(); if ($("#proofreader").classList.contains("open")) pfRender(); });
+    window.addEventListener("resize", () => { sizeCanvas(); Tree.onResize(); positionBreadcrumb(); if ($("#proofreader").classList.contains("open")) pfRender(); });
+    sizeCanvas();
+    window.addEventListener("orientationchange", () => setTimeout(sizeCanvas, 200));
 
     // Browser Back/Forward replays the stored view + drawer state.
     window.addEventListener("popstate", e => applyNav(e.state || { view: "tree", personId: null, placeId: null }));

@@ -176,9 +176,12 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 #contrib-form{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.1rem;margin-top:1.2rem}
 #contrib-form .full{grid-column:1/-1}
 #contrib-form label{display:flex;flex-direction:column;gap:.25rem;font-size:.82rem;color:var(--ink-soft)}
+/* let grid/flex items shrink below content size so a long field never blows out the
+   column width (CSS min-width:auto default) — keeps the form within narrow phones */
+#contrib-form>*{min-width:0}
 #contrib-form input,#contrib-form select,#contrib-form textarea{
   font-family:var(--font);padding:.5rem .6rem;border:1px solid var(--line);
-  border-radius:6px;background:#fffdf8;color:var(--ink);font-size:.92rem;
+  border-radius:6px;background:#fffdf8;color:var(--ink);font-size:.92rem;max-width:100%;
 }
 #contrib-form textarea{min-height:90px;resize:vertical}
 .contrib-actions{grid-column:1/-1;display:flex;gap:.7rem;align-items:center;margin-top:.4rem}
@@ -561,8 +564,34 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 
 @media (max-width:720px){
   #contrib-form{grid-template-columns:1fr}
+
+  /* ---- compact header: brand row, a one-line scrollable tab strip, a tools row ---- */
+  .site-header{gap:.5rem .7rem;padding:.5rem .8rem}
+  .brand{gap:.6rem}
+  .seal{width:42px;height:42px;font-size:26px;border-radius:7px}
+  .brand-text h1{font-size:1.2rem;letter-spacing:.08em}
   .brand-text p{display:none}
-  .header-tools{order:3;width:100%}
-  #search{width:100%}
+  .tabs{order:2;width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;gap:.25rem;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;font-size:.85rem;padding:.4rem .6rem}
+  /* search keeps the row with the help/lang/sign-in buttons — buttons never truncate */
+  .header-tools{order:3;width:100%;flex-wrap:nowrap;gap:.4rem}
+  .search-box{flex:1 1 auto;min-width:0}
+  #search{width:100%;min-width:0}
+  .auth-status{flex:0 0 auto;white-space:nowrap}
+
+  /* ---- compact toolbars: drop the explanatory legend/note, tighten spacing ---- */
+  .tree-toolbar,.map-toolbar{gap:.45rem .8rem;padding:.45rem .7rem;font-size:.8rem}
+  .legend{display:none}
+  .map-toolbar .muted{display:none}
+
   #admin-bar{flex-direction:column;gap:.4rem;text-align:center}
+}
+
+/* generous touch targets on coarse-pointer (touch) devices */
+@media (pointer:coarse){
+  .tab,.tree-toolbar button,.map-toolbar button,#drawer button.action,.auth-status{min-height:40px}
+  .tree-toolbar label,.map-toolbar label{min-height:36px;display:inline-flex;align-items:center}
+  .layer-toggle,.tree-toolbar input[type=checkbox]{width:20px;height:20px}
 }

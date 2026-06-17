@@ -30,7 +30,7 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 
 /* HEADER ---------------------------------------------------------- */
 .site-header{
-  display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;
+  display:flex;align-items:center;gap:1rem 1.1rem;flex-wrap:wrap;
   padding:.7rem 1.2rem;border-bottom:2px solid var(--gold);
   background:linear-gradient(#fbf6ea,#f1e8d4);box-shadow:var(--shadow);
   position:sticky;top:0;z-index:20;
@@ -43,7 +43,14 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 }
 .brand-text h1{font-size:1.5rem;letter-spacing:.12em}
 .brand-text p{margin:.1rem 0 0;font-size:.78rem;color:var(--ink-soft)}
-.tabs{display:flex;gap:.3rem;margin-left:auto;flex-wrap:wrap}
+.brand{order:1}
+.tabs{display:flex;gap:.3rem;flex-wrap:wrap;order:2}
+/* search + utility buttons travel together as one group, pushed to the right (desktop);
+   margin-left:auto claims free space but collapses when tight, and min-width:0 lets the
+   group's search field shrink rather than wrap the whole group to a 2nd row */
+.header-right{display:flex;align-items:center;gap:.6rem;order:3;margin-left:auto;min-width:0;flex:0 1 auto}
+.header-right .search-box{min-width:0;flex:1 1 auto}
+.header-utils{display:flex;align-items:center;gap:.5rem;flex:none}
 .tab{
   font-family:var(--font-cn);font-size:.95rem;cursor:pointer;
   border:1px solid transparent;background:transparent;color:var(--ink-soft);
@@ -51,12 +58,15 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 }
 .tab:hover{color:var(--ink);background:rgba(176,136,51,.12)}
 .tab.active{color:var(--ink);background:var(--paper);border-color:var(--line);box-shadow:var(--shadow)}
-.header-tools{display:flex;align-items:center;gap:.6rem}
 .search-box{position:relative}
+/* a magnifier icon so the pill reads as a search field */
 #search{
-  font-family:var(--font);padding:.4rem .7rem;border:1px solid var(--line);
-  border-radius:20px;background:#fffdf8;min-width:180px;
+  font-family:var(--font);padding:.45rem .8rem .45rem 2.1rem;border:1px solid var(--line);
+  border-radius:20px;color:var(--ink);min-width:200px;
+  background:#fffdf8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b5d4a' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cline x1='15.5' y1='15.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat .65rem center;
+  background-size:15px;
 }
+#search:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(176,136,51,.18)}
 /* live search results dropdown */
 .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;
   margin:0;padding:.25rem;list-style:none;max-height:60vh;overflow-y:auto;
@@ -575,15 +585,20 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .seal{width:42px;height:42px;font-size:26px;border-radius:7px}
   .brand-text h1{font-size:1.2rem;letter-spacing:.08em}
   .brand-text p{display:none}
-  .tabs{order:2;width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;gap:.25rem;
+  /* dissolve the desktop group so search + utils can lay out independently */
+  .header-right{display:contents}
+  /* row 1: brand grows, the utility buttons sit on its right */
+  .brand{order:1;flex:1 1 auto;min-width:0}
+  .header-utils{order:2;flex:0 0 auto;gap:.4rem}
+  .auth-status{flex:0 0 auto;white-space:nowrap}
+  /* row 2: tabs as a single horizontally-scrollable strip */
+  .tabs{order:3;width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;gap:.25rem;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px}
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto;font-size:.85rem;padding:.4rem .6rem}
-  /* search keeps the row with the help/lang/sign-in buttons — buttons never truncate */
-  .header-tools{order:3;width:100%;flex-wrap:nowrap;gap:.4rem}
-  .search-box{flex:1 1 auto;min-width:0}
-  #search{width:100%;min-width:0}
-  .auth-status{flex:0 0 auto;white-space:nowrap}
+  /* row 3: a full-width, unmistakable search field */
+  .search-box{order:4;width:100%}
+  #search{width:100%;min-width:0;padding-top:.55rem;padding-bottom:.55rem;font-size:1rem}
 
   /* ---- compact toolbars: collapse the option/layer controls behind a button ---- */
   .tree-toolbar,.map-toolbar{gap:.45rem .6rem;padding:.45rem .7rem;font-size:.8rem}

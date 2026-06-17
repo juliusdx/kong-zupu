@@ -207,20 +207,21 @@
       .on("click", (e, d) => { e.stopPropagation(); onSelect(d.data.id); });
     all.select("rect.node-rect")
       .attr("class", d => "node-rect " + (d.data.gender === "f" ? "female" : "male") + (d.data.confidence === "low" ? " low" : ""));
+    const fs = fontScale();   // bump label sizes on phones so cards stay legible
     all.select("text.node-name").each(function (d) {
       const photo = opts.photos && d.data.photo;
       d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
-      fitText(this, d.data.name, photo ? LBL_W_PHOTO : LBL_W, 17, 9.5);
+      fitText(this, d.data.name, photo ? LBL_W_PHOTO : LBL_W, 17 * fs, 9.5);
     });
     all.select("text.node-sub").each(function (d) {
       let s = opts.pinyin ? (d.data.pinyin || "") : "";
       if (d.data.ritualName) s += (s ? " · " : "") + "禮名 " + d.data.ritualName;
       const photo = opts.photos && d.data.photo;   // spouse shown on its own card, not here
       d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
-      fitText(this, s, photo ? LBL_W_PHOTO : LBL_W, 10, 8);
+      fitText(this, s, photo ? LBL_W_PHOTO : LBL_W, 10 * fs, 8);
     });
-    all.select("text.node-gen").each(function (d) { fitText(this, relLabel(d.data), LBL_W, 9, 7); });
-    all.select("text.node-years").each(function (d) { fitText(this, yearStr(d.data), LBL_W, 9, 7); });
+    all.select("text.node-gen").each(function (d) { fitText(this, relLabel(d.data), LBL_W, 9 * fs, 7); });
+    all.select("text.node-years").each(function (d) { fitText(this, yearStr(d.data), LBL_W, 9 * fs, 7); });
 
     // candidate flag (unresolved placeholder generations)
     all.selectAll(".cand-flag").remove();
@@ -272,10 +273,10 @@
           .attr("d", `M${d.x + NODE_W/2},${d.y} L${d.x + SPOUSE_DX - SPOUSE_W/2},${d.y}`);
         m.append("rect").attr("class", "node-rect spouse").attr("width", SPOUSE_W).attr("height", 38).attr("x", -SPOUSE_W/2).attr("y", -19).attr("rx", 6);
         const spName = m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1");
-        fitText(spName.node(), sp.name, SPOUSE_W - 12, 14, 9);
+        fitText(spName.node(), sp.name, SPOUSE_W - 12, 14 * fs, 9);
         const ss = sp.ritualName ? "禮名 " + sp.ritualName : (sp.pinyin || "");
         const spSub = m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12");
-        fitText(spSub.node(), ss, SPOUSE_W - 12, 10, 8);
+        fitText(spSub.node(), ss, SPOUSE_W - 12, 10 * fs, 8);
       });
     }
     node.exit().remove();
@@ -296,6 +297,8 @@
     const el = svg && svg.node().parentNode;
     return el ? { W: el.clientWidth, H: el.clientHeight } : { W: 0, H: 0 };
   }
+  // enlarge node labels on phone-width canvases so cards stay readable at the zoom floor
+  function fontScale() { const W = dims().W; return (W && W < 640) ? 1.22 : 1; }
 
   function fit() {
     if (!svg) return;
@@ -310,7 +313,7 @@
       // Phone: the tree is often very tall (the Sabah branch sits at gen 24), so a true
       // fit-all shrinks the cards to specks. Keep them legible with a readable floor and
       // anchor the top of the tree just under the toolbar — the reader pans to explore.
-      scale = Math.max(scale, 0.62);
+      scale = Math.max(scale, 0.7);
       tx = W / 2 - scale * (b.x + b.width / 2);
       ty = 26 - scale * b.y;
     } else {

@@ -34,14 +34,16 @@
     <button class="tab" data-view="review" id="tab-review" style="display:none" data-i18n="tab_review">審核 Review</button>
     <button class="tab" data-view="about" data-i18n="tab_about">關於 About</button>
   </nav>
-  <div class="header-tools">
+  <div class="header-right">
     <div class="search-box">
       <input id="search" type="search" placeholder="Search name / 名…" data-i18n-ph="search_ph" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-results" />
       <ul id="search-results" class="search-results" role="listbox"></ul>
     </div>
-    <button id="help-intro" class="auth-status" title="說明 · Guide" aria-label="Guide">?</button>
-    <button id="lang-toggle" class="auth-status" title="中文 / English">中文</button>
-    <button id="auth-status" class="auth-status" data-i18n="auth_signin">Sign in</button>
+    <div class="header-utils">
+      <button id="help-intro" class="auth-status" title="說明 · Guide" aria-label="Guide">?</button>
+      <button id="lang-toggle" class="auth-status" title="中文 / English">中文</button>
+      <button id="auth-status" class="auth-status" data-i18n="auth_signin">Sign in</button>
+    </div>
   </div>
 </header>
 

@@ -49,10 +49,13 @@
   <!-- TREE ------------------------------------------------------- -->
   <section id="view-tree" class="view active">
     <div class="tree-toolbar">
-      <label><input type="checkbox" id="toggle-daughters" checked /> <span data-i18n="tt_daughters">Show daughters &amp; married-in</span></label>
-      <label><input type="checkbox" id="toggle-pinyin" checked /> <span data-i18n="tt_romanization">Romanization</span></label>
-      <label><input type="checkbox" id="toggle-photos" checked /> <span data-i18n="tt_photos">Photos</span></label>
-      <label><input type="checkbox" id="toggle-swim" checked /> <span data-i18n="tt_swim">Place · era lanes</span></label>
+      <button class="tb-options-btn" data-options="tree" aria-expanded="false">⚙ <span data-i18n="tt_options">Options</span></button>
+      <div class="tb-options">
+        <label><input type="checkbox" id="toggle-daughters" checked /> <span data-i18n="tt_daughters">Show daughters &amp; married-in</span></label>
+        <label><input type="checkbox" id="toggle-pinyin" checked /> <span data-i18n="tt_romanization">Romanization</span></label>
+        <label><input type="checkbox" id="toggle-photos" checked /> <span data-i18n="tt_photos">Photos</span></label>
+        <label><input type="checkbox" id="toggle-swim" checked /> <span data-i18n="tt_swim">Place · era lanes</span></label>
+      </div>
       <button id="btn-home" data-i18n="tt_home">⌂ Home</button>
       <button id="btn-expand" data-i18n="tt_expand">Expand all</button>
       <button id="btn-fit" data-i18n="tt_fit">Fit</button>
@@ -71,14 +74,17 @@
   <!-- MAP ------------------------------------------------------- -->
   <section id="view-map" class="view">
     <div class="map-toolbar">
-      <label><input type="checkbox" class="layer-toggle" data-group="origin" checked /> <span data-i18n="mt_origin">祖籍 Origin (Fujian/GD)</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="residence" checked /> <span data-i18n="mt_residence">遷居 Migration stops</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="grave" checked /> <span data-i18n="mt_grave">墓 Graves</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="hall" checked /> <span data-i18n="mt_hall">祠堂 Ancestral halls</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="church_grave" checked /> <span data-i18n="mt_church">教會墳場 Church grounds</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="diaspora" checked /> <span data-i18n="mt_diaspora">沙巴 Diaspora (Sabah)</span></label>
-      <label><input type="checkbox" class="layer-toggle" data-group="person" checked /> <span data-i18n="mt_person">親人 Family members</span></label>
-      <span class="muted" data-i18n="mt_note">Pins marked “approx.” are town-level — replace with exact GPS via Contribute.</span>
+      <button class="tb-options-btn" data-options="map" aria-expanded="false">⚙ <span data-i18n="mt_layers">Layers</span></button>
+      <div class="tb-options">
+        <label><input type="checkbox" class="layer-toggle" data-group="origin" checked /> <span data-i18n="mt_origin">祖籍 Origin (Fujian/GD)</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="residence" checked /> <span data-i18n="mt_residence">遷居 Migration stops</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="grave" checked /> <span data-i18n="mt_grave">墓 Graves</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="hall" checked /> <span data-i18n="mt_hall">祠堂 Ancestral halls</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="church_grave" checked /> <span data-i18n="mt_church">教會墳場 Church grounds</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="diaspora" checked /> <span data-i18n="mt_diaspora">沙巴 Diaspora (Sabah)</span></label>
+        <label><input type="checkbox" class="layer-toggle" data-group="person" checked /> <span data-i18n="mt_person">親人 Family members</span></label>
+        <span class="muted" data-i18n="mt_note">Pins marked “approx.” are town-level — replace with exact GPS via Contribute.</span>
+      </div>
     </div>
     <div id="map-canvas"></div>
   </section>

@@ -89,6 +89,10 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 }
 .tree-toolbar button:hover{background:var(--paper-2)}
 .legend{display:flex;align-items:center;gap:.8rem;margin-left:auto}
+/* the toggle/layer controls group; inline on desktop, collapsed behind a button on phones */
+.tb-options{display:flex;align-items:center;gap:.5rem .9rem;flex-wrap:wrap}
+.tb-options-btn{display:none;font-family:var(--font);cursor:pointer;border:1px solid var(--line);
+  background:#fffdf8;padding:.35rem .7rem;border-radius:6px;color:var(--ink);align-items:center;gap:.3rem}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.25rem;vertical-align:middle}
 .dot.male{background:var(--male)} .dot.female{background:var(--female)}
 .dot.spouse{background:var(--spouse)} .dot.low{background:var(--low)}
@@ -581,10 +585,15 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   #search{width:100%;min-width:0}
   .auth-status{flex:0 0 auto;white-space:nowrap}
 
-  /* ---- compact toolbars: drop the explanatory legend/note, tighten spacing ---- */
-  .tree-toolbar,.map-toolbar{gap:.45rem .8rem;padding:.45rem .7rem;font-size:.8rem}
+  /* ---- compact toolbars: collapse the option/layer controls behind a button ---- */
+  .tree-toolbar,.map-toolbar{gap:.45rem .6rem;padding:.45rem .7rem;font-size:.8rem}
   .legend{display:none}
-  .map-toolbar .muted{display:none}
+  .tb-options-btn{display:inline-flex}
+  .tree-toolbar .tb-options,.map-toolbar .tb-options{display:none;order:9;flex-basis:100%;
+    flex-direction:column;align-items:flex-start;gap:.6rem;margin-top:.35rem;
+    padding-top:.5rem;border-top:1px dashed var(--line)}
+  .tree-toolbar.opts-open .tb-options,.map-toolbar.opts-open .tb-options{display:flex}
+  .tb-options-btn[aria-expanded="true"]{background:var(--paper-2);border-color:var(--gold)}
 
   #admin-bar{flex-direction:column;gap:.4rem;text-align:center}
 }

@@ -1554,6 +1554,13 @@
     $("#toggle-swim").onchange = e => Tree.setOptions({ swim: e.target.checked });
     // map layer filters (祖籍 / 遷居 / 墓 / 祠堂 / 教會墳場 / 沙巴)
     $$(".layer-toggle").forEach(c => c.onchange = () => MapView.setLayer(c.dataset.group, c.checked));
+    // collapse/expand the toolbar option controls (phones) — resize the canvas after
+    $$(".tb-options-btn").forEach(btn => btn.onclick = () => {
+      const tb = btn.closest(".tree-toolbar, .map-toolbar");
+      const open = tb.classList.toggle("opts-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      sizeCanvas();
+    });
     $("#help-intro").onclick = () => showIntro();
     $("#btn-home").onclick = () => { Tree.home(); hideBreadcrumb(); };
     $("#btn-expand").onclick = () => Tree.expandAll();

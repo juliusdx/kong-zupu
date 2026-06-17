@@ -304,9 +304,19 @@
     svg.attr("width", W).attr("height", H);     // keep svg sized to its container
     const root = svg.select("g");
     const b = root.node().getBBox();
-    const scale = Math.min(1.1, 0.92 / Math.max(b.width / W, b.height / H));
-    const tx = W/2 - scale * (b.x + b.width/2);
-    const ty = H/2 - scale * (b.y + b.height/2);
+    let scale = Math.min(1.1, 0.92 / Math.max(b.width / W, b.height / H));
+    let tx, ty;
+    if (W < 640) {
+      // Phone: the tree is often very tall (the Sabah branch sits at gen 24), so a true
+      // fit-all shrinks the cards to specks. Keep them legible with a readable floor and
+      // anchor the top of the tree just under the toolbar — the reader pans to explore.
+      scale = Math.max(scale, 0.62);
+      tx = W / 2 - scale * (b.x + b.width / 2);
+      ty = 26 - scale * b.y;
+    } else {
+      tx = W / 2 - scale * (b.x + b.width / 2);
+      ty = H / 2 - scale * (b.y + b.height / 2);
+    }
     svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
   }
 

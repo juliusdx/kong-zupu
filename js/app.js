@@ -1546,6 +1546,15 @@
       if (t.dataset.view === "contribute") Contribute.reset();
       show(t.dataset.view);
     });
+    // hint that the tab strip scrolls (mobile): fade whichever edge has hidden tabs
+    const tabsEl = $(".tabs");
+    const updateTabFades = () => {
+      if (!tabsEl) return;
+      const max = tabsEl.scrollWidth - tabsEl.clientWidth;
+      tabsEl.classList.toggle("fade-left", tabsEl.scrollLeft > 4);
+      tabsEl.classList.toggle("fade-right", tabsEl.scrollLeft < max - 4);
+    };
+    if (tabsEl) { tabsEl.addEventListener("scroll", updateTabFades, { passive: true }); window.addEventListener("resize", updateTabFades); updateTabFades(); }
     $("#drawer-close").onclick = closeDrawer;
     $("#drawer-scrim").onclick = closeDrawer;
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });

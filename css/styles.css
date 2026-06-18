@@ -596,6 +596,10 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
     -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px}
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto;font-size:.85rem;padding:.4rem .6rem}
+  /* fade the edge(s) that have more tabs off-screen, hinting the strip is scrollable */
+  .tabs.fade-right:not(.fade-left){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+  .tabs.fade-left:not(.fade-right){-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 28px),transparent)}
+  .tabs.fade-left.fade-right{-webkit-mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
   /* row 3: a full-width, unmistakable search field */
   .search-box{order:4;width:100%}
   #search{width:100%;min-width:0;padding-top:.55rem;padding-bottom:.55rem;font-size:1rem}

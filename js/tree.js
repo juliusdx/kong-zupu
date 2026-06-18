@@ -314,13 +314,23 @@
       // fit-all shrinks the cards to specks. Keep them legible with a readable floor and
       // anchor the top of the tree just under the toolbar — the reader pans to explore.
       scale = Math.max(scale, 0.7);
-      tx = W / 2 - scale * (b.x + b.width / 2);
+      // Centre horizontally on the TOP row's nodes, not the whole bbox: a separate root
+      // (永宏's Sabah line at gen 24) sits off to one side and skews the bbox centre, which
+      // made Fit / Expand-all land on blank space between the branches.
+      const data = gNodes.selectAll("g.node-card").data();
+      let cx = b.x + b.width / 2;
+      if (data && data.length) {
+        const minY = Math.min(...data.map(d => d.y));
+        const xs = data.filter(d => d.y <= minY + 1).map(d => d.x);
+        if (xs.length) cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      }
+      tx = W / 2 - scale * cx;
       ty = 26 - scale * b.y;
     } else {
       tx = W / 2 - scale * (b.x + b.width / 2);
       ty = H / 2 - scale * (b.y + b.height / 2);
     }
-    svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    svg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
   }
 
   function focus(id) {

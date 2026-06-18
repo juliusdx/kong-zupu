@@ -1071,6 +1071,7 @@
   function pickSearch(id) {
     closeSearch();
     $("#search").value = "";
+    $("#search").blur();   // dismiss the mobile keyboard so its close doesn't fight the zoom
     // suppress show()'s auto-fit (it would override the node-centred zoom), then focus
     // after a tick so the canvas is laid out and dims() is ready.
     show("tree", { noFit: true }); openPerson(id);
@@ -1546,15 +1547,15 @@
       if (t.dataset.view === "contribute") Contribute.reset();
       show(t.dataset.view);
     });
-    // hint that the tab strip scrolls (mobile): fade whichever edge has hidden tabs
-    const tabsEl = $(".tabs");
+    // hint that the tab strip scrolls (mobile): show a chevron on whichever edge has hidden tabs
+    const tabsEl = $(".tabs"), tabsWrap = $(".tabs-scroll");
     const updateTabFades = () => {
-      if (!tabsEl) return;
+      if (!tabsEl || !tabsWrap) return;
       const max = tabsEl.scrollWidth - tabsEl.clientWidth;
-      tabsEl.classList.toggle("fade-left", tabsEl.scrollLeft > 4);
-      tabsEl.classList.toggle("fade-right", tabsEl.scrollLeft < max - 4);
+      tabsWrap.classList.toggle("more-left", tabsEl.scrollLeft > 4);
+      tabsWrap.classList.toggle("more-right", max > 4 && tabsEl.scrollLeft < max - 4);
     };
-    if (tabsEl) { tabsEl.addEventListener("scroll", updateTabFades, { passive: true }); window.addEventListener("resize", updateTabFades); updateTabFades(); }
+    if (tabsEl) { tabsEl.addEventListener("scroll", updateTabFades, { passive: true }); window.addEventListener("resize", updateTabFades); setTimeout(updateTabFades, 60); }
     $("#drawer-close").onclick = closeDrawer;
     $("#drawer-scrim").onclick = closeDrawer;
     $("#toggle-daughters").onchange = e => Tree.setOptions({ daughters: e.target.checked });

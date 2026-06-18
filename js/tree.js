@@ -34,6 +34,7 @@
   let opts = { daughters: true, pinyin: true, swim: true, photos: true };
   let collapsed = new Set();
   let firstRender = true;   // seed the legible "home" view only on the very first paint
+  let focusedId = null;     // the node a search/jump zoomed to; kept centred across resizes
   let onSelect = () => {};
 
   const byId = {};
@@ -302,6 +303,7 @@
 
   function fit() {
     if (!svg) return;
+    focusedId = null;                           // Fit/Home/Expand = overview intent; drop any search focus
     const { W, H } = dims();
     if (!W || !H) return;                       // container not laid out yet — skip
     svg.attr("width", W).attr("height", H);     // keep svg sized to its container
@@ -330,7 +332,7 @@
       tx = W / 2 - scale * (b.x + b.width / 2);
       ty = H / 2 - scale * (b.y + b.height / 2);
     }
-    svg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
   }
 
   function focus(id) {
@@ -351,6 +353,7 @@
     const sel = gNodes.selectAll("g.node-card").filter(d => d.data && d.data.id === targetId);
     if (sel.empty()) return;
     const node = sel.datum();
+    focusedId = targetId;   // remember, so a later resize re-centres here instead of re-fitting
     sel.classed("focus-flash", true);                       // highlight even if the zoom is skipped
     setTimeout(() => sel.classed("focus-flash", false), 1800);
     const { W, H } = dims(), scale = 1.3;   // zoom in on the searched node
@@ -362,5 +365,9 @@
 
   function setOptions(o) { Object.assign(opts, o); update(); }
 
-  window.Tree = { render, focus, setOptions, expandAll, home, fit, get: id => byId[id], spouseFor, onResize: () => { if (svg) fit(); } };
+  // On resize/orientation change: keep the searched person centred if there is one (a
+  // mobile keyboard closing after search fires a resize — re-fitting there would yank the
+  // view off the person); otherwise re-fit the whole tree.
+  function onResize() { if (!svg) return; if (focusedId && byId[focusedId]) focus(focusedId); else fit(); }
+  window.Tree = { render, focus, setOptions, expandAll, home, fit, get: id => byId[id], spouseFor, onResize };
 })();

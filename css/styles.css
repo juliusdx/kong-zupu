@@ -44,6 +44,7 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .brand-text h1{font-size:1.5rem;letter-spacing:.12em}
 .brand-text p{margin:.1rem 0 0;font-size:.78rem;color:var(--ink-soft)}
 .brand{order:1}
+.tabs-scroll{display:contents}   /* a transparent wrapper on desktop; a scroll viewport on mobile */
 .tabs{display:flex;gap:.3rem;flex-wrap:wrap;order:2}
 /* search + utility buttons travel together as one group, pushed to the right (desktop);
    margin-left:auto claims free space but collapses when tight, and min-width:0 lets the
@@ -591,15 +592,22 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .brand{order:1;flex:1 1 auto;min-width:0}
   .header-utils{order:2;flex:0 0 auto;gap:.4rem}
   .auth-status{flex:0 0 auto;white-space:nowrap}
-  /* row 2: tabs as a single horizontally-scrollable strip */
-  .tabs{order:3;width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;gap:.25rem;
+  /* row 2: a horizontally-scrollable tab strip with a clear "more tabs" chevron */
+  .tabs-scroll{display:block;order:3;width:100%;position:relative;min-width:0}
+  .tabs{width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;gap:.25rem;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px}
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto;font-size:.85rem;padding:.4rem .6rem}
-  /* fade the edge(s) that have more tabs off-screen, hinting the strip is scrollable */
-  .tabs.fade-right:not(.fade-left){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
-  .tabs.fade-left:not(.fade-right){-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 28px),transparent)}
-  .tabs.fade-left.fade-right{-webkit-mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
+  /* chevron + fade overlays, shown on whichever side still has tabs off-screen */
+  .tabs-scroll::after,.tabs-scroll::before{position:absolute;top:0;height:100%;width:34px;z-index:2;
+    display:flex;align-items:center;font-size:1.5rem;font-weight:700;color:var(--seal);
+    pointer-events:none;opacity:0;transition:opacity .15s}
+  .tabs-scroll::after{content:"›";right:0;justify-content:flex-end;padding-right:5px;
+    background:linear-gradient(to right,transparent,var(--paper-2) 70%)}
+  .tabs-scroll::before{content:"‹";left:0;justify-content:flex-start;padding-left:5px;
+    background:linear-gradient(to left,transparent,var(--paper-2) 70%)}
+  .tabs-scroll.more-right::after{opacity:1}
+  .tabs-scroll.more-left::before{opacity:1}
   /* row 3: a full-width, unmistakable search field */
   .search-box{order:4;width:100%}
   #search{width:100%;min-width:0;padding-top:.55rem;padding-bottom:.55rem;font-size:1rem}

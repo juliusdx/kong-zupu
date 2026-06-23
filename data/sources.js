@@ -101,5 +101,20 @@ window.SOURCES = [
       { zh: "配 許氏，生于民國八年。",
         en: "Married Lady Xu, born Republic 8 (1919)." }
     ]
+  },
+  {
+    id: "jiang-calligraphy",
+    kind: "image",
+    localUrl: "img/jiang-calligraphy.jpg",
+    plateImg: "img/jiang-calligraphy.jpg",
+    glyph: "江",
+    title: "江 · 書法（江氏溯源銘）",
+    titleEn: "Calligraphy: 江 — Inscription on the Surname's Origins",
+    medium: "水墨書法", mediumEn: "Ink calligraphy",
+    era: "近代", eraEn: "Contemporary",
+    desc: "以大字「江」為主體，附行草銘文追溯江氏得姓源流。",
+    descEn: "A calligraphic work centred on the character 江, with an inscription in running script tracing the origins of the surname.",
+    narrative: "此幅書法以大字「江」鎮於畫面下方，濃墨揮灑，氣勢磅礴。上方銘文以行草敘述江氏得姓源流：始封于江陵，楚滅之後子孫以國為姓，散居各地，世代繁衍。字裡行間，既是書法藝術，亦是宗族記憶的視覺宣示。",
+    narrativeEn: "A commanding ink calligraphy with the character 江 dominating the lower half of the scroll. Above it, a running-script inscription traces the origin of the surname — the ancient state of Jiang, eventually absorbed by Chu, whose descendants took its name and scattered across the land. At once an artwork and a visual declaration of ancestral identity."
   }
 ];

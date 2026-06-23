@@ -1149,9 +1149,12 @@
       const readBtn  = s.localUrl ? `<button class="plate-read" data-doc="${s.id}" data-mode="local">${T("src_read")}</button>` : "";
       const proofBtn = s.proofread ? `<button class="plate-proofread" data-proof="${s.id}">${T("pf_open")}</button>` : "";
 
+      const glyphOrImg = s.plateImg
+        ? `<img class="plate-img" src="${s.plateImg}" alt="${esc(s.glyph || '')}" />`
+        : `<div class="plate-glyph" aria-hidden="true">${esc(s.glyph || "卷")}</div>`;
       const plate = `<div class="exhibit-plate">
         <div class="plate-frame">
-          <div class="plate-glyph" aria-hidden="true">${esc(s.glyph || "卷")}</div>
+          ${glyphOrImg}
           <div class="plate-title">${esc(s.title)}</div>
           ${s.titleEn ? `<div class="plate-romaji">${esc(s.titleEn)}</div>` : ""}
           ${caption ? `<div class="plate-caption">${esc(caption)}</div>` : ""}

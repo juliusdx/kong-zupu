@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const FROM       = Deno.env.get("RESEND_FROM") ?? "onboarding@resend.dev";
+const BREVO_KEY  = Deno.env.get("BREVO_API_KEY") ?? "";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "";
+const FROM_NAME  = Deno.env.get("FROM_NAME") ?? "江氏族譜";
 const SITE_URL   = Deno.env.get("SITE_URL") ?? "https://juliusdx.github.io/kong-zupu/";
 
 const ACTION_LABEL: Record<string, string> = {
@@ -26,14 +27,12 @@ Deno.serve(async (req) => {
     return new Response("Missing id or status", { status: 400 });
   }
 
-  // Admin client — bypasses RLS so we can read any contribution + auth user
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
 
-  // Fetch the contribution
   const { data: contrib, error: cErr } = await sb
     .from("contributions")
     .select("payload, submitted_by, created_at")
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
     return new Response("Contribution not found", { status: 404 });
   }
 
-  // Resolve submitter email — prefer auth account, fall back to free-text field
+  // Resolve submitter email — auth account first, then free-text contact field
   let email: string | null = null;
   let displayName: string | null = null;
 
@@ -63,7 +62,6 @@ Deno.serve(async (req) => {
   }
 
   if (!email) {
-    // No email address — nothing to send, not an error
     return new Response(
       JSON.stringify({ sent: false, reason: "no email found" }),
       { headers: { "Content-Type": "application/json" } },
@@ -110,26 +108,31 @@ Deno.serve(async (req) => {
          </p>
        </div>`;
 
-  if (!RESEND_KEY) {
-    console.warn("RESEND_API_KEY not set — email not sent");
+  if (!BREVO_KEY || !FROM_EMAIL) {
+    console.warn("BREVO_API_KEY or FROM_EMAIL not set — email not sent");
     return new Response(
-      JSON.stringify({ sent: false, reason: "RESEND_API_KEY not configured" }),
+      JSON.stringify({ sent: false, reason: "email not configured" }),
       { headers: { "Content-Type": "application/json" } },
     );
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${RESEND_KEY}`,
+      "api-key": BREVO_KEY,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: FROM, to: email, subject, html }),
+    body: JSON.stringify({
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email }],
+      subject,
+      htmlContent: html,
+    }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    return new Response(`Resend error: ${body}`, { status: 502 });
+    return new Response(`Brevo error: ${body}`, { status: 502 });
   }
 
   return new Response(

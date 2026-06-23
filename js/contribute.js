@@ -287,13 +287,13 @@
           body: JSON.stringify({ payload: data, status: "pending" })
         });
         if (!res.ok) throw new Error(await res.text());
-        // Show a brief success banner then return the user to wherever they came from
+        // Show a floating toast (fixed, stays visible across view transition) then go back
         const banner = document.createElement("div");
         banner.className = "contrib-success";
         banner.textContent = T("f_thanks_live");
-        document.querySelector("#view-contribute").prepend(banner);
+        document.body.appendChild(banner);
         prefillData = null;
-        setTimeout(() => { window.history.back(); }, 1600);
+        setTimeout(() => { banner.remove(); window.history.back(); }, 2200);
       } catch (err) {
         alert(T("f_fail") + err.message);
         download(data);

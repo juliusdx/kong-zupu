@@ -160,6 +160,8 @@
       r_loading: "Loading pending submissions…", r_none: "No pending submissions. 🎉",
       r_pending: " pending.", r_error: "Error: ", r_approve: "Approve", r_reject: "Reject",
       r_failed: "Failed: ", r_reason_ph: "Rejection reason (optional — sent to contributor)",
+      r_history: "Decision history", r_hist_reviewed: "Reviewed", r_hist_action: "Action",
+      r_hist_who: "Submitted by", r_hist_status: "Decision", r_hist_reason: "Reason",
 
       ab_h: "關於這個族譜 · About this Zupu",
       ab_p1: "This is a living, crowdsourced 族譜 (<i>zupu</i>) for the <b>江 (Kong / Jiang) family</b>, hall name <b>濟陽 (Jiyang)</b> — a Hakka Christian lineage of the <b>巴色會 (Basel Mission)</b>. It descends from the <b>始祖 江八郎 (字文明)</b>, who moved from <b>寧化石壁</b> (the legendary Hakka dispersal point) to <b>上杭三坪鄉</b> in Fujian and founded the family estate. The book claims descent from the Song-dynasty brothers 江萬里 / 江萬載 (益國公) — a lineage claim worth verifying rather than taking as established fact.",
@@ -330,6 +332,8 @@
       r_loading: "載入待審提交…", r_none: "沒有待審提交。🎉",
       r_pending: " 件待審。", r_error: "錯誤：", r_approve: "核准", r_reject: "拒絕",
       r_failed: "失敗：", r_reason_ph: "拒絕原因（可選，將傳送給提交者）",
+      r_history: "審核記錄", r_hist_reviewed: "審核日期", r_hist_action: "類型",
+      r_hist_who: "提交者", r_hist_status: "決定", r_hist_reason: "原因",
 
       ab_h: "關於這個族譜",
       ab_p1: "這是一部活的、眾人協作的<b>江氏</b>（客家「Kong」）<b>族譜</b>，堂號<b>濟陽</b> — 屬<b>巴色會（Basel Mission）</b>的客家基督徒世系。始祖為<b>江八郎（字文明）</b>，由<b>寧化石壁</b>（客家播遷的傳說起點）遷往福建<b>上杭三坪鄉</b>開基立業。族譜自稱出自宋代兄弟江萬里／江萬載（益國公）一脈 — 此說宜考證，未必為定論。",

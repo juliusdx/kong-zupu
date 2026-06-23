@@ -200,21 +200,52 @@
   async function buildReview() {
     const wrap = $("#review-wrap");
     const st = Auth.state();
-    const head = "<h2>" + I18N.t("r_h") + "</h2>";
-    if (!st.isAdmin) { wrap.innerHTML = head + "<p class='muted'>" + I18N.t("r_adminonly") + "</p>"; return; }
-    wrap.innerHTML = head + "<p class='muted'>" + I18N.t("r_loading") + "</p>";
+    const T = I18N.t;
+    const head = "<h2>" + T("r_h") + "</h2>";
+    if (!st.isAdmin) { wrap.innerHTML = head + "<p class='muted'>" + T("r_adminonly") + "</p>"; return; }
+    wrap.innerHTML = head + "<p class='muted'>" + T("r_loading") + "</p>";
     try {
       const sb = Auth.client();
-      const { data, error } = await sb.from("contributions").select("*")
-        .eq("status", "pending").order("created_at", { ascending: false });
-      if (error) throw error;
-      if (!data.length) { wrap.innerHTML = head + "<p class='muted'>" + I18N.t("r_none") + "</p>"; return; }
-      wrap.innerHTML = head + `<p class="muted">${data.length}${I18N.t("r_pending")}</p>` + data.map(renderContribCard).join("");
-      const payloadById = Object.fromEntries(data.map(c => [c.id, c.payload]));
+      const [pendingRes, histRes] = await Promise.all([
+        sb.from("contributions").select("*").eq("status", "pending").order("created_at", { ascending: false }),
+        sb.from("contributions").select("*").neq("status", "pending").order("reviewed_at", { ascending: false }).limit(50)
+      ]);
+      if (pendingRes.error) throw pendingRes.error;
+      const pending = pendingRes.data || [];
+      const history = histRes.data || [];
+
+      let html = head;
+      html += pending.length
+        ? `<p class="muted">${pending.length}${T("r_pending")}</p>` + pending.map(renderContribCard).join("")
+        : "<p class='muted'>" + T("r_none") + "</p>";
+
+      if (history.length) {
+        html += `<div class="review-history">
+          <h3 class="rh-head">${T("r_history")}</h3>
+          <table class="rh-table"><thead><tr>
+            <th>${T("r_hist_reviewed")}</th><th>${T("r_hist_action")}</th>
+            <th>${T("r_hist_who")}</th><th>${T("r_hist_status")}</th><th>${T("r_hist_reason")}</th>
+          </tr></thead><tbody>` +
+          history.map(c => {
+            const p = c.payload || {};
+            const reviewed = c.reviewed_at ? new Date(c.reviewed_at).toLocaleDateString() : "—";
+            const who = esc(p.contributor || p.contributorContact || "—");
+            const action = esc(p.action || "—").replace(/_/g, " ");
+            const badge = c.status === "approved"
+              ? `<span class="rh-badge rh-ok">✓ approved</span>`
+              : `<span class="rh-badge rh-no">✗ rejected</span>`;
+            const reason = c.rejection_reason ? esc(c.rejection_reason) : "—";
+            return `<tr><td>${reviewed}</td><td>${action}</td><td>${who}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
+          }).join("") +
+          `</tbody></table></div>`;
+      }
+
+      wrap.innerHTML = html;
+      const payloadById = Object.fromEntries(pending.map(c => [c.id, c.payload]));
       wrap.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => decide(b.dataset.approve, "approved", payloadById[b.dataset.approve]));
       wrap.querySelectorAll("[data-reject]").forEach(b => b.onclick = () => decide(b.dataset.reject, "rejected", payloadById[b.dataset.reject]));
     } catch (e) {
-      wrap.innerHTML = head + "<p class='muted'>" + I18N.t("r_error") + e.message + "</p>";
+      wrap.innerHTML = head + "<p class='muted'>" + T("r_error") + e.message + "</p>";
     }
   }
   function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }

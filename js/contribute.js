@@ -287,9 +287,13 @@
           body: JSON.stringify({ payload: data, status: "pending" })
         });
         if (!res.ok) throw new Error(await res.text());
-        alert(T("f_thanks_live"));
+        // Show a brief success banner then return the user to wherever they came from
+        const banner = document.createElement("div");
+        banner.className = "contrib-success";
+        banner.textContent = T("f_thanks_live");
+        document.querySelector("#view-contribute").prepend(banner);
         prefillData = null;
-        build();                 // fresh, fully-reset form (clears pin readout, toggle, preview)
+        setTimeout(() => { window.history.back(); }, 1600);
       } catch (err) {
         alert(T("f_fail") + err.message);
         download(data);

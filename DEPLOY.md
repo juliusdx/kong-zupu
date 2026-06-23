@@ -219,3 +219,69 @@ captions / cover-photo selection.
     host and switching map tiles — ask and I'll set it up.
   - For maximum resilience you can **self-host** d3/MapLibre/supabase-js in a `vendor/` folder
     instead of CDNs (removes all third-party dependencies); ask if you want that.
+
+---
+
+## 7. Contributor notifications (edge function)
+
+When an admin approves or rejects a submission, the app calls the
+`notify-contributor` Supabase edge function to email the original submitter.
+The function is in `supabase/functions/notify-contributor/index.ts` and sends via
+[Resend](https://resend.com) (free tier: 100 emails/day — plenty for a family site).
+
+### One-time setup
+
+**Step 1 — Run the migration** (Supabase SQL Editor):
+```sql
+-- paste contents of supabase/migration_v9.sql
+alter table public.contributions
+  add column if not exists reviewed_at    timestamptz,
+  add column if not exists rejection_reason text;
+```
+
+**Step 2 — Get a Resend API key**
+1. Sign up at [resend.com](https://resend.com) (free).
+2. Create an API key under **API Keys**.
+3. *(Optional but recommended)* Add and verify your domain under **Domains** so emails
+   come from e.g. `noreply@yourdomain.com` instead of `onboarding@resend.dev`.
+
+**Step 3 — Deploy the edge function**
+
+Install the Supabase CLI if you haven't:
+```bash
+brew install supabase/tap/supabase
+```
+
+Log in and link your project:
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>   # found in Supabase dashboard URL
+```
+
+Deploy:
+```bash
+cd "/Users/julius/Projects_2026/China Lineage Trip copy/kong-zupu"
+supabase functions deploy notify-contributor
+```
+
+**Step 4 — Set environment variables** (Supabase dashboard → Edge Functions →
+`notify-contributor` → Secrets):
+
+| Variable | Value |
+|---|---|
+| `RESEND_API_KEY` | your Resend API key |
+| `RESEND_FROM` | `noreply@yourdomain.com` (or `onboarding@resend.dev` for testing) |
+| `SITE_URL` | `https://juliusdx.github.io/kong-zupu/` |
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — no need
+to set them.
+
+### How it works
+
+- When a reviewer clicks **Approve** or **Reject**, the app writes `reviewed_at` and
+  (if rejecting) `rejection_reason` to the `contributions` row, then calls the function.
+- The function looks up the submitter's email from their auth account (if they were
+  signed in) or from the free-text `contributorContact` field (anonymous submitters).
+- If no email is found, it exits silently — the review still goes through.
+- The notification is **fire-and-forget**: a failure never blocks the review action,
+  just logs a warning in the browser console.

@@ -386,7 +386,9 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .contrib-card .row{display:flex;gap:.6rem;padding:.15rem 0;font-size:.88rem;border-bottom:1px dotted #e3d9c2}
 .contrib-card .row .k{min-width:120px;color:#7a6a4e;text-transform:capitalize}
 .contrib-card .cc-photo{max-width:160px;max-height:160px;border-radius:8px;border:1px solid var(--line);display:block}
-.cc-actions{margin-top:.7rem;display:flex;gap:.6rem}
+.cc-reason{margin:.6rem 0 .2rem}
+.cc-reason textarea{width:100%;font:inherit;font-size:.82rem;padding:.35rem .6rem;border:1px solid var(--line);border-radius:6px;resize:vertical;color:var(--ink);background:#fffdf8;min-height:2.4rem}
+.cc-actions{margin-top:.5rem;display:flex;gap:.6rem}
 .cc-actions button{padding:.4rem .9rem;border-radius:7px;font:inherit;font-weight:700;cursor:pointer}
 .cc-actions .primary{background:var(--seal);color:#fff;border:1px solid var(--seal)}
 .cc-actions .ghost{background:transparent;color:#8a3a35;border:1px solid #cdb6a0}

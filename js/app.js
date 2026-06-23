@@ -229,6 +229,7 @@
           <div class="tx-col"><div class="tx-h">${T("r_tx_current")}</div><pre class="tx-pre old">${esc(p.original || "")}</pre></div>
           <div class="tx-col"><div class="tx-h">${T("r_tx_new")}</div><pre class="tx-pre new">${esc(p.text || "")}</pre></div>
         </div>
+        <div class="cc-reason"><textarea id="cc-reason-${c.id}" placeholder="${T("r_reason_ph")}"></textarea></div>
         <div class="cc-actions">
           <button class="primary" data-approve="${c.id}">${T("r_approve")}</button>
           <button class="ghost" data-reject="${c.id}">${T("r_reject")}</button>
@@ -244,6 +245,7 @@
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
       ${rows}${photoHtml}
+      <div class="cc-reason"><textarea id="cc-reason-${c.id}" placeholder="${I18N.t("r_reason_ph")}"></textarea></div>
       <div class="cc-actions">
         <button class="primary" data-approve="${c.id}">${I18N.t("r_approve")}</button>
         <button class="ghost" data-reject="${c.id}">${I18N.t("r_reject")}</button>
@@ -418,9 +420,15 @@
         });
         if (txErr) throw txErr;
       }
-      const { error } = await sb.from("contributions")
-        .update({ status, reviewed_by: st.user.id }).eq("id", id);
+      const reasonEl = document.querySelector(`#cc-reason-${id}`);
+      const reason = (status === "rejected" && reasonEl) ? reasonEl.value.trim() : null;
+      const update = { status, reviewed_by: st.user.id, reviewed_at: new Date().toISOString() };
+      if (reason) update.rejection_reason = reason;
+      const { error } = await sb.from("contributions").update(update).eq("id", id);
       if (error) throw error;
+      // Fire-and-forget: notify the contributor; never blocks the review action
+      sb.functions.invoke("notify-contributor", { body: { id, status, reason } })
+        .catch(e => console.warn("Contributor notification skipped:", e.message));
       await loadLiveData();
       buildReview();
     } catch (e) { alert(I18N.t("r_failed") + e.message); }

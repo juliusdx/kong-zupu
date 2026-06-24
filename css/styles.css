@@ -400,6 +400,13 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .rh-detail{max-width:280px;line-height:1.5}
 .rh-field{display:inline-block;margin-right:.4rem;font-size:.78rem;white-space:nowrap}
 .rh-field s{color:var(--ink-soft);text-decoration-color:var(--ink-soft)}
+.cc-changes{margin:.5rem 0 .7rem;padding:.6rem .8rem;background:#fff8ea;border:1px solid var(--gold);border-radius:8px}
+.cc-changes-h{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:.4rem}
+.cc-change{display:flex;align-items:baseline;gap:.5rem;font-size:.86rem;padding:.18rem 0}
+.cc-change .k{min-width:120px;color:#7a6a4e;text-transform:capitalize;flex:none}
+.cc-from{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:var(--ink-soft)}
+.cc-arrow{color:var(--gold);font-weight:700}
+.cc-to{color:#2a6035;font-weight:600}
 .cc-reason{margin:.6rem 0 .2rem}
 .cc-reason textarea{width:100%;font:inherit;font-size:.82rem;padding:.35rem .6rem;border:1px solid var(--line);border-radius:6px;resize:vertical;color:var(--ink);background:#fffdf8;min-height:2.4rem}
 .cc-actions{margin-top:.5rem;display:flex;gap:.6rem}

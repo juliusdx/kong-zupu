@@ -224,14 +224,22 @@
         function histDetail(p) {
           const a = p.action || "";
           if (a === "edit") {
+            const person = personById(p.relatedTo);
+            const personName = person ? esc(person.name || p.relatedTo) : esc(p.relatedTo || "?");
+            // Authoritative path: the from→to diff captured at submit time.
+            if (Array.isArray(p.changes) && p.changes.length) {
+              const changes = p.changes.map(ch =>
+                `<span class="rh-field">${esc(ch.label || ch.field)}: <s>${esc(ch.from) || "∅"}</s> → <b>${esc(ch.to) || "∅"}</b></span>`);
+              return `Edit <b>${personName}</b><br>` + changes.join(" &nbsp;");
+            }
+            // Fallback for older records (no captured diff): compare submitted values
+            // against current person data — best-effort only.
             const FIELD_LABELS = { name:"name", pinyin:"pinyin", ritualName:"ritual name",
               milkName:"milk name", aka:"also known as", gender:"gender", gen:"generation",
               birth:"birth year", bio:"bio", living:"living", lat:"latitude", lng:"longitude" };
             const skip = new Set(["action","relatedTo","contributor","contributorContact",
               "contributorLocation","relationship","contactConsent","submittedAt","status",
-              "photo","personPhone","personWechat","personEmail"]);
-            const person = personById(p.relatedTo);
-            const personName = person ? esc(person.name || p.relatedTo) : esc(p.relatedTo || "?");
+              "photo","personPhone","personWechat","personEmail","changes","submitterEmail","submitterId"]);
             const changes = Object.entries(p)
               .filter(([k, v]) => !skip.has(k) && v !== "" && v != null)
               .map(([k, v]) => {
@@ -304,16 +312,29 @@
           <button class="ghost" data-reject="${c.id}">${T("r_reject")}</button>
         </div></div>`;
     }
-    // the photo (a data: or http URL) renders as a thumbnail, not as a giant text row
+    // For an edit, show the captured from→to diff up top so the reviewer sees exactly
+    // what changed without scanning every field row.
+    const changesHtml = (p.action === "edit" && Array.isArray(p.changes) && p.changes.length)
+      ? `<div class="cc-changes"><div class="cc-changes-h">${I18N.t("r_changes")}</div>` +
+        p.changes.map(ch =>
+          `<div class="cc-change"><span class="k">${esc(ch.label || ch.field)}</span>` +
+          `<span class="cc-from">${esc(ch.from) || "∅"}</span>` +
+          `<span class="cc-arrow">→</span>` +
+          `<span class="cc-to">${esc(ch.to) || "∅"}</span></div>`).join("") +
+        `</div>`
+      : "";
+    // the photo (a data: or http URL) renders as a thumbnail, not as a giant text row.
+    // Skip internal/raw-diff keys — changes are shown by changesHtml above.
+    const HIDE = ["status", "submittedAt", "photo", "changes", "submitterId"];
     const rows = Object.entries(p)
-      .filter(([k, v]) => v && !["status", "submittedAt", "photo"].includes(k))
+      .filter(([k, v]) => v && !HIDE.includes(k))
       .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
     const photoHtml = p.photo
       ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(p.photo)}" alt=""></span></div>`
       : "";
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
-      ${rows}${photoHtml}
+      ${changesHtml}${rows}${photoHtml}
       <div class="cc-reason"><textarea id="cc-reason-${c.id}" placeholder="${I18N.t("r_reason_ph")}"></textarea></div>
       <div class="cc-actions">
         <button class="primary" data-approve="${c.id}">${I18N.t("r_approve")}</button>

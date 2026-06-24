@@ -283,6 +283,26 @@
       if (me.id) data.submitterId = me.id;
     }
 
+    // For an edit, record exactly which fields changed (from → to) by diffing the
+    // submitted values against the person snapshot the form was pre-filled with.
+    // Stored as data.changes so the review page and notification email can show them.
+    if (data.action === "edit" && prefillData) {
+      const FIELD_LABELS = {
+        name: "Name", pinyin: "Romanization", ritualName: "Ritual name",
+        milkName: "Milk name", aka: "Also known as", gender: "Gender",
+        gen: "Generation", living: "Living", birth: "Birth", place: "Place",
+        bio: "Biography", personPhone: "Phone", personWechat: "WeChat / WhatsApp",
+        personEmail: "Email"
+      };
+      const norm = v => (v == null ? "" : String(v).trim());
+      const changes = [];
+      Object.keys(FIELD_LABELS).forEach(k => {
+        const before = norm(prefillData[k]), after = norm(data[k]);
+        if (before !== after) changes.push({ field: k, label: FIELD_LABELS[k], from: before, to: after });
+      });
+      if (changes.length) data.changes = changes;
+    }
+
     // Drop empties so the stored payload and the reviewer's card stay clean.
     Object.keys(data).forEach(k => { if (data[k] === "" || data[k] == null) delete data[k]; });
 

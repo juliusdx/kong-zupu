@@ -102,11 +102,33 @@ Deno.serve(async (req) => {
        </p>`
     : "";
 
+  // Field-level changes captured for an edit — shown so the contributor sees exactly
+  // what they submitted (and, on approval, what was applied).
+  const esc = (s: unknown) =>
+    String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+  const changes = Array.isArray(contrib.payload?.changes) ? contrib.payload.changes : [];
+  const changesBlock = changes.length
+    ? `<table style="border-collapse:collapse;margin:.8rem 0;font-size:.9rem;width:100%">
+         <thead><tr>
+           <th style="text-align:left;padding:.3rem .6rem;border-bottom:2px solid #e3d9c2;color:#b08833">Field</th>
+           <th style="text-align:left;padding:.3rem .6rem;border-bottom:2px solid #e3d9c2;color:#b08833">From</th>
+           <th style="text-align:left;padding:.3rem .6rem;border-bottom:2px solid #e3d9c2;color:#b08833">To</th>
+         </tr></thead><tbody>` +
+      changes.map((c: { label?: string; field?: string; from?: string; to?: string }) =>
+        `<tr>
+           <td style="padding:.3rem .6rem;border-bottom:1px solid #efe6d2"><strong>${esc(c.label || c.field)}</strong></td>
+           <td style="padding:.3rem .6rem;border-bottom:1px solid #efe6d2;color:#9a8a6e">${esc(c.from) || "—"}</td>
+           <td style="padding:.3rem .6rem;border-bottom:1px solid #efe6d2;color:#2a6035">${esc(c.to) || "—"}</td>
+         </tr>`).join("") +
+      `</tbody></table>`
+    : "";
+
   const html = approved
     ? `<div style="font-family:Georgia,serif;max-width:520px;color:#2b2117">
          <p>Dear ${displayName},</p>
          <p>Your <strong>${actionLabel}</strong> submitted on ${submittedOn} has been
             <strong style="color:#2a6035">approved</strong> and added to the family tree.</p>
+         ${changesBlock ? `<p style="margin:.6rem 0 .2rem;font-weight:600">Details of the change:</p>${changesBlock}` : ""}
          <p>Thank you for contributing to the Kong Family Zupu.</p>
          <p><a href="${SITE_URL}" style="color:#9e2b25">View the tree →</a></p>
          <p style="font-size:.8rem;color:#9a8a6e;margin-top:2rem;border-top:1px solid #e3d9c2;padding-top:.8rem">
@@ -117,6 +139,7 @@ Deno.serve(async (req) => {
          <p>Dear ${displayName},</p>
          <p>Your <strong>${actionLabel}</strong> submitted on ${submittedOn} has been reviewed
             and could <strong style="color:#9e2b25">not be approved</strong> at this time.</p>
+         ${changesBlock ? `<p style="margin:.6rem 0 .2rem;font-weight:600">What you submitted:</p>${changesBlock}` : ""}
          ${reasonBlock}
          <p>If you have questions or would like to resubmit with corrections, please reply to
             this email.</p>

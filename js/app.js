@@ -220,6 +220,45 @@
         : "<p class='muted'>" + T("r_none") + "</p>";
 
       if (history.length) {
+        // Human-readable summary of what each contribution changed
+        function histDetail(p) {
+          const a = p.action || "";
+          if (a === "edit") {
+            const FIELD_LABELS = { name:"name", pinyin:"pinyin", ritualName:"ritual name",
+              milkName:"milk name", aka:"also known as", gender:"gender", gen:"generation",
+              birth:"birth year", bio:"bio", living:"living", lat:"latitude", lng:"longitude" };
+            const skip = new Set(["action","relatedTo","contributor","contributorContact",
+              "contributorLocation","relationship","contactConsent","submittedAt","status",
+              "photo","personPhone","personWechat","personEmail"]);
+            const person = personById(p.relatedTo);
+            const personName = person ? esc(person.name || p.relatedTo) : esc(p.relatedTo || "?");
+            const changes = Object.entries(p)
+              .filter(([k, v]) => !skip.has(k) && v !== "" && v != null)
+              .map(([k, v]) => {
+                const label = FIELD_LABELS[k] || k;
+                const oldVal = person ? (person[k] || person[{ ritualName:"ritualName", milkName:"milkName", gen:"gen", birth:"birthYear", living:"living" }[k] || k]) : null;
+                return oldVal != null && String(oldVal) !== String(v)
+                  ? `<span class="rh-field">${label}: <s>${esc(String(oldVal))}</s> → <b>${esc(String(v))}</b></span>`
+                  : `<span class="rh-field">${label}: <b>${esc(String(v))}</b></span>`;
+              });
+            return `Edit <b>${personName}</b>` + (changes.length ? "<br>" + changes.join(" &nbsp;") : "");
+          }
+          if (a === "add_child" || a === "add_spouse") {
+            const rel = a === "add_spouse" ? "spouse of" : "child of";
+            const parent = personById(p.relatedTo);
+            const parentName = parent ? esc(parent.name) : esc(p.relatedTo || "?");
+            return `Add <b>${esc(p.name || "?")}</b> as ${rel} <b>${parentName}</b>`;
+          }
+          if (a === "add_place" || a === "update_place") {
+            const verb = a === "add_place" ? "Add" : "Update";
+            return `${verb} place: <b>${esc(p.placeName || p.place || "?")}</b>${p.placeType ? ` (${esc(p.placeType)})` : ""}`;
+          }
+          if (a === "fix_transcription") {
+            return `Transcription correction: doc <b>${esc(p.doc_id || "?")}</b> p.${esc(String(p.page || "?"))}`;
+          }
+          return esc(a.replace(/_/g, " ") || "—");
+        }
+
         html += `<div class="review-history">
           <h3 class="rh-head">${T("r_history")}</h3>
           <table class="rh-table"><thead><tr>
@@ -230,12 +269,11 @@
             const p = c.payload || {};
             const reviewed = c.reviewed_at ? new Date(c.reviewed_at).toLocaleDateString() : "—";
             const who = esc(p.contributor || p.contributorContact || "—");
-            const action = esc(p.action || "—").replace(/_/g, " ");
             const badge = c.status === "approved"
               ? `<span class="rh-badge rh-ok">✓ approved</span>`
               : `<span class="rh-badge rh-no">✗ rejected</span>`;
             const reason = c.rejection_reason ? esc(c.rejection_reason) : "—";
-            return `<tr><td>${reviewed}</td><td>${action}</td><td>${who}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
+            return `<tr><td>${reviewed}</td><td class="rh-detail">${histDetail(p)}</td><td>${who}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
           }).join("") +
           `</tbody></table></div>`;
       }

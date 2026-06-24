@@ -12,9 +12,25 @@ const ACTION_LABEL: Record<string, string> = {
   fix_transcription: "transcription correction",
 };
 
+// Allow the browser to call this function cross-origin (GitHub Pages → Supabase).
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
+  // Preflight — the browser sends this before the actual POST
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
+  }
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return json({ error: "Method not allowed" }, 405);
   }
 
   const { id, status, reason } = await req.json() as {
@@ -22,7 +38,7 @@ Deno.serve(async (req) => {
   };
 
   if (!id || !status) {
-    return new Response("Missing id or status", { status: 400 });
+    return json({ error: "Missing id or status" }, 400);
   }
 
   const sb = createClient(
@@ -38,7 +54,7 @@ Deno.serve(async (req) => {
     .single();
 
   if (cErr || !contrib) {
-    return new Response("Contribution not found", { status: 404 });
+    return json({ error: "Contribution not found" }, 404);
   }
 
   // Resolve submitter email — auth account first, then free-text contact field
@@ -60,10 +76,7 @@ Deno.serve(async (req) => {
   }
 
   if (!email) {
-    return new Response(
-      JSON.stringify({ sent: false, reason: "no email found" }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    return json({ sent: false, reason: "no email found" });
   }
 
   displayName = displayName || contrib.payload?.contributor || "Family member";
@@ -108,10 +121,7 @@ Deno.serve(async (req) => {
 
   if (!WEBHOOK_URL) {
     console.warn("MAKE_WEBHOOK_URL not set — email not sent");
-    return new Response(
-      JSON.stringify({ sent: false, reason: "webhook not configured" }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    return json({ sent: false, reason: "webhook not configured" });
   }
 
   const res = await fetch(WEBHOOK_URL, {
@@ -122,11 +132,8 @@ Deno.serve(async (req) => {
 
   if (!res.ok) {
     const body = await res.text();
-    return new Response(`Webhook error: ${body}`, { status: 502 });
+    return json({ sent: false, error: `Webhook error: ${body}` }, 502);
   }
 
-  return new Response(
-    JSON.stringify({ sent: true, to: email }),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return json({ sent: true, to: email });
 });

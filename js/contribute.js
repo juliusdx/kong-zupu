@@ -143,6 +143,7 @@
       <div class="field-section">${T("f_section_contributor")}</div>
       <label>${T("f_contributor")}<input name="contributor" /></label>
       <label>${T("f_yourcontact")}<input name="contributorContact" placeholder="email / phone" /></label>
+      <div class="privacy-note" id="contact-notify-hint">${T("f_contact_notify")}</div>
       <label>${T("f_relationship")}<input name="relationship" placeholder="孫 / grandson…" /></label>
       <label>${T("f_residence")}<input name="contributorLocation" placeholder="Kota Kinabalu, MY" /></label>
       <label class="full checkbox-row"><input type="checkbox" name="contactConsent" value="yes" /> <span>${T("f_consent")}</span></label>

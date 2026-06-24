@@ -61,16 +61,23 @@ Deno.serve(async (req) => {
   let email: string | null = null;
   let displayName: string | null = null;
 
-  if (contrib.submitted_by) {
+  // 1) email captured in the payload when a signed-in member submitted
+  if (contrib.payload?.submitterEmail) {
+    email = String(contrib.payload.submitterEmail);
+  }
+  // 2) auth account, if the row recorded who submitted
+  if (!email && contrib.submitted_by) {
     const { data: { user } } = await sb.auth.admin.getUserById(contrib.submitted_by);
     email       = user?.email ?? null;
     displayName = (user?.user_metadata as Record<string, string> | undefined)?.name ?? null;
   }
+  // 3) free-text "your contact" field (anonymous submitters)
   if (!email) {
     const contact = String(contrib.payload?.contributorContact ?? "");
     const match = contact.match(/[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+/);
     if (match) email = match[0];
   }
+  // 4) the person's own email (last resort)
   if (!email && contrib.payload?.personEmail) {
     email = String(contrib.payload.personEmail);
   }

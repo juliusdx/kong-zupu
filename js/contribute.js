@@ -273,6 +273,15 @@
     }
     delete data.photoFile;
 
+    // Capture the signed-in submitter's identity so approve/reject can email them
+    // back. The insert below uses the anon key (auth.uid() is null), so submitted_by
+    // never gets set — carry the email in the payload instead.
+    const me = isSignedIn && window.Auth ? Auth.state().user : null;
+    if (me) {
+      if (me.email) data.submitterEmail = me.email;
+      if (me.id) data.submitterId = me.id;
+    }
+
     // Drop empties so the stored payload and the reviewer's card stay clean.
     Object.keys(data).forEach(k => { if (data[k] === "" || data[k] == null) delete data[k]; });
 

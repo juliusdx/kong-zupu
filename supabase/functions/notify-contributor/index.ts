@@ -95,12 +95,17 @@ Deno.serve(async (req) => {
     return json({ sent: false, reason: "no email found" });
   }
 
-  displayName = displayName || contrib.payload?.contributor || "Family member";
+  // Real name if we have one; otherwise a language-specific fallback per section.
+  const realName = displayName || contrib.payload?.contributor || null;
+  const nameZh = realName || "家人";
+  const nameEn = realName || "Family member";
 
   const action     = contrib.payload?.action ?? "";
   const labelEn    = ACTION_LABEL[action]?.en ?? "submission";
   const labelZh    = ACTION_LABEL[action]?.zh ?? "提交";
-  const submittedOn = new Date(contrib.created_at).toDateString();
+  const submitDate  = new Date(contrib.created_at);
+  const submittedEn = submitDate.toDateString();
+  const submittedZh = `${submitDate.getFullYear()}年${submitDate.getMonth() + 1}月${submitDate.getDate()}日`;
   const approved    = status === "approved";
 
   // Bilingual subject — Chinese first, then English.
@@ -148,28 +153,28 @@ Deno.serve(async (req) => {
 
   // Chinese section, then English section, in one email.
   const zhSection = approved
-    ? `<p>${esc(displayName)} 您好：</p>
-       <p>您於 ${submittedOn} 提交的<strong>${labelZh}</strong>已通過審核，
+    ? `<p>${esc(nameZh)} 您好：</p>
+       <p>您於 ${submittedZh} 提交的<strong>${labelZh}</strong>已通過審核，
           並已<strong style="color:#2a6035">加入族譜</strong>。</p>
        ${changesTable("項目", "原", "新") ? `<p style="margin:.6rem 0 .2rem;font-weight:600">修改內容：</p>${changesTable("項目", "原", "新")}` : ""}
        <p>感謝您為江氏族譜貢獻一份心力。</p>
        <p><a href="${SITE_URL}" style="color:#9e2b25">查看族譜 →</a></p>`
-    : `<p>${esc(displayName)} 您好：</p>
-       <p>您於 ${submittedOn} 提交的<strong>${labelZh}</strong>經審核後，
+    : `<p>${esc(nameZh)} 您好：</p>
+       <p>您於 ${submittedZh} 提交的<strong>${labelZh}</strong>經審核後，
           <strong style="color:#9e2b25">暫未通過</strong>。</p>
        ${changesTable("項目", "原", "新") ? `<p style="margin:.6rem 0 .2rem;font-weight:600">您提交的內容：</p>${changesTable("項目", "原", "新")}` : ""}
        ${reasonZh}
        <p>如有疑問或希望修改後重新提交，歡迎直接回覆此郵件。</p>`;
 
   const enSection = approved
-    ? `<p>Dear ${esc(displayName)},</p>
-       <p>Your <strong>${labelEn}</strong> submitted on ${submittedOn} has been
+    ? `<p>Dear ${esc(nameEn)},</p>
+       <p>Your <strong>${labelEn}</strong> submitted on ${submittedEn} has been
           <strong style="color:#2a6035">approved</strong> and added to the family tree.</p>
        ${changesTable("Field", "From", "To") ? `<p style="margin:.6rem 0 .2rem;font-weight:600">Details of the change:</p>${changesTable("Field", "From", "To")}` : ""}
        <p>Thank you for contributing to the Kong Family Zupu.</p>
        <p><a href="${SITE_URL}" style="color:#9e2b25">View the tree →</a></p>`
-    : `<p>Dear ${esc(displayName)},</p>
-       <p>Your <strong>${labelEn}</strong> submitted on ${submittedOn} has been reviewed
+    : `<p>Dear ${esc(nameEn)},</p>
+       <p>Your <strong>${labelEn}</strong> submitted on ${submittedEn} has been reviewed
           and could <strong style="color:#9e2b25">not be approved</strong> at this time.</p>
        ${changesTable("Field", "From", "To") ? `<p style="margin:.6rem 0 .2rem;font-weight:600">What you submitted:</p>${changesTable("Field", "From", "To")}` : ""}
        ${reasonEn}

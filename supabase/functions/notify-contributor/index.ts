@@ -1,9 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BREVO_KEY  = Deno.env.get("BREVO_API_KEY") ?? "";
-const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "";
-const FROM_NAME  = Deno.env.get("FROM_NAME") ?? "江氏族譜";
-const SITE_URL   = Deno.env.get("SITE_URL") ?? "https://juliusdx.github.io/kong-zupu/";
+const WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL") ?? "";
+const SITE_URL    = Deno.env.get("SITE_URL") ?? "https://juliusdx.github.io/kong-zupu/";
 
 const ACTION_LABEL: Record<string, string> = {
   add_child:         "new family member",
@@ -108,31 +106,23 @@ Deno.serve(async (req) => {
          </p>
        </div>`;
 
-  if (!BREVO_KEY || !FROM_EMAIL) {
-    console.warn("BREVO_API_KEY or FROM_EMAIL not set — email not sent");
+  if (!WEBHOOK_URL) {
+    console.warn("MAKE_WEBHOOK_URL not set — email not sent");
     return new Response(
-      JSON.stringify({ sent: false, reason: "email not configured" }),
+      JSON.stringify({ sent: false, reason: "webhook not configured" }),
       { headers: { "Content-Type": "application/json" } },
     );
   }
 
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const res = await fetch(WEBHOOK_URL, {
     method: "POST",
-    headers: {
-      "api-key": BREVO_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: FROM_NAME, email: FROM_EMAIL },
-      to: [{ email }],
-      subject,
-      htmlContent: html,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to: email, subject, html }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    return new Response(`Brevo error: ${body}`, { status: 502 });
+    return new Response(`Webhook error: ${body}`, { status: 502 });
   }
 
   return new Response(

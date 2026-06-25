@@ -196,6 +196,15 @@ How it works after that:
   from the place drawer — same pending→admin-approve moderation as person photos. **Requires
   running `supabase/migration_v3.sql` once** (adds `place_id` to `media`).
 
+- **Private photos for living members (hardening).** Run **`supabase/migration_v10.sql`** once.
+  It creates a **private `photos-private` bucket** so living members' photos are served only via
+  short-lived signed URLs to signed-in family — never reachable by a public URL. Public/deceased
+  and place photos stay in the public `photos` bucket and are unchanged. The app routes member-tier
+  person photos to the private bucket automatically; on approval, a contributed member photo is
+  moved out of the public pending area into the private bucket. **No data migration of existing
+  files is performed** — if you already have member photos in the public bucket from before this
+  change, re-upload them (or ask and I'll provide a one-off move script).
+
 Still on the roadmap (say the word): member self-service contact info, and richer per-photo
 captions / cover-photo selection.
 

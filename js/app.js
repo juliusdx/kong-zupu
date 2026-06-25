@@ -584,6 +584,17 @@
           if (p) p.contact = { phone: c.phone, wechat: c.wechat, email: c.email, address: c.address };
         });
       } catch (_) { /* contacts not migrated yet — skip */ }
+      // Member-tier photos live in the private bucket and carry only a path. Mint
+      // short-lived signed URLs so they display for signed-in family; anonymous
+      // visitors never receive these rows (media RLS), so this stays empty for them.
+      const privRows = (md.data || []).filter(m => m.private_path);
+      if (privRows.length) {
+        try {
+          const { data: signed } = await sb.storage.from("photos-private")
+            .createSignedUrls(privRows.map(m => m.private_path), 3600);
+          (signed || []).forEach((s, i) => { if (s && s.signedUrl) privRows[i].url = s.signedUrl; });
+        } catch (e) { console.warn("signed photo urls failed", e); }
+      }
       mediaByPerson = {}; mediaByPlace = {};
       (md.data || []).forEach(m => {
         if (m.place_id) (mediaByPlace[m.place_id] = mediaByPlace[m.place_id] || []).push(m);
@@ -637,15 +648,23 @@
     file = await downscaleImage(file);
     const key = subject.placeId || subject.personId;
     const safe = file.name.replace(/[^\w.\-]/g, "_");
-    const path = (subject.placeId ? "places/" : "") + key + "/" + Date.now() + "_" + safe;
-    const up = await sb.storage.from("photos").upload(path, file, { upsert: false });
-    if (up.error) throw up.error;
-    const url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
-    const row = subject.placeId
-      ? { place_id: subject.placeId, url, uploaded_by: st.user.id, visibility: "public" }
-      : { person_id: subject.personId, url, uploaded_by: st.user.id, visibility: "member" };
-    const ins = await sb.from("media").insert(row);
-    if (ins.error) throw ins.error;
+    if (subject.placeId) {
+      // place photos are public → public bucket, public URL (unchanged)
+      const path = "places/" + key + "/" + Date.now() + "_" + safe;
+      const up = await sb.storage.from("photos").upload(path, file, { upsert: false });
+      if (up.error) throw up.error;
+      const url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+      const ins = await sb.from("media").insert({ place_id: subject.placeId, url, uploaded_by: st.user.id, visibility: "public" });
+      if (ins.error) throw ins.error;
+    } else {
+      // person photos are member-tier → PRIVATE bucket; store only the path, mint a
+      // signed URL at display time so the file is never publicly reachable.
+      const path = key + "/" + Date.now() + "_" + safe;
+      const up = await sb.storage.from("photos-private").upload(path, file, { upsert: false });
+      if (up.error) throw up.error;
+      const ins = await sb.from("media").insert({ person_id: subject.personId, private_path: path, url: "", uploaded_by: st.user.id, visibility: "member" });
+      if (ins.error) throw ins.error;
+    }
   }
   const uploadPhoto = (personId, file) => uploadMedia({ personId }, file);
 
@@ -697,23 +716,50 @@
     if (!photo) return;
     const sb = Auth.client(), st = Auth.state();
     if (!sb || !st.user) return;
+    const tier = visibility || "member";
     try {
-      let url = photo;
-      if (/^data:/.test(photo)) {
-        const blob = await (await fetch(photo)).blob();
+      // Get the image bytes whether it arrived as a data: URL (anonymous embed) or an
+      // http URL pointing at the pending file in the public bucket (signed-in upload).
+      const toBlob = async () => {
+        if (/^data:/.test(photo) || /^https?:\/\//.test(photo)) return await (await fetch(photo)).blob();
+        return null;
+      };
+      if (tier === "member") {
+        // member-tier → store in the PRIVATE bucket, keep only the path
+        const blob = await toBlob();
+        if (!blob) return;
         const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
         const path = personId + "/" + Date.now() + "_contrib." + ext;
-        const up = await sb.storage.from("photos").upload(path, blob, { upsert: false, contentType: blob.type });
+        const up = await sb.storage.from("photos-private").upload(path, blob, { upsert: false, contentType: blob.type });
         if (up.error) throw up.error;
-        url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
-      } else if (!/^https?:\/\//.test(photo)) {
-        return;   // not a URL or data URL — ignore
+        // remove the pending public-bucket copy if this came from a signed-in upload
+        if (/^https?:\/\//.test(photo)) {
+          const pub = decodeURIComponent((String(photo).split("/photos/")[1] || "").split("?")[0]);
+          if (pub) sb.storage.from("photos").remove([pub]).catch(() => {});
+        }
+        const { error } = await sb.from("media").insert({
+          person_id: personId, private_path: path, url: "", uploaded_by: st.user.id,
+          approved: true, visibility: "member"
+        });
+        if (error) throw error;
+      } else {
+        // public tier (e.g. a deceased ancestor's portrait) → public bucket, public URL
+        let url = photo;
+        if (/^data:/.test(photo)) {
+          const blob = await (await fetch(photo)).blob();
+          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+          const path = personId + "/" + Date.now() + "_contrib." + ext;
+          const up = await sb.storage.from("photos").upload(path, blob, { upsert: false, contentType: blob.type });
+          if (up.error) throw up.error;
+          url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+        } else if (!/^https?:\/\//.test(photo)) {
+          return;   // not a URL or data URL — ignore
+        }
+        const { error } = await sb.from("media").insert({
+          person_id: personId, url, uploaded_by: st.user.id, approved: true, visibility: "public"
+        });
+        if (error) throw error;
       }
-      const { error } = await sb.from("media").insert({
-        person_id: personId, url, uploaded_by: st.user.id,
-        approved: true, visibility: visibility || "member"
-      });
-      if (error) throw error;
     } catch (e) { console.warn("contrib photo link failed", e); }
   }
 
@@ -743,8 +789,12 @@
   async function deletePhoto(m) {
     const sb = Auth.client();
     try {
-      const path = decodeURIComponent((String(m.url).split("/photos/")[1] || "").split("?")[0]);
-      if (path) await sb.storage.from("photos").remove([path]);
+      if (m.private_path) {
+        await sb.storage.from("photos-private").remove([m.private_path]);
+      } else {
+        const path = decodeURIComponent((String(m.url).split("/photos/")[1] || "").split("?")[0]);
+        if (path) await sb.storage.from("photos").remove([path]);
+      }
     } catch (e) { console.warn("storage remove failed", e); }
     const { error } = await sb.from("media").delete().eq("id", m.id);
     if (error) throw error;

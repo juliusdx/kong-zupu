@@ -53,15 +53,15 @@ To deploy manually any time: repo **Actions** tab → **Deploy to GitHub Pages**
 ## 2. Admin: confirming the uncertain ancestors
 
 Generations 13–18 were reconstructed from the master charts. A few nodes
-(gen 13 川, 16 朝, 17 龍) are still **placeholders** — the generation is certain but the
+(gen 13 川, 16 朝, 17 龙) are still **placeholders** — the generation is certain but the
 exact individual isn't. They show a ⚑ flag on the tree.
 
 To confirm one:
 1. Open the site with `?admin=1`, e.g.
    `https://<you>.github.io/kong-zupu/?admin=1`
 2. Click a ⚑ ancestor → the drawer lists **candidate ancestors**.
-3. Click **“Set as correct”** on the right person.
-4. A bar appears at the bottom → **“Download overrides.js”**.
+3. Click **"Set as correct"** on the right person.
+4. A bar appears at the bottom → **"Download overrides.js"**.
 5. Replace `data/overrides.js` with the downloaded file, commit, and push:
    ```bash
    git add data/overrides.js && git commit -m "Confirm gen-13 ancestor" && git push
@@ -204,6 +204,12 @@ How it works after that:
   moved out of the public pending area into the private bucket. **No data migration of existing
   files is performed** — if you already have member photos in the public bucket from before this
   change, re-upload them (or ask and I'll provide a one-off move script).
+
+- **Visitor counter.** A small badge in the bottom-left shows a running total of site visits.
+  Run **`supabase/migration_v11.sql`** once. It creates a `site_stats` table (publicly
+  readable) and an atomic `bump_visit()` RPC granted to `anon` + `authenticated`; the page
+  calls it once per browser session. Until the migration is run — or in demo mode with no
+  Supabase configured — the badge falls back to a local per-browser tally, so nothing breaks.
 
 Still on the roadmap (say the word): member self-service contact info, and richer per-photo
 captions / cover-photo selection.

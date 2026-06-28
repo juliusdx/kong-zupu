@@ -626,9 +626,9 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .tabs-scroll::after,.tabs-scroll::before{position:absolute;top:0;height:100%;width:34px;z-index:2;
     display:flex;align-items:center;font-size:1.5rem;font-weight:700;color:var(--seal);
     pointer-events:none;opacity:0;transition:opacity .15s}
-  .tabs-scroll::after{content:"›";right:0;justify-content:flex-end;padding-right:5px;
+  .tabs-scroll::after{content:"\203A";right:0;justify-content:flex-end;padding-right:5px;
     background:linear-gradient(to right,transparent,var(--paper-2) 70%)}
-  .tabs-scroll::before{content:"‹";left:0;justify-content:flex-start;padding-left:5px;
+  .tabs-scroll::before{content:"\2039";left:0;justify-content:flex-start;padding-left:5px;
     background:linear-gradient(to left,transparent,var(--paper-2) 70%)}
   .tabs-scroll.more-right::after{opacity:1}
   .tabs-scroll.more-left::before{opacity:1}
@@ -654,4 +654,52 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .tab,.tree-toolbar button,.map-toolbar button,#drawer button.action,.auth-status{min-height:40px}
   .tree-toolbar label,.map-toolbar label{min-height:36px;display:inline-flex;align-items:center}
   .layer-toggle,.tree-toolbar input[type=checkbox]{width:20px;height:20px}
+}
+
+/* ---- Visitor counter (subtle paper badge, bottom-left) ------------------- */
+.visitor-counter{
+  position:fixed;left:.7rem;bottom:.7rem;z-index:15;
+  display:inline-flex;align-items:center;gap:.32rem;
+  padding:.28rem .6rem;border-radius:14px;
+  background:rgba(255,253,248,.92);border:1px solid var(--line);
+  box-shadow:var(--shadow);backdrop-filter:saturate(1.1) blur(2px);
+  font-size:.74rem;color:var(--ink-soft);user-select:none;pointer-events:none;
+}
+.visitor-counter[hidden]{display:none}
+.visitor-counter .vc-icon{font-size:.82rem;opacity:.8}
+.visitor-counter .vc-num{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+@media (max-width:640px){
+  .visitor-counter{left:.5rem;bottom:.5rem;font-size:.7rem;padding:.24rem .5rem}
+}
+
+/* ---- Privacy / access notice (shown to anonymous visitors) --------------- */
+.privacy-notice{
+  background:var(--paper-2);border-bottom:1px solid var(--line);
+  padding:.55rem 1rem;position:relative;display:flex;align-items:center;gap:.6rem;
+}
+.privacy-notice[hidden]{display:none}
+.pn-body{
+  display:flex;align-items:baseline;gap:.55rem;flex:1;flex-wrap:wrap;
+  font-size:.8rem;line-height:1.5;
+}
+.pn-icon{font-size:1rem;flex:none;align-self:center}
+.pn-text{flex:1;min-width:0}
+.pn-zh{display:block;font-family:var(--font-cn);color:var(--ink)}
+.pn-en{display:block;color:var(--ink-soft);font-size:.76rem;margin-top:.15rem}
+.pn-signin{
+  flex:none;font-size:.78rem;padding:.3rem .75rem;border-radius:20px;
+  background:var(--seal);color:#fff;border:none;cursor:pointer;font:inherit;font-weight:700;
+  white-space:nowrap;
+}
+.pn-signin:hover{filter:brightness(1.08)}
+.pn-close{
+  position:absolute;right:.5rem;top:.4rem;
+  background:none;border:none;cursor:pointer;color:var(--ink-soft);
+  font-size:1.1rem;line-height:1;padding:.2rem .35rem;border-radius:4px;
+}
+.pn-close:hover{color:var(--ink);background:var(--paper)}
+@media(max-width:640px){
+  .pn-body{gap:.4rem}
+  .pn-signin{margin-top:.3rem;width:100%}
+  .privacy-notice{padding-right:2rem}
 }

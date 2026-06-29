@@ -147,7 +147,28 @@
       suppressHistory = false;
     }
   }
+/* ---- Privacy notice (shown to anonymous visitors) ----------------------- */
+const PN_DISMISS_KEY = "zupu_pn_dismissed";
+function setupPrivacyNotice(openModal) {
+  const notice = $("#privacy-notice");
+  if (!notice) return;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(PN_DISMISS_KEY) === "1"; } catch (e) { /* ignore */ }
 
+  function update(st) {
+    const hide = !st.live || !!st.user || dismissed;
+    notice.hidden = hide;
+  }
+
+  $("#pn-close").onclick = () => {
+    dismissed = true;
+    try { localStorage.setItem(PN_DISMISS_KEY, "1"); } catch (e) { /* ignore */ }
+    notice.hidden = true;
+  };
+  $("#pn-signin").onclick = openModal;
+
+  Auth.onChange(update);
+}
   /* ---- Auth UI + admin review --------------------------------------------- */
   function setupAuth() {
     const btn = $("#auth-status");
@@ -156,7 +177,7 @@
     const closeModal = () => { scrim.classList.remove("open"); modal.classList.remove("open"); };
     $("#signin-close").onclick = closeModal;
     scrim.onclick = closeModal;
-
+    setupPrivacyNotice(openModal);
     $("#signin-magic").onclick = async () => {
       const email = $("#signin-email").value.trim();
       if (!email) { $("#signin-msg").textContent = I18N.t("s_enter_email"); return; }

@@ -557,6 +557,16 @@
       ]);
       (pl.data || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
       (pp.data || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
+      // Signed-out visitors don't receive member-tier (living) rows from `persons` (RLS).
+      // The family chose to keep living adults findable by NAME + tree position, so pull
+      // a column-limited public view (no birth year, bio, location, photo, contact; no
+      // minors). Signed-in members already get these via the persons fetch above.
+      if (!Auth.state().user) {
+        try {
+          const { data: lm } = await sb.from("persons_public_search").select("*");
+          (lm || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
+        } catch (_) { /* view not migrated yet — living members stay hidden to anon */ }
+      }
       // Gated detail for LIVING members: birth year / bio live in person_details,
       // which RLS exposes only to admins, approved members, or self. Non-approved
       // members get nothing back here, so they see only the basic skeleton above.
@@ -611,6 +621,42 @@
       if (window.MapView && MapView.refresh) MapView.refresh();
       updateVerifyCount();
     } catch (e) { console.warn("live data load failed", e); }
+  }
+
+  /* ---- Visitor counter (header "👁 N") ----------------------------------- */
+  // Bumped once per browser session (sessionStorage guard); otherwise we just read
+  // the current value, so a refresh isn't counted as a new visit. Anonymous visitors
+  // are counted too (the bump RPC is granted to anon). See supabase/migration_v11.sql.
+  let visitCount = null;
+  function renderVisitCount() {
+    const el = $("#visit-count");
+    if (!el || visitCount == null) return;
+    const n = Number(visitCount), num = n.toLocaleString();
+    const label = I18N.getLang() === "zh" ? `瀏覽 ${num} 次` : `${num} ${n === 1 ? "visit" : "visits"}`;
+    el.innerHTML = `👁 <span class="vc-num">${num}</span>`;
+    el.title = label;
+    el.setAttribute("aria-label", label);
+    el.hidden = false;
+  }
+  async function loadVisitorCount() {
+    if (!Auth.LIVE) return;
+    const sb = Auth.client(); if (!sb) return;
+    try {
+      let fresh = false;
+      try { fresh = !sessionStorage.getItem("zupu_visited"); } catch (_) { /* private mode */ }
+      if (fresh) {
+        const { data, error } = await sb.rpc("bump_counter", { k: "site_visits" });
+        if (!error && data != null) {
+          visitCount = data;
+          try { sessionStorage.setItem("zupu_visited", "1"); } catch (_) { /* ignore */ }
+        }
+      }
+      if (visitCount == null) {
+        const { data } = await sb.from("counters").select("value").eq("key", "site_visits").maybeSingle();
+        if (data) visitCount = data.value;
+      }
+      if (visitCount != null) renderVisitCount();
+    } catch (e) { console.warn("visit count failed", e); }
   }
 
   // Shrink/re-encode big photos in the browser before upload — saves bandwidth and
@@ -1683,6 +1729,7 @@
       try { Tree.setOptions({}); }   // refresh swim-lane / band labels to the new language
       catch (e) { console.warn("tree relabel skipped", e); }   // never let it block the map/drawer relabel
       updateVerifyCount();
+      renderVisitCount();   // re-label "👁 N" in the new language
       if (window.MapView && MapView.relabel) MapView.relabel();   // rebuild map popups in the new language
       if ($("#verify-panel").classList.contains("open")) buildVerifyList();
       if ($("#view-review").classList.contains("active")) buildReview();
@@ -1793,7 +1840,7 @@
     history.replaceState(navSnapshot(), "");   // seed the initial (tree, no drawer) entry
 
     setupAuth();
-    Auth.init().then(loadLiveData);
+    Auth.init().then(() => { loadLiveData(); loadVisitorCount(); });
   }
 
   window.openPerson = openPerson;

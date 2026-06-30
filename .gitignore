@@ -20,6 +20,12 @@ supabase/seed_living_members.sql
 # local Claude Code / editor workspace config
 .claude/
 
+# Supabase CLI local state (project linkage, versions) — machine-local, not for the repo
+supabase/.temp/
+
+# stray local screenshot scratch
+map_screenshot.png
+
 # the original family book scans are private; keep them OUT of the public repo
 *.pdf
 Kong_Family_book*

@@ -205,6 +205,25 @@ How it works after that:
   files is performed** — if you already have member photos in the public bucket from before this
   change, re-upload them (or ask and I'll provide a one-off move script).
 
+- **Visitor counter.** Run **`supabase/migration_v11.sql`** once. It adds a `counters` table
+  (publicly readable) and a security-definer `bump_counter(key)` RPC granted to anonymous +
+  signed-in visitors, so the header can show a **👁 N** visit count. The client bumps once per
+  browser session (a `sessionStorage` guard) and otherwise just reads the value — a refresh isn't
+  a new visit. It's a client-driven count (fine for a family site, not a fraud-proof metric).
+  Until the migration is run the badge simply stays hidden — nothing else is affected.
+
+- **Living members findable by name when signed out.** Run **`supabase/migration_v12.sql`** once.
+  By default living members (`member` tier) are hidden from anonymous visitors, so a signed-out
+  search/tree never includes them. This migration adds a **column-limited public view**
+  (`persons_public_search`) that exposes ONLY name + romanizations + tree links (gender,
+  father/spouse) for **living adults** — never their birth year, bio, **home location**, photos,
+  or contacts, and **never minors**. The persons RLS is left untouched (so location/detail stay
+  private); only the curated view is public. Signed-out visitors can then search living relatives
+  and see them on the tree as name-only skeleton nodes. ⚠️ This intentionally makes living
+  relatives' **names + lineage position public on the internet** — it's the opposite of the
+  member-photo hardening; remove the view (`drop view public.persons_public_search;`) to revert.
+  Until the migration is run, living members stay hidden to anon exactly as before.
+
 Still on the roadmap (say the word): member self-service contact info, and richer per-photo
 captions / cover-photo selection.
 

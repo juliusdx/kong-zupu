@@ -52,6 +52,9 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .header-right{display:flex;align-items:center;gap:.6rem;order:3;margin-left:auto;min-width:0;flex:0 1 auto}
 .header-right .search-box{min-width:0;flex:1 1 auto}
 .header-utils{display:flex;align-items:center;gap:.5rem;flex:none}
+.visit-count{display:inline-flex;align-items:center;gap:.25rem;font-size:.75rem;
+  color:var(--ink-soft);white-space:nowrap;user-select:none}
+.visit-count .vc-num{font-weight:600;font-variant-numeric:tabular-nums}
 .tab{
   font-family:var(--font-cn);font-size:.95rem;cursor:pointer;
   border:1px solid transparent;background:transparent;color:var(--ink-soft);

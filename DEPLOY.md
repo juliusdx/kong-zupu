@@ -313,3 +313,55 @@ to set them.
 - If no email is found, it exits silently — the review still goes through.
 - The notification is **fire-and-forget**: a failure never blocks the review action,
   just logs a warning in the browser console.
+
+---
+
+## 8. New-sign-up alerts to the admin (migration v13)
+
+Nothing used to tell the admin that someone had signed up — new members could sit
+unapproved indefinitely. `supabase/migration_v13.sql` adds a second AFTER INSERT
+trigger on `auth.users` that POSTs to the **same Make.com webhook** already used by
+`notify-contributor` (same `{ to, subject, html }` payload), so the Make scenario
+needs no changes.
+
+### One-time setup
+
+Run `supabase/migration_v13.sql` in the SQL editor (already applied to the live
+project), then store the webhook URL — the same value as the `notify-contributor`
+edge function's `MAKE_WEBHOOK_URL` secret:
+
+```sql
+select vault.create_secret('https://hook.eu2.make.com/xxxxxxxx',
+                           'MAKE_WEBHOOK_URL', 'Make.com email relay');
+```
+
+Check the wiring without creating a throwaway user:
+
+```sql
+select public.test_admin_signup_notification();
+```
+
+It returns `queued to <email>` on success, or names the missing Vault secret.
+
+### How it works
+
+- Secrets live in **Vault** (`MAKE_WEBHOOK_URL`, `ADMIN_NOTIFY_EMAIL`), read at call
+  time — rotating either is a Vault update, no redeploy. The webhook URL is a
+  send-email-as-us capability, so it must not sit in a function body.
+- `pg_net.http_post` is **async**: a slow or dead webhook cannot delay a sign-up.
+- The whole body is wrapped in an exception handler and no-ops when the secrets are
+  missing. A notification failure must never cost a member — which is also why this
+  is a *separate* trigger from `handle_new_user()`, where a fault surfaces as
+  "Database error saving new user" and blocks all sign-ups.
+- The email includes the ready-to-run `update profiles set approved = true` for that
+  user, since approving is the usual next action.
+
+### Approving a member
+
+`profiles.approved` gates `person_details` — the detail of **living** members.
+Un-approved accounts can sign in and see living relatives as name-only entries.
+
+```sql
+update profiles set approved = true
+where id = (select id from auth.users where email = 'them@example.com');
+```

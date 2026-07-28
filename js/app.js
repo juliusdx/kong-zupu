@@ -105,6 +105,7 @@
       if (currentPersonId) setTimeout(() => renderBreadcrumb(currentPersonId), 60); else hideBreadcrumb();
     } else hideBreadcrumb();
     if (view === "review") buildReview();
+    if (view === "members") buildMembers();
     if (view === "sources") buildSources();
     pushNav();
   }
@@ -192,7 +193,10 @@
         btn.onclick = openModal;
       }
       $("#tab-review").style.display = st.isAdmin ? "" : "none";
+      $("#tab-members").style.display = st.isAdmin ? "" : "none";
       if (!st.isAdmin && $("#view-review").classList.contains("active")) show("tree");
+      if (!st.isAdmin && $("#view-members").classList.contains("active")) show("tree");
+      refreshMembersCount();   // badge the tab as soon as an admin signs in
       if ($("#view-sources").classList.contains("active")) buildSources();   // refresh lock state
     });
   }
@@ -294,6 +298,96 @@
       wrap.innerHTML = head + "<p class='muted'>" + T("r_error") + e.message + "</p>";
     }
   }
+  /* ---- Members (admin): approve / revoke family sign-ups -------------------
+   * profiles.approved gates living-member detail (person_details, contacts, photos).
+   * New sign-ups default to false — handle_new_user doesn't set the column — so until
+   * an admin approves them here they see living relatives as name-only skeletons.
+   * Hiding the tab is cosmetic: members_admin and set_member_approved both re-check
+   * is_admin() server-side (migration_v14). */
+  let membersPending = 0;
+
+  async function buildMembers() {
+    const wrap = $("#members-wrap");
+    const st = Auth.state();
+    const T = I18N.t;
+    const head = `<h2>${T("m_h")}</h2>`;
+    if (!st.isAdmin) { wrap.innerHTML = head + `<p class="muted">${T("r_adminonly")}</p>`; return; }
+    wrap.innerHTML = head + `<p class="muted">${T("m_loading")}</p>`;
+    try {
+      const sb = Auth.client();
+      const { data, error } = await sb.from("members_admin").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      const rows = data || [];
+      const pending = rows.filter(r => !r.approved);
+      const approved = rows.filter(r => r.approved);
+
+      const table = (list, canApprove) => `<table class="rh-table mem-table"><thead><tr>
+          <th>${T("m_col_name")}</th><th>${T("m_col_email")}</th><th>${T("m_col_joined")}</th><th></th>
+        </tr></thead><tbody>` + list.map(r => {
+          const self = st.user && r.id === st.user.id;
+          const name = r.full_name ? esc(r.full_name) : `<span class="muted">${T("m_noname")}</span>`;
+          const badges = (r.is_admin ? ` <span class="rh-badge rh-ok">${T("m_admin_badge")}</span>` : "")
+                       + (self ? ` <span class="rh-badge">${T("m_you")}</span>` : "");
+          const joined = r.created_at ? new Date(r.created_at).toLocaleDateString() : "—";
+          // An admin revoking themself would lock the panel behind their own approval
+          // flag on next load, so leave admins without a revoke button.
+          const btn = canApprove
+            ? `<button class="primary" data-approve-member="${esc(r.id)}">${T("m_approve")}</button>`
+            : (r.is_admin ? "" : `<button class="ghost" data-revoke-member="${esc(r.id)}">${T("m_revoke")}</button>`);
+          return `<tr><td>${name}${badges}</td><td class="mem-email">${esc(r.email || "—")}</td>` +
+                 `<td>${joined}</td><td class="mem-act">${btn}</td></tr>`;
+        }).join("") + `</tbody></table>`;
+
+      let html = head + `<p class="muted">${T("m_intro")}</p>`;
+      html += `<h3 class="rh-head">${T("m_pending_h")}</h3>`;
+      html += pending.length ? table(pending, true) : `<p class="muted">${T("m_none_pending")}</p>`;
+      if (approved.length) html += `<h3 class="rh-head">${T("m_approved_h")}</h3>` + table(approved, false);
+      html += `<div id="mem-msg" class="signin-msg"></div>`;
+      wrap.innerHTML = html;
+
+      wrap.querySelectorAll("[data-approve-member]").forEach(b =>
+        b.onclick = () => setMemberApproved(b.dataset.approveMember, true));
+      wrap.querySelectorAll("[data-revoke-member]").forEach(b =>
+        b.onclick = () => { if (confirm(T("m_revoke_confirm"))) setMemberApproved(b.dataset.revokeMember, false); });
+
+      membersPending = pending.length;
+      updateMembersBadge();
+    } catch (e) {
+      wrap.innerHTML = head + `<p class="muted">${T("m_error")}${esc(e.message)}</p>`;
+    }
+  }
+
+  async function setMemberApproved(id, approve) {
+    const msg = $("#mem-msg");
+    if (msg) msg.textContent = I18N.t("m_working");
+    try {
+      const { error } = await Auth.client().rpc("set_member_approved", { target_id: id, approve });
+      if (error) throw error;
+      await buildMembers();          // re-read so the row moves between the two tables
+    } catch (e) {
+      if (msg) msg.textContent = I18N.t("m_error") + e.message;
+    }
+  }
+
+  function updateMembersBadge() {
+    const el = $("#members-count");
+    if (!el) return;
+    el.textContent = membersPending ? String(membersPending) : "";
+    el.hidden = !membersPending;
+  }
+
+  // Count waiting sign-ups without opening the tab, so the badge shows up on sign-in.
+  async function refreshMembersCount() {
+    if (!Auth.state().isAdmin) { membersPending = 0; updateMembersBadge(); return; }
+    try {
+      const { count, error } = await Auth.client()
+        .from("members_admin").select("id", { count: "exact", head: true }).eq("approved", false);
+      if (error) throw error;
+      membersPending = count || 0;
+      updateMembersBadge();
+    } catch (e) { console.warn("members count failed", e); }
+  }
+
   function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function renderContribCard(c) {
     const p = c.payload || {};
@@ -1733,6 +1827,7 @@
       if (window.MapView && MapView.relabel) MapView.relabel();   // rebuild map popups in the new language
       if ($("#verify-panel").classList.contains("open")) buildVerifyList();
       if ($("#view-review").classList.contains("active")) buildReview();
+      if ($("#view-members").classList.contains("active")) buildMembers();
       if ($("#view-sources").classList.contains("active")) buildSources();
       if ($("#drawer").classList.contains("open") && currentPersonId) openPerson(currentPersonId);
       if ($("#drawer").classList.contains("open") && currentPlaceId) openPlace(currentPlaceId);

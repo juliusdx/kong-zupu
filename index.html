@@ -33,6 +33,8 @@
       <button class="tab" data-view="contribute" data-i18n="tab_contribute">貢獻 Contribute</button>
       <button class="tab" data-view="sources" data-i18n="tab_sources">文獻 Sources</button>
       <button class="tab" data-view="review" id="tab-review" style="display:none" data-i18n="tab_review">審核 Review</button>
+      <!-- badge is a sibling span: applyStatic() overwrites textContent of the data-i18n node -->
+      <button class="tab" data-view="members" id="tab-members" style="display:none"><span data-i18n="tab_members">成員 Members</span> <span id="members-count" class="tab-badge" hidden></span></button>
       <button class="tab" data-view="about" data-i18n="tab_about">關於 About</button>
     </nav>
   </div>
@@ -111,6 +113,11 @@
   <!-- REVIEW (admin only) --------------------------------------- -->
   <section id="view-review" class="view">
     <div class="review-wrap" id="review-wrap"></div>
+  </section>
+
+  <!-- MEMBERS (admin only) -------------------------------------- -->
+  <section id="view-members" class="view">
+    <div class="review-wrap" id="members-wrap"></div>
   </section>
 
   <!-- ABOUT ----------------------------------------------------- -->

@@ -25,6 +25,9 @@
 --
 --  NOTE: Supabase's security advisor will flag this as a "security definer view"
 --  exposed to anon — that is intentional here (a curated, column-limited public read).
+--  It is only safe because the grants below make the view strictly READ-ONLY; see the
+--  comment there before touching them. Definer rights + a writable auto-updatable view
+--  would hand anonymous callers RLS-bypassing writes to persons.
 --
 --  Idempotent; run once in the Supabase SQL editor.
 -- ============================================================================
@@ -39,4 +42,18 @@ create or replace view public.persons_public_search
     and living = true
     and is_minor = false;
 
+-- READ-ONLY, and the revoke is NOT optional.
+--
+-- Supabase's default privileges on the public schema auto-grant ALL (insert/update/
+-- delete) to anon + authenticated on newly created objects, so the view is created
+-- writable and a bare "grant select" below would add nothing. That matters here far
+-- more than usual: this is a simple single-table view, which Postgres makes
+-- AUTO-UPDATABLE, and it runs with definer rights as the postgres owner of persons
+-- (which has RLS enabled but NOT forced). Writes through the view would therefore
+-- bypass RLS entirely — including the admin-only persons_write policy — letting any
+-- anonymous caller edit or delete living members, or insert arbitrary persons rows
+-- (there is no WITH CHECK OPTION, so inserts need not even match the view's filter).
+--
+-- Revoke first, then grant back only SELECT.
+revoke all on public.persons_public_search from anon, authenticated;
 grant select on public.persons_public_search to anon, authenticated;

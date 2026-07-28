@@ -48,12 +48,15 @@ create or replace view public.persons_public_search
 -- delete) to anon + authenticated on newly created objects, so the view is created
 -- writable and a bare "grant select" below would add nothing. That matters here far
 -- more than usual: this is a simple single-table view, which Postgres makes
--- AUTO-UPDATABLE, and it runs with definer rights as the postgres owner of persons
--- (which has RLS enabled but NOT forced). Writes through the view would therefore
--- bypass RLS entirely — including the admin-only persons_write policy — letting any
--- anonymous caller edit or delete living members, or insert arbitrary persons rows
--- (there is no WITH CHECK OPTION, so inserts need not even match the view's filter).
+-- AUTO-UPDATABLE, and it runs with definer rights as its owner `postgres` — a role
+-- that carries the BYPASSRLS attribute. Writes through the view therefore bypass RLS
+-- entirely, including the admin-only persons_write policy, letting any anonymous
+-- caller edit or delete living members, or insert arbitrary persons rows (there is no
+-- WITH CHECK OPTION, so inserts need not even match the view's filter).
 --
--- Revoke first, then grant back only SELECT.
+-- These grants are the ONLY thing standing in the way. Do not assume RLS is a backstop:
+-- `alter table persons force row level security` does NOT close this (tested 2026-06-30
+-- — anon could still update through the view), because BYPASSRLS outranks both ENABLE
+-- and FORCE. Revoke first, then grant back only SELECT.
 revoke all on public.persons_public_search from anon, authenticated;
 grant select on public.persons_public_search to anon, authenticated;

@@ -81,11 +81,9 @@ begin
         '</table>' ||
         '<p style="margin:.8rem 0;padding:.7rem 1rem;background:#fdf6e3;border-left:3px solid #c47a2c;font-size:.92rem">' ||
           '此帳號尚未核准，暫時看不到在世家人的詳細資料。<br>' ||
-          'This account is <strong>not approved</strong> yet, so living members still appear as name-only. ' ||
-          'Approve them in the Supabase SQL editor:</p>' ||
-        '<pre style="background:#f6f1e4;padding:.7rem 1rem;font-size:.82rem;overflow-x:auto">' ||
-          'update profiles set approved = true' || chr(10) ||
-          'where id = ''' || new.id || ''';</pre>' ||
+          'This account is <strong>not approved</strong> yet, so living members still appear as name-only.<br>' ||
+          '請在族譜網站的「成員」分頁核准 · Approve them in the ' ||
+          '<a href="https://juliusdx.github.io/kong-zupu/" style="color:#a3411f">成員 Members</a> tab.</p>' ||
         '<p style="font-size:.8rem;color:#9a8a6e;margin-top:2rem;border-top:1px solid #e3d9c2;padding-top:.8rem">' ||
           '江氏族譜 · Kong Family Zupu</p>' ||
       '</div>';

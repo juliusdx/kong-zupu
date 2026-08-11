@@ -274,26 +274,30 @@ const ll_chaoyang = [
 // hold only PUBLIC (deceased) people. Living relatives are gated to signed-in members.
 // Only the deceased ancestors that ANCHOR the tree stay here; their living descendants
 // re-attach by id once a signed-in member's session loads the Supabase rows.
-// ⚠ 永宏 root + the Yu Chong line still flagged confidence:"low" — family to verify.
-// ⚠ NAME CLASH: this root is written 永宏, the same name as the book's 永宏 (k_yonghong, gen 22).
-//   They are almost certainly NOT the same man — book 永宏's grandson 其昌 was born 1913, the
-//   same years as Yu Chong (1912), which puts Yu Chong in the 其/有 generation (24) and this
-//   root one above it (23, the 俊 generation). Until the family confirms the graft point, the
-//   two 永宏 stay separate and this branch hangs as its own root.
+// GRAFTED 2026-08-11 — this branch is no longer a free-floating root. 江學禮 (Corin) gives
+//   the chain 永宏 → Zhun Fah → Yu Chong, i.e. Yu Chong is Zhun Fah's SON, not his brother.
+//   That identifies the MyHeritage root couple as the book's 永宏公 (k_yonghong) + 黎氏 禮名
+//   恩照 (k_lishi) — "En Zhao … née Lei" is 恩照 / 黎 — and Zhun Fah as 俊華 (k_junhua, b.1875).
+//   So Yu Chong 有章 (b.1912) hangs off k_junhua at gen 24, alongside his cousin 其昌 (有喬)
+//   b.1913. Those three MyHeritage duplicates were removed; everything below Yu Chong is
+//   unchanged. Still confidence:"low" below Yu Chong — dates come from the MyHeritage tree.
 // Generations here were shifted −1 with the rest of the file (see GENERATION NUMBERING above);
 // the living members in Supabase (seed_living_members.sql) were shifted to match.
 // Recently-deceased kept public per the family privacy model (deceased = public):
 //   Clare(2006), John(1995), Daniel — move any to 'member' if you prefer.
 // ==========================================
 const mh_sabah = [
-  { id: "mh_yonghong", gen: 23, name: "永宏 Kong", pinyin: "Yong Hong", gender: "m", deceased: true, relation: "MyHeritage 樹根", note: "Source-tree root (永宏 Kong, deceased). ⚠ Reconcile with book 永宏 k_yonghong — likely a later/different 永宏; graft point onto the k_daxin spine to be confirmed.", confidence: "low" },
-  { id: "mh_enzhao", gen: 23, name: "En Zhao Kong", pinyin: "En Zhao", gender: "f", spouseOf: "mh_yonghong", deceased: true, note: "Married in; née Lei (born Lei) → 雷氏?", confidence: "low" },
+  // 永宏 Kong and En Zhao Kong, the MyHeritage tree's root couple, WERE here as their own
+  // flagged root. They are the book's 永宏公 (k_yonghong) and his wife 黎氏 禮名恩照
+  // (k_lishi) — "En Zhao" is her ritual name 恩照 and "née Lei" is 黎. Zhun Fah is the
+  // book's 俊華 (k_junhua). Merged into the spine 2026-08-11 on 江學禮 (Corin)'s reading:
+  // 永宏 → Zhun Fah → Yu Chong. See the note on k_yonghong.
   { id: "mh_yezhun", gen: 23, name: "Ye Zhun Chong", pinyin: "Ye Zhun", gender: "m", deceased: true, relation: "親家 (in-law)", note: "Father of Choon Kiaw (mh_choonkiaw), who married into the Kong line. Surname Chong — not Kong blood. Own flagged root.", confidence: "low" },
   { id: "mh_choikiaw_c", gen: 23, name: "Choi Kiaw Chong", pinyin: "Choi Kiaw", gender: "f", spouseOf: "mh_yezhun", deceased: true, note: "Mother of Choon Kiaw; née Shim (born Shim).", confidence: "low" },
-  { id: "mh_yuchong", gen: 24, father: "mh_yonghong", name: "Yu Chong Kong", pinyin: "Yu Chong", gender: "m", birthYear: "1912", deathYear: "1974", relation: "main line", confidence: "low" },
+  { id: "mh_yuchong", gen: 24, father: "k_junhua", name: "有章 Yu Chong Kong", pinyin: "You Zhang / Yu Chong", gender: "m", birthYear: "1912", deathYear: "1974", relation: "俊華公之子 (Sabah main line)", note: "有章 — the 有 name pairs with the 其/有 generation of his cousins 其昌(有喬) b.1913 and 其芳(有梓). Father confirmed as Zhun Fah (俊華) by 江學禮 Corin, 2026-08-11; Corrinne Kong had independently entered him under 俊華 as 有章.", confidence: "low" },
   { id: "mh_choonkiaw", gen: 24, name: "Choon Kiaw Kong", pinyin: "Choon Kiaw", gender: "f", spouseOf: "mh_yuchong", birthYear: "1913", deathYear: "1989", note: "Married in; née Chong (born Chong). Parents: 父 Ye Zhun Chong (mh_yezhun), 母 Choi Kiaw Chong née Shim (mh_choikiaw_c).", confidence: "low" },
-  { id: "mh_zhunfah", gen: 24, father: "mh_yonghong", name: "Zhun Fah Kong", pinyin: "Zhun Fah", gender: "m", relation: "Yu Chong 之兄弟", confidence: "low" },
-  { id: "mh_lofong", gen: 24, name: "Lo Fong Kong", pinyin: "Lo Fong", gender: "f", spouseOf: "mh_zhunfah", deceased: true, note: "Married in; née Chin (born Chin).", confidence: "low" },
+  // Zhun Fah Kong is the book's 俊華 (k_junhua) — merged there; his wife stays.
+  { id: "mh_lofong", gen: 23, name: "Lo Fong Kong", pinyin: "Lo Fong", gender: "f", spouseOf: "k_junhua", deceased: true, note: "Married in; née Chin (born Chin). Wife of 俊華 (Zhun Fah) — not named in the book.", confidence: "low" },
   { id: "mh_clare", gen: 25, father: "mh_yuchong", name: "Clare Lai", pinyin: "Clare", gender: "f", birthYear: "1939", deathYear: "2006", marriedOut: "嫁 Lai", note: "Née Kong Siew Ching (born Kong Siew Ching). Married Roland Lai.", confidence: "low" },
   { id: "mh_roland_lai", gen: 25, name: "Roland Lai Lip Chung", pinyin: "Roland Lai", gender: "m", spouseOf: "mh_clare", birthYear: "1938", deceased: true, note: "Married in (Lai family).", confidence: "low" },
   { id: "mh_john", gen: 25, father: "mh_yuchong", name: "John Ful Chung Kong", pinyin: "John", gender: "m", birthYear: "1947", deathYear: "1995", confidence: "low" },
@@ -511,18 +515,20 @@ window.LINEAGE = {
 
     // ===== Gen 22 — 永 generation =====
     { id: "k_yazhao", gen: 22, father: "k_daxin", name: "亞招",  pinyin: "Ya Zhao",  gender: "f", marriedOut: "嫁黃沙坑凌屋", confidence: "low" },
-    { id: "k_yonghong", gen: 22, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十二世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", residencePlace: "p_changle", burialPlace: "p_shuangtou", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。", confidence: "med" },
+    { id: "k_yonghong", gen: 22, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十二世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", residencePlace: "p_changle", burialPlace: "p_shuangtou", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。（沙巴支系之源：MyHeritage 家族樹樹根「永宏 Kong」即此公。）", confidence: "med",
+      note: "GRAFT POINT for the Sabah branch, settled 2026-08-11. The MyHeritage tree's root couple 永宏 Kong / En Zhao Kong are this man and his wife 黎氏 (k_lishi) — 'En Zhao' is her ritual name 恩照 and 'née Lei' is 黎. 江學禮 (Corin) gives the chain 永宏 → Zhun Fah → Yu Chong, and Zhun Fah is 俊華 (k_junhua), so Yu Chong (有章, b.1912) is 俊華's son at gen 24 — the same generation and years as his cousin 其昌 (有喬) b.1913." },
     { id: "k_yongren", gen: 22, father: "k_daxin", name: "永仁",  pinyin: "Yong Ren", ritualName: "昌貴", hao: "任堂", gender: "m", relation: "二十二世叔", religion: "廣東巴色會長樂封為帮教書記職", confidence: "med" },
     { id: "k_yongchong", gen: 22, father: "k_daxin", name: "永宗",  pinyin: "Yong Zong", ritualName: "同發", hao: "鈠通", gender: "m", relation: "二十二世", religion: "洗禮名 同發", aka: "舊錄作 永崇", birthYear: "光緒八年壬午九月廿二日戌時", note: "pt2 p.74「永宗 禮名同發 號鈠通」— earlier read here as 永崇 / 禮名昌發 / 號欽道. 妣〔洲?〕氏，以耀華為子 (adopted 耀華, pt2 p.72).", confidence: "med" },
     { id: "k_changxing", gen: 22, father: "k_daxin", name: "昌興",  pinyin: "Chang Xing", gender: "m", note: "早喪.", confidence: "low" },
     { id: "k_xinjiao", gen: 22, father: "k_daxin", name: "新嬌",  pinyin: "Xin Jiao", gender: "f", confidence: "low" },
-    { id: "k_lishi", gen: 22, name: "黎氏",  pinyin: "Madam Li", ritualName: "恩照", ritualPinyin: "Enzhao", gender: "f", spouseOf: "k_yonghong", religion: "禮名 恩照", note: "生下四子四女.", confidence: "med" },
+    { id: "k_lishi", gen: 22, name: "黎氏",  pinyin: "Madam Li", ritualName: "恩照", ritualPinyin: "Enzhao", aka: "En Zhao Kong (MyHeritage)", gender: "f", spouseOf: "k_yonghong", religion: "禮名 恩照", note: "生下四子四女. The MyHeritage tree's 'En Zhao Kong, née Lei' is this woman — 恩照 is the ritual name, 黎 the maiden surname.", confidence: "med" },
     { id: "k_luoshi", gen: 22, name: "羅氏",  pinyin: "Madam Luo", ritualName: "輝光", ritualPinyin: "Huiguang", gender: "f", spouseOf: "k_yongren", confidence: "med" },
     { id: "k_hongshi", gen: 22, name: "洪氏",  pinyin: "Madam Hong", gender: "f", spouseOf: "k_yongchong", confidence: "low" },
 
     // ===== Gen 23 — children of 永宏 (俊/集) =====
     { id: "k_junen", gen: 23, father: "k_yonghong", name: "俊恩",  pinyin: "Jun En",  formalName: "集如", gender: "m", relation: "長子", birthYear: "癸酉年十二月初七", religion: "集如 乳名 俊恩", confidence: "med" },
-    { id: "k_junhua", gen: 23, father: "k_yonghong", name: "俊華",  pinyin: "Jun Hua", gender: "m", relation: "二子", birthYear: "光緒元年乙亥十一月十三日", birthPlace: "p_changle", confidence: "med" },
+    { id: "k_junhua", gen: 23, father: "k_yonghong", name: "俊華",  pinyin: "Jun Hua", aka: "Zhun Fah Kong (MyHeritage)", gender: "m", relation: "二子", birthYear: "光緒元年乙亥十一月十三日 (1875)", birthPlace: "p_changle", confidence: "med",
+      note: "The MyHeritage tree's 'Zhun Fah Kong' — father of 有章 (Yu Chong, b.1912) and so the ancestor of the whole living Sabah branch. Wife: Lo Fong Kong née Chin (mh_lofong), not named in the book." },
     { id: "k_junming", gen: 23, father: "k_yonghong", name: "俊明",  pinyin: "Jun Ming", formalName: "集恩", gender: "m", relation: "三子 (direct line)", birthYear: "光緒三年丁丑十月初十日", religion: "集恩 乳名 俊明", birthPlace: "p_changle", confidence: "med" },
     { id: "k_jungong", gen: 23, father: "k_yonghong", name: "俊恭",  pinyin: "Jun Gong", gender: "m", relation: "四子", birthYear: "光緒十六年庚寅十二月初九日", birthPlace: "p_changle", confidence: "med" },
     { id: "k_wangshi", gen: 23, name: "王氏",  pinyin: "Madam Wang", ritualName: "寵恩", ritualPinyin: "Chong'en", gender: "f", spouseOf: "k_junen", confidence: "low" },

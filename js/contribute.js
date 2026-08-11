@@ -70,8 +70,9 @@
           <option value="add_place">${T("f_opt_add_place")}</option>
         </select>
       </label>
-      <label>${T("f_relatedto")}
+      <label><span id="relatedto-label">${T("f_relatedto")}</span>
         <select name="relatedTo">${personOptions()}</select>
+        <span class="muted fd-hint" id="relatedto-hint"></span>
       </label>
 
       <div class="field-section">${T("f_section_person")}</div>
@@ -201,6 +202,15 @@
     // action drives whether the location is a person's own dot or a formal place
     f.elements.action.addEventListener("change", () => updateLocationMode(f));
     updateLocationMode(f);
+    // "Relative this connects to" means something different per action — say which, and on
+    // an edit load that person's current values in, so the reviewer sees a real diff instead
+    // of a blank-vs-typed one. (A generic label here is how corrections meant for a child
+    // ended up overwriting the parent — e.g. 江萬里's details written onto 江八郎, Aug 2026.)
+    f.elements.action.addEventListener("change", () => updateRelatedMode(f));
+    f.elements.relatedTo.addEventListener("change", () => {
+      if (f.elements.action.value === "edit") loadEditTarget(f);
+    });
+    updateRelatedMode(f);
     // map pin: hand off to the shared picker (map view + address search), fill lat/lng
     const pick = f.querySelector("#pin-pick");
     if (pick) pick.onclick = async () => {
@@ -218,6 +228,31 @@
       if (ff) { prev.hidden = false; prev.innerHTML = `<img src="${URL.createObjectURL(ff)}" alt="">`; }
       else { prev.hidden = true; prev.innerHTML = ""; }
     };
+  }
+
+  // Re-label the relatedTo picker for the action in play: for an edit it names the person
+  // being overwritten, for the add actions it names the relative the new person hangs off.
+  function updateRelatedMode(f) {
+    const a = f.elements.action.value;
+    const lbl = f.querySelector("#relatedto-label"), hint = f.querySelector("#relatedto-hint");
+    const key = a === "edit" ? "f_relatedto_edit"
+              : a === "add_spouse" ? "f_relatedto_spouse"
+              : a === "add_place" ? "f_relatedto_place" : "f_relatedto_child";
+    if (lbl) lbl.textContent = T(key);
+    if (hint) hint.textContent = a === "edit" ? T("f_relatedto_edit_hint") : "";
+  }
+
+  // Copy the selected person's current values into the form so an "edit" starts from what
+  // is on record. Without this the form keeps whatever was typed for someone else and the
+  // approval silently writes it onto the newly-selected person.
+  function loadEditTarget(f) {
+    const id = f.elements.relatedTo.value;
+    const p = LINEAGE.persons.find(x => x.id === id);
+    if (!p || typeof window.personPrefill !== "function") return;
+    const d = window.personPrefill(p);
+    ["name","pinyin","ritualName","milkName","aka","gender","gen","living","birth","place","bio"]
+      .forEach(k => { const el = f.elements[k]; if (el) el.value = d[k] != null ? d[k] : ""; });
+    setPin(f, (d.lat !== "" && d.lng !== "") ? { lat: d.lat, lng: d.lng } : null);
   }
 
   function setPin(f, coords) {

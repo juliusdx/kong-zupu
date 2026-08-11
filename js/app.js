@@ -1940,5 +1940,8 @@
 
   window.openPerson = openPerson;
   window.openPlace = openPlace;
+  // Contribute reuses this so switching the "person you are correcting" reloads that
+  // person's real values instead of keeping whatever was typed for someone else.
+  window.personPrefill = personPrefill;
   document.addEventListener("DOMContentLoaded", init);
 })();

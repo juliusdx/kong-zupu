@@ -24,8 +24,17 @@
  *   low   — best-effort reading; verify via Contribute
  *   The middle generations (13–18) of the Sabah line are now reconstructed from
  *   the master charts (pt1 pp.1–3) and the 起瀾公 entry (pt2): 元珠→川→道→日→朝→龍→起瀾→紹泗.
- *   The generation CHARACTERS are firm; some individual gen-13/16/17 names are still
+ *   The generation CHARACTERS are firm; some individual gen-13 names are still
  *   placeholders (each generation had many brothers) and carry confidence:"low".
+ *
+ * GENERATION NUMBERING (corrected 2026-08, from the pt2 scans themselves)
+ *   The book labels its own 世 on the biographical pages, and they run continuously:
+ *     16 朝纓(字成祥, p19) → 17 龍躍 / 龍見(p20, p27) → 18 起瀾(p59) → 19 紹泗 (起瀾之四房, p59)
+ *     → 20 承續(p66) → 21 大信 → 22 永宏/永仁/永宗 → 23 俊 → 24 其/有 → 25 漢
+ *   This matches the pt1 master chart columns (十八世 通…, 十九世 紹…, 廿世 承…, 廿一世 大信,
+ *   廿二世 永…, 廿三世 俊…) exactly. An earlier reading of p66 as "二十一世祖承續公" (it is
+ *   二十世祖) created a phantom ±1 "1825 合譜 seam" at 起瀾→紹泗; that seam did not exist and
+ *   the whole direct line from 紹泗 down has been shifted one generation up to close it.
  *
  * Data shape matches /supabase/schema.sql so this can be swapped for a live DB.
  */
@@ -266,24 +275,31 @@ const ll_chaoyang = [
 // Only the deceased ancestors that ANCHOR the tree stay here; their living descendants
 // re-attach by id once a signed-in member's session loads the Supabase rows.
 // ⚠ 永宏 root + the Yu Chong line still flagged confidence:"low" — family to verify.
+// ⚠ NAME CLASH: this root is written 永宏, the same name as the book's 永宏 (k_yonghong, gen 22).
+//   They are almost certainly NOT the same man — book 永宏's grandson 其昌 was born 1913, the
+//   same years as Yu Chong (1912), which puts Yu Chong in the 其/有 generation (24) and this
+//   root one above it (23, the 俊 generation). Until the family confirms the graft point, the
+//   two 永宏 stay separate and this branch hangs as its own root.
+// Generations here were shifted −1 with the rest of the file (see GENERATION NUMBERING above);
+// the living members in Supabase (seed_living_members.sql) were shifted to match.
 // Recently-deceased kept public per the family privacy model (deceased = public):
 //   Clare(2006), John(1995), Daniel — move any to 'member' if you prefer.
 // ==========================================
 const mh_sabah = [
-  { id: "mh_yonghong", gen: 24, name: "永宏 Kong", pinyin: "Yong Hong", gender: "m", deceased: true, relation: "MyHeritage 樹根", note: "Source-tree root (永宏 Kong, deceased). ⚠ Reconcile with book 永宏 k_yonghong — likely a later/different 永宏; graft point onto the k_daxin spine to be confirmed.", confidence: "low" },
-  { id: "mh_enzhao",   gen: 24, name: "En Zhao Kong", pinyin: "En Zhao", gender: "f", spouseOf: "mh_yonghong", deceased: true, note: "Married in; née Lei (born Lei) → 雷氏?", confidence: "low" },
-  { id: "mh_yezhun",   gen: 24, name: "Ye Zhun Chong", pinyin: "Ye Zhun", gender: "m", deceased: true, relation: "親家 (in-law)", note: "Father of Choon Kiaw (mh_choonkiaw), who married into the Kong line. Surname Chong — not Kong blood. Own flagged root.", confidence: "low" },
-  { id: "mh_choikiaw_c", gen: 24, name: "Choi Kiaw Chong", pinyin: "Choi Kiaw", gender: "f", spouseOf: "mh_yezhun", deceased: true, note: "Mother of Choon Kiaw; née Shim (born Shim).", confidence: "low" },
-  { id: "mh_yuchong",  gen: 25, father: "mh_yonghong", name: "Yu Chong Kong", pinyin: "Yu Chong", gender: "m", birthYear: "1912", deathYear: "1974", relation: "main line", confidence: "low" },
-  { id: "mh_choonkiaw", gen: 25, name: "Choon Kiaw Kong", pinyin: "Choon Kiaw", gender: "f", spouseOf: "mh_yuchong", birthYear: "1913", deathYear: "1989", note: "Married in; née Chong (born Chong). Parents: 父 Ye Zhun Chong (mh_yezhun), 母 Choi Kiaw Chong née Shim (mh_choikiaw_c).", confidence: "low" },
-  { id: "mh_zhunfah",  gen: 25, father: "mh_yonghong", name: "Zhun Fah Kong", pinyin: "Zhun Fah", gender: "m", relation: "Yu Chong 之兄弟", confidence: "low" },
-  { id: "mh_lofong",   gen: 25, name: "Lo Fong Kong", pinyin: "Lo Fong", gender: "f", spouseOf: "mh_zhunfah", deceased: true, note: "Married in; née Chin (born Chin).", confidence: "low" },
-  { id: "mh_clare",    gen: 26, father: "mh_yuchong", name: "Clare Lai", pinyin: "Clare", gender: "f", birthYear: "1939", deathYear: "2006", marriedOut: "嫁 Lai", note: "Née Kong Siew Ching (born Kong Siew Ching). Married Roland Lai.", confidence: "low" },
-  { id: "mh_roland_lai", gen: 26, name: "Roland Lai Lip Chung", pinyin: "Roland Lai", gender: "m", spouseOf: "mh_clare", birthYear: "1938", deceased: true, note: "Married in (Lai family).", confidence: "low" },
-  { id: "mh_john",     gen: 26, father: "mh_yuchong", name: "John Ful Chung Kong", pinyin: "John", gender: "m", birthYear: "1947", deathYear: "1995", confidence: "low" },
-  { id: "mh_daniel",   gen: 26, father: "mh_yuchong", name: "Daniel Kong", pinyin: "Daniel", gender: "m", birthYear: "1952", deceased: true, confidence: "low" },
-  { id: "mh_unknown1", gen: 26, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
-  { id: "mh_unknown2", gen: 26, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
+  { id: "mh_yonghong", gen: 23, name: "永宏 Kong", pinyin: "Yong Hong", gender: "m", deceased: true, relation: "MyHeritage 樹根", note: "Source-tree root (永宏 Kong, deceased). ⚠ Reconcile with book 永宏 k_yonghong — likely a later/different 永宏; graft point onto the k_daxin spine to be confirmed.", confidence: "low" },
+  { id: "mh_enzhao", gen: 23, name: "En Zhao Kong", pinyin: "En Zhao", gender: "f", spouseOf: "mh_yonghong", deceased: true, note: "Married in; née Lei (born Lei) → 雷氏?", confidence: "low" },
+  { id: "mh_yezhun", gen: 23, name: "Ye Zhun Chong", pinyin: "Ye Zhun", gender: "m", deceased: true, relation: "親家 (in-law)", note: "Father of Choon Kiaw (mh_choonkiaw), who married into the Kong line. Surname Chong — not Kong blood. Own flagged root.", confidence: "low" },
+  { id: "mh_choikiaw_c", gen: 23, name: "Choi Kiaw Chong", pinyin: "Choi Kiaw", gender: "f", spouseOf: "mh_yezhun", deceased: true, note: "Mother of Choon Kiaw; née Shim (born Shim).", confidence: "low" },
+  { id: "mh_yuchong", gen: 24, father: "mh_yonghong", name: "Yu Chong Kong", pinyin: "Yu Chong", gender: "m", birthYear: "1912", deathYear: "1974", relation: "main line", confidence: "low" },
+  { id: "mh_choonkiaw", gen: 24, name: "Choon Kiaw Kong", pinyin: "Choon Kiaw", gender: "f", spouseOf: "mh_yuchong", birthYear: "1913", deathYear: "1989", note: "Married in; née Chong (born Chong). Parents: 父 Ye Zhun Chong (mh_yezhun), 母 Choi Kiaw Chong née Shim (mh_choikiaw_c).", confidence: "low" },
+  { id: "mh_zhunfah", gen: 24, father: "mh_yonghong", name: "Zhun Fah Kong", pinyin: "Zhun Fah", gender: "m", relation: "Yu Chong 之兄弟", confidence: "low" },
+  { id: "mh_lofong", gen: 24, name: "Lo Fong Kong", pinyin: "Lo Fong", gender: "f", spouseOf: "mh_zhunfah", deceased: true, note: "Married in; née Chin (born Chin).", confidence: "low" },
+  { id: "mh_clare", gen: 25, father: "mh_yuchong", name: "Clare Lai", pinyin: "Clare", gender: "f", birthYear: "1939", deathYear: "2006", marriedOut: "嫁 Lai", note: "Née Kong Siew Ching (born Kong Siew Ching). Married Roland Lai.", confidence: "low" },
+  { id: "mh_roland_lai", gen: 25, name: "Roland Lai Lip Chung", pinyin: "Roland Lai", gender: "m", spouseOf: "mh_clare", birthYear: "1938", deceased: true, note: "Married in (Lai family).", confidence: "low" },
+  { id: "mh_john", gen: 25, father: "mh_yuchong", name: "John Ful Chung Kong", pinyin: "John", gender: "m", birthYear: "1947", deathYear: "1995", confidence: "low" },
+  { id: "mh_daniel", gen: 25, father: "mh_yuchong", name: "Daniel Kong", pinyin: "Daniel", gender: "m", birthYear: "1952", deceased: true, confidence: "low" },
+  { id: "mh_unknown1", gen: 25, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
+  { id: "mh_unknown2", gen: 25, father: "mh_yuchong", name: "Unknown Kong", pinyin: "Unknown", gender: "m", deceased: true, note: "名/性別待考 — unnamed child on source tree.", confidence: "low" },
 ];
 
 
@@ -304,16 +320,16 @@ window.LINEAGE = {
       { gen: 13, char: "川",    pinyin: "Chuan",    note: "組川/懷川/蔡川/釋川" },
       { gen: 14, char: "道",    pinyin: "Dao",      note: "道同/道通" },
       { gen: 15, char: "日",    pinyin: "Ri",       note: "日標 字建章" },
-      { gen: 16, char: "朝",    pinyin: "Chao",     note: "朝湧/朝鴻 → 李朗(Shenzhen) branch" },
-      { gen: 17, char: "龍",    pinyin: "Long",     note: "龍見 …" },
-      { gen: 18, char: "起",    pinyin: "Qi",       note: "起瀾公 庠名東洋 (五大房)" },
-      { gen: 20, char: "紹",    pinyin: "Shao",     note: "紹泗 / 紹淮 / 紹淡 …" },
-      { gen: 21, char: "承",    pinyin: "Cheng",    note: "承續 / 承緒 / 承業" },
-      { gen: 22, char: "大",    pinyin: "Da",       note: "大信 / 大忠" },
-      { gen: 23, char: "永",    pinyin: "Yong",     note: "永宏 / 永仁 / 永崇" },
-      { gen: 24, char: "俊 / 耀", pinyin: "Jun / Yao", note: "milk-name 俊 pairs with formal 集" },
-      { gen: 25, char: "其 / 道", pinyin: "Qi / Dao",  note: "milk-name 其 pairs with formal 有" },
-      { gen: 26, char: "漢",    pinyin: "Han" }
+      { gen: 16, char: "朝",    pinyin: "Chao",     note: "朝纓 字成祥 (直系) · 朝陽 → 李朗(Shenzhen) branch" },
+      { gen: 17, char: "龍",    pinyin: "Long",     note: "龍躍 (庠生, 禮名運洲, 九大房) / 龍見 (叔祖, 三房)" },
+      { gen: 18, char: "起",    pinyin: "Qi",       note: "起瀾公 庠名東洋 (五大房) · 起章七房 / 起清八房 / 起瀨九房" },
+      { gen: 19, char: "紹",    pinyin: "Shao",     note: "紹泗 / 紹淮 / 紹淡 …" },
+      { gen: 20, char: "承",    pinyin: "Cheng",    note: "承續 / 承緒 / 承業" },
+      { gen: 21, char: "大",    pinyin: "Da",       note: "大信 / 大忠" },
+      { gen: 22, char: "永",    pinyin: "Yong",     note: "永宏 / 永仁 / 永宗" },
+      { gen: 23, char: "俊 / 耀", pinyin: "Jun / Yao", note: "milk-name 俊 pairs with formal 集" },
+      { gen: 24, char: "其 / 道", pinyin: "Qi / Dao",  note: "milk-name 其 pairs with formal 有" },
+      { gen: 25, char: "漢",    pinyin: "Han" }
     ]
   },
 
@@ -447,86 +463,106 @@ window.LINEAGE = {
       note: "Eldest son of 道通. Chart shows him fathering 朝滔." },
     { id: "a15_riming", gen: 15, father: "a14", name: "日明公", pinyin: "Riming", gender: "m", relation: "十五世", confidence: "med",
       note: "Son of 道通. Father of 朝陽 (Lilang branch ancestor)." },
-    { id: "a16", gen: 16, father: "a15", name: "江朝滔公", pinyin: "Chaotao", gender: "m", relation: "十六世祖 (direct line)", confidence: "med",
-      note: "Son of 日輝. Chart shows him fathering 龍見 and others. An annotation mentions descendants in Lilang." },
-    { id: "a17", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世祖 (direct line)", confidence: "med",
-      note: "Son of 朝滔. Wife 蕭氏. Chart shows him fathering 起瀾 and 9 other brothers." },
-    { id: "a18", gen: 18, seam: true, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾。所生五大房：長通漢、次通澤、三紹淮、四紹泗、五紹淡。", confidence: "med",
-      note: "Named, well-attested ancestor — his entry (pt2) lists the 五大房, of which 紹泗公 is the direct Sabah-line father. This is the anchor that closes the 13–19 gap." },
+    { id: "a16", gen: 16, father: "a15", name: "江朝纓公", pinyin: "Chaoying", style: "字 成祥", gender: "m", relation: "十六世祖 (direct line)", confidence: "med",
+      aka: "chart reading 朝滔",
+      bio: "丁未年十二月廿日辰時生，終于乾隆十二年七月十四日亥時，享壽八十一歲。葬于歸善近塘玩圍，對面河邊土名塘玩埔。妣陳氏，庚申生。所生二大房：長龍躍、次龍見。",
+      note: "pt2 p.19 gives his own entry: 十六世祖江公朝纓 字成祥. (pt1's chart was read as 朝滔 — same ancestor, different hand.) p.20 continues straight into his two sons 龍躍 / 龍見." },
+    { id: "a16w", gen: 16, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "a16", note: "庚申生; 終于乾隆六月大 (pt2 p.19).", confidence: "low" },
+
+    // 十七世 — 朝纓公所生二大房: 長 龍躍 (direct line) / 次 龍見 (叔祖).
+    // pt2 p.27 is 龍躍公's own entry; p.20 is 龍見公's. Before 2026-08 this slot held
+    // 龍見 as the direct ancestor and had absorbed 龍躍's facts (wife 蕭氏, 九大房, 起瀾).
+    { id: "a17", gen: 17, father: "a16", name: "江龍躍公", pinyin: "Longyue", style: "諱義 · 禮名 運洲", gender: "m", relation: "十七世祖 (direct line · 長房)", lifespan: "享壽七十八歲 (aged 78)", confidence: "med",
+      bio: "康熙丁亥年(1707)十月廿六日生，終于乾隆四十九年(1784)，享壽七十八歲。公生平修心積善、孝友勤儉，生兒九人，廣栽桃李 — 於李朗設館授徒。長子起瀾公亦進庠。生下九大房。",
+      note: "pt2 p.27「十七世祖江龍躍公。庠生。諱義。禮名運洲」— the 庠生 who taught at 李朗 (Lilang). His 九大房 are the numbered houses in pt2 (七房起章、八房起清、九房起瀨…), 起瀾公 being 長子. Identified by 江學禮 Corin, Aug 2026." },
+    { id: "a17w", gen: 17, name: "蕭氏", pinyin: "Madam Xiao", gender: "f", spouseOf: "a17", note: "丙戌生，享壽八十二歲 (pt2 p.27).", confidence: "med" },
+
+    { id: "a17b", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世叔祖 (次房)", lifespan: "享壽九十四歲 (aged 94)", confidence: "med",
+      bio: "康熙丁酉五月廿三日生，乾隆庚戌正月初五日終，享壽九十四歲。生三房：起潤、起渭、起溶。",
+      note: "pt2 p.20「十七世叔祖龍見公」— 朝纓公's second son, a collateral (叔祖) line, NOT the Sabah ancestor." },
+    { id: "a17b_w", gen: 17, name: "林氏", pinyin: "Madam Lin", gender: "f", spouseOf: "a17b", note: "享壽八十七歲 (pt2 p.20).", confidence: "med" },
+    { id: "a17b_c1", gen: 18, father: "a17b", name: "起潤公", pinyin: "Qirun", gender: "m", relation: "十八世 (龍見長房)", confidence: "low", note: "妣甘氏，生紹溢 (pt2 p.22)." },
+    { id: "a17b_c2", gen: 18, father: "a17b", name: "起渭公", pinyin: "Qiwei", gender: "m", relation: "十八世 (龍見次房)", confidence: "low", note: "Handwriting also readable as 起洲." },
+    { id: "a17b_c3", gen: 18, father: "a17b", name: "起溶公", pinyin: "Qirong", gender: "m", relation: "十八世 (龍見三房)", confidence: "low", note: "妣戴氏，生三子 紹濬、紹萬、紹千 (pt2 p.20). Handwriting also readable as 起溢." },
+    { id: "a17b_c3w", gen: 18, name: "戴氏", pinyin: "Madam Dai", gender: "f", spouseOf: "a17b_c3", confidence: "low" },
+
+    { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line · 龍躍公長子)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾，後遷葬。所生五大房：長通漢、次通洋(通澤)、三紹淮、四紹泗、五紹淡。", confidence: "med",
+      note: "pt2 p.59「十八世祖江公起瀾。長居。庠名東洋」— eldest of 龍躍公's 九大房, and like his father a 庠生. His 五大房 include 紹泗公, the direct Sabah-line father." },
     { id: "a18w", gen: 18, name: "涂氏", pinyin: "Madam Tu", gender: "f", spouseOf: "a18", confidence: "low", note: "元配; 續妣 何氏." },
 
-    // ===== Gen 20 — 紹泗 (pt2 p.66; son of 起瀾公) =====
-    // NOTE: chart numbering would make 紹泗 gen 19 (起瀾18→紹泗19), but the per-person entries
-    // label 承續 as 二十一世祖, which puts 紹泗 at gen 20. This ±1 seam comes from the 1825 (道光5年)
-    // 合譜 that spliced the older 4-generation 新安老族譜 onto the deeper ancestry. Entry numbering kept.
-    { id: "a20",  gen: 20, seam: true, father: "a18", name: "江紹泗公", pinyin: "Shaosi", gender: "m", relation: "考祖 (direct father of 承續)", burialPlace: "p_lilan", bio: "起瀾公第四房。生 承續、承緒、承業。墓在浬蘭石角。", confidence: "med", note: "起瀾18→紹泗20 spans the 1825 合譜 numbering seam (see note above) — one intermediate generation is absorbed in the merge." },
-    { id: "a20w", gen: 20, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "a20", burialPlace: "p_lilan", note: "墓在李蘭花瓶嘴.", confidence: "med" },
+    // ===== Gen 19 — 紹泗 (pt2 p.59 & p.66; 起瀾公第四房) =====
+    // 起瀾(18) → 紹泗(19) → 承續(20): continuous, and it matches every label the book prints —
+    // p.59 heads 起瀾 as 十八世祖 and lists 紹泗 among his 五大房 (the pages call them 十九世),
+    // p.66 heads 承續 as 二十世祖. The earlier "1825 合譜 ±1 seam" here came from misreading
+    // p.66 as 二十一世祖; it has been removed and the line below renumbered accordingly.
+    { id: "a20", gen: 19, father: "a18", name: "江紹泗公", pinyin: "Shaosi", gender: "m", relation: "考祖 (direct father of 承續)", burialPlace: "p_lilan", bio: "起瀾公第四房。生 承續、承緒、承業。墓在浬蘭石角。", confidence: "med", note: "起瀾公第四房 (pt2 p.59). 三兄弟：承續、承緒、承業。" },
+    { id: "a20w", gen: 19, name: "鄭氏", pinyin: "Madam Zheng", gender: "f", spouseOf: "a20", burialPlace: "p_lilan", note: "墓在李蘭花瓶嘴.", confidence: "med" },
 
-    // ===== Gen 21 — 承 generation (pt2 pp.66–67) =====
-    { id: "k_chengxu",   gen: 21, father: "a20", name: "承緒",  pinyin: "Cheng Xu",  gender: "m", relation: "叔祖 (uncle of the line)", burialPlace: "p_lilan", note: "塋在土名 李蘭花瓶嘴.", confidence: "med" },
-    { id: "k_chengye",   gen: 21, father: "a20", name: "承業",  pinyin: "Cheng Ye",  gender: "m", relation: "叔祖", burialPlace: "p_dalong", note: "塋在土名 大隆.", confidence: "med" },
-    { id: "k_chengxu2",  gen: 21, father: "a20", name: "承續",  pinyin: "Cheng Xu",  gender: "m", relation: "二十一世祖 (direct line)", burialPlace: "p_dahu", confidence: "med" },
-    { id: "k_liangshi",  gen: 21, name: "梁氏",  pinyin: "Madam Liang", ritualName: "望福", ritualPinyin: "Wangfu", gender: "f", spouseOf: "k_chengxu2", religion: "進巴色耶穌教 (Basel Mission)", birthYear: "壬寅年四月初八", deathYear: "甲子年", lifespan: "享壽八十三歲 (aged 83)", burialPlace: "p_dahu", confidence: "med" },
+    // ===== Gen 20 — 承 generation (pt2 pp.66–67) =====
+    { id: "k_chengxu", gen: 20, father: "a20", name: "承緒",  pinyin: "Cheng Xu",  gender: "m", relation: "叔祖 (uncle of the line)", burialPlace: "p_lilan", note: "塋在土名 李蘭花瓶嘴.", confidence: "med" },
+    { id: "k_chengye", gen: 20, father: "a20", name: "承業",  pinyin: "Cheng Ye",  gender: "m", relation: "叔祖", burialPlace: "p_dalong", note: "塋在土名 大隆.", confidence: "med" },
+    { id: "k_chengxu2", gen: 20, father: "a20", name: "承續",  pinyin: "Cheng Xu",  gender: "m", relation: "二十世祖 (direct line)", burialPlace: "p_dahu", confidence: "med" },
+    { id: "k_liangshi", gen: 20, name: "梁氏",  pinyin: "Madam Liang", ritualName: "望福", ritualPinyin: "Wangfu", gender: "f", spouseOf: "k_chengxu2", religion: "進巴色耶穌教 (Basel Mission)", birthYear: "壬寅年四月初八", deathYear: "甲子年", lifespan: "享壽八十三歲 (aged 83)", burialPlace: "p_dahu", confidence: "med" },
 
-    // ===== Gen 22 — 大 generation =====
-    { id: "k_dazhong",   gen: 22, father: "k_chengxu2", name: "大忠",  pinyin: "Da Zhong", gender: "m", relation: "祖伯", note: "早喪 (died young).", confidence: "med" },
-    { id: "k_daxin",     gen: 22, father: "k_chengxu2", name: "大信",  pinyin: "Da Xin",  ritualName: "樂", gender: "m", relation: "二十二世祖 (direct line)", religion: "進巴色耶穌教 禮名 樂", bio: "公生平雜務農業亦精商務，孝奉祖母，柔得宜和，鄰睦族忠，直待人。", lifespan: "享壽五旬有四歲 (aged 54)", confidence: "med" },
-    { id: "k_zhangshi",  gen: 22, name: "張氏",  pinyin: "Madam Zhang", ritualName: "来安", ritualPinyin: "Lai'an", gender: "f", spouseOf: "k_daxin", religion: "禮號 来安", bio: "勤儉維家，教子有方，鄰里諸事盡勞而不怨。", lifespan: "享壽七旬八歲 (aged 78)", confidence: "med" },
+    // ===== Gen 21 — 大 generation =====
+    { id: "k_dazhong", gen: 21, father: "k_chengxu2", name: "大忠",  pinyin: "Da Zhong", gender: "m", relation: "祖伯", note: "早喪 (died young).", confidence: "med" },
+    { id: "k_daxin", gen: 21, father: "k_chengxu2", name: "大信",  pinyin: "Da Xin",  ritualName: "樂", gender: "m", relation: "二十一世祖 (direct line)", religion: "進巴色耶穌教 禮名 樂", bio: "公生平雜務農業亦精商務，孝奉祖母，柔得宜和，鄰睦族忠，直待人。", lifespan: "享壽五旬有四歲 (aged 54)", confidence: "med" },
+    { id: "k_zhangshi", gen: 21, name: "張氏",  pinyin: "Madam Zhang", ritualName: "来安", ritualPinyin: "Lai'an", gender: "f", spouseOf: "k_daxin", religion: "禮號 来安", bio: "勤儉維家，教子有方，鄰里諸事盡勞而不怨。", lifespan: "享壽七旬八歲 (aged 78)", confidence: "med" },
 
-    // ===== Gen 23 — 永 generation =====
-    { id: "k_yazhao",    gen: 23, father: "k_daxin", name: "亞招",  pinyin: "Ya Zhao",  gender: "f", marriedOut: "嫁黃沙坑凌屋", confidence: "low" },
-    { id: "k_yonghong",  gen: 23, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十三世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", residencePlace: "p_changle", burialPlace: "p_shuangtou", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。", confidence: "med" },
-    { id: "k_yongren",   gen: 23, father: "k_daxin", name: "永仁",  pinyin: "Yong Ren", ritualName: "昌貴", hao: "任堂", gender: "m", relation: "二十三世叔", religion: "廣東巴色會長樂封為帮教書記職", confidence: "med" },
-    { id: "k_yongchong", gen: 23, father: "k_daxin", name: "永崇",  pinyin: "Yong Chong", ritualName: "昌發", hao: "欽道", gender: "m", relation: "二十三世", religion: "洗禮名 昌發 號 欽道", note: "妣洪氏，以耀華為子 (adopted 耀華).", confidence: "med" },
-    { id: "k_changxing", gen: 23, father: "k_daxin", name: "昌興",  pinyin: "Chang Xing", gender: "m", note: "早喪.", confidence: "low" },
-    { id: "k_xinjiao",   gen: 23, father: "k_daxin", name: "新嬌",  pinyin: "Xin Jiao", gender: "f", confidence: "low" },
-    { id: "k_lishi",     gen: 23, name: "黎氏",  pinyin: "Madam Li", ritualName: "恩照", ritualPinyin: "Enzhao", gender: "f", spouseOf: "k_yonghong", religion: "禮名 恩照", note: "生下四子四女.", confidence: "med" },
-    { id: "k_luoshi",    gen: 23, name: "羅氏",  pinyin: "Madam Luo", ritualName: "輝光", ritualPinyin: "Huiguang", gender: "f", spouseOf: "k_yongren", confidence: "med" },
-    { id: "k_hongshi",   gen: 23, name: "洪氏",  pinyin: "Madam Hong", gender: "f", spouseOf: "k_yongchong", confidence: "low" },
+    // ===== Gen 22 — 永 generation =====
+    { id: "k_yazhao", gen: 22, father: "k_daxin", name: "亞招",  pinyin: "Ya Zhao",  gender: "f", marriedOut: "嫁黃沙坑凌屋", confidence: "low" },
+    { id: "k_yonghong", gen: 22, father: "k_daxin", name: "永宏",  pinyin: "Yong Hong", ritualName: "昌富", hao: "毅涵", gender: "m", relation: "二十二世 (direct line)", religion: "洗禮名 昌富 號 毅涵", birthYear: "乙巳年二月廿五日", residencePlace: "p_changle", burialPlace: "p_shuangtou", bio: "公平生愛人，教子有方，心為天道流行；在長樂居處二十二年。後缺在雙頭聖教堂葬，大徑陰城有坟碑。", confidence: "med" },
+    { id: "k_yongren", gen: 22, father: "k_daxin", name: "永仁",  pinyin: "Yong Ren", ritualName: "昌貴", hao: "任堂", gender: "m", relation: "二十二世叔", religion: "廣東巴色會長樂封為帮教書記職", confidence: "med" },
+    { id: "k_yongchong", gen: 22, father: "k_daxin", name: "永宗",  pinyin: "Yong Zong", ritualName: "同發", hao: "鈠通", gender: "m", relation: "二十二世", religion: "洗禮名 同發", aka: "舊錄作 永崇", birthYear: "光緒八年壬午九月廿二日戌時", note: "pt2 p.74「永宗 禮名同發 號鈠通」— earlier read here as 永崇 / 禮名昌發 / 號欽道. 妣〔洲?〕氏，以耀華為子 (adopted 耀華, pt2 p.72).", confidence: "med" },
+    { id: "k_changxing", gen: 22, father: "k_daxin", name: "昌興",  pinyin: "Chang Xing", gender: "m", note: "早喪.", confidence: "low" },
+    { id: "k_xinjiao", gen: 22, father: "k_daxin", name: "新嬌",  pinyin: "Xin Jiao", gender: "f", confidence: "low" },
+    { id: "k_lishi", gen: 22, name: "黎氏",  pinyin: "Madam Li", ritualName: "恩照", ritualPinyin: "Enzhao", gender: "f", spouseOf: "k_yonghong", religion: "禮名 恩照", note: "生下四子四女.", confidence: "med" },
+    { id: "k_luoshi", gen: 22, name: "羅氏",  pinyin: "Madam Luo", ritualName: "輝光", ritualPinyin: "Huiguang", gender: "f", spouseOf: "k_yongren", confidence: "med" },
+    { id: "k_hongshi", gen: 22, name: "洪氏",  pinyin: "Madam Hong", gender: "f", spouseOf: "k_yongchong", confidence: "low" },
 
-    // ===== Gen 24 — children of 永宏 (俊/集) =====
-    { id: "k_junen",     gen: 24, father: "k_yonghong", name: "俊恩",  pinyin: "Jun En",  formalName: "集如", gender: "m", relation: "長子", birthYear: "癸酉年十二月初七", religion: "集如 乳名 俊恩", confidence: "med" },
-    { id: "k_junhua",    gen: 24, father: "k_yonghong", name: "俊華",  pinyin: "Jun Hua", gender: "m", relation: "二子", birthYear: "光緒元年乙亥十一月十三日", birthPlace: "p_changle", confidence: "med" },
-    { id: "k_junming",   gen: 24, father: "k_yonghong", name: "俊明",  pinyin: "Jun Ming", formalName: "集恩", gender: "m", relation: "三子 (direct line)", birthYear: "光緒三年丁丑十月初十日", religion: "集恩 乳名 俊明", birthPlace: "p_changle", confidence: "med" },
-    { id: "k_jungong",   gen: 24, father: "k_yonghong", name: "俊恭",  pinyin: "Jun Gong", gender: "m", relation: "四子", birthYear: "光緒十六年庚寅十二月初九日", birthPlace: "p_changle", confidence: "med" },
-    { id: "k_wangshi",   gen: 24, name: "王氏",  pinyin: "Madam Wang", ritualName: "寵恩", ritualPinyin: "Chong'en", gender: "f", spouseOf: "k_junen", confidence: "low" },
-    { id: "k_chenshi",   gen: 24, name: "陳氏",  pinyin: "Madam Chen", ritualName: "永貞", ritualPinyin: "Yongzhen", gender: "f", spouseOf: "k_junming", confidence: "med" },
+    // ===== Gen 23 — children of 永宏 (俊/集) =====
+    { id: "k_junen", gen: 23, father: "k_yonghong", name: "俊恩",  pinyin: "Jun En",  formalName: "集如", gender: "m", relation: "長子", birthYear: "癸酉年十二月初七", religion: "集如 乳名 俊恩", confidence: "med" },
+    { id: "k_junhua", gen: 23, father: "k_yonghong", name: "俊華",  pinyin: "Jun Hua", gender: "m", relation: "二子", birthYear: "光緒元年乙亥十一月十三日", birthPlace: "p_changle", confidence: "med" },
+    { id: "k_junming", gen: 23, father: "k_yonghong", name: "俊明",  pinyin: "Jun Ming", formalName: "集恩", gender: "m", relation: "三子 (direct line)", birthYear: "光緒三年丁丑十月初十日", religion: "集恩 乳名 俊明", birthPlace: "p_changle", confidence: "med" },
+    { id: "k_jungong", gen: 23, father: "k_yonghong", name: "俊恭",  pinyin: "Jun Gong", gender: "m", relation: "四子", birthYear: "光緒十六年庚寅十二月初九日", birthPlace: "p_changle", confidence: "med" },
+    { id: "k_wangshi", gen: 23, name: "王氏",  pinyin: "Madam Wang", ritualName: "寵恩", ritualPinyin: "Chong'en", gender: "f", spouseOf: "k_junen", confidence: "low" },
+    { id: "k_chenshi", gen: 23, name: "陳氏",  pinyin: "Madam Chen", ritualName: "永貞", ritualPinyin: "Yongzhen", gender: "f", spouseOf: "k_junming", confidence: "med" },
 
-    // ===== Gen 24 — children of 永仁 (耀) =====
-    { id: "k_qiongying", gen: 24, father: "k_yongren", name: "瓊英",  pinyin: "Qiong Ying", gender: "f", relation: "長女", birthYear: "同治十年辛未十二月十五日", marriedOut: "出嫁于樟坑徑陳必達", confidence: "low" },
-    { id: "k_guien",     gen: 24, father: "k_yongren", name: "癸恩",  pinyin: "Gui En", gender: "m", relation: "次子", birthYear: "同治十二年癸酉十一月廿五日", confidence: "low" },
-    { id: "k_wushi",     gen: 24, name: "吳氏",  pinyin: "Madam Wu", ritualName: "求恩", ritualPinyin: "Qiu'en", gender: "f", spouseOf: "k_guien", confidence: "low" },
-    { id: "k_yaoci",     gen: 24, father: "k_yongren", name: "耀慈",  pinyin: "Yao Ci",  gender: "m", relation: "三子", birthYear: "光緒二年丙子二月廿一日", birthPlace: "p_changle", confidence: "low" },
-    { id: "k_yaoxiang",  gen: 24, father: "k_yongren", name: "耀祥",  pinyin: "Yao Xiang", gender: "m", relation: "五子", birthYear: "光緒六年庚辰五月十六日", birthPlace: "p_changle", confidence: "low" },
-    { id: "k_yunying",   gen: 24, father: "k_yongren", name: "雲英",  pinyin: "Yun Ying", gender: "f", relation: "四女", birthYear: "光緒四年戊寅二月初九日", confidence: "low" },
-    { id: "k_yaohua",    gen: 24, father: "k_yongren", name: "耀華",  pinyin: "Yao Hua", gender: "m", relation: "六子", note: "過繼永崇 (adopted to 永崇's line).", confidence: "low" },
-    { id: "k_fuying",    gen: 24, father: "k_yongren", name: "福英",  pinyin: "Fu Ying", gender: "f", relation: "七女", birthYear: "光緒十年甲申十二月十七日", birthPlace: "p_changle", confidence: "low" },
-    { id: "k_yaoan",     gen: 24, father: "k_yongren", name: "耀安",  pinyin: "Yao An",  gender: "m", relation: "八子", birthYear: "光緒十三年丁亥四月十二日", birthPlace: "p_changle", confidence: "low" },
-    { id: "k_qingying",  gen: 24, father: "k_yongren", name: "慶英",  pinyin: "Qing Ying", gender: "f", relation: "九女", birthYear: "光緒十五年己丑七月十二日", birthPlace: "p_changle", confidence: "low" },
-    { id: "k_yaozhen",   gen: 24, father: "k_yongren", name: "耀珍",  pinyin: "Yao Zhen", gender: "m", relation: "十子", birthYear: "光緒十九年癸巳六月二十日", birthPlace: "p_papar", confidence: "low" },
+    // ===== Gen 23 — children of 永仁 (耀) =====
+    { id: "k_qiongying", gen: 23, father: "k_yongren", name: "瓊英",  pinyin: "Qiong Ying", gender: "f", relation: "長女", birthYear: "同治十年辛未十二月十五日", marriedOut: "出嫁于樟坑徑陳必達", confidence: "low" },
+    { id: "k_guien", gen: 23, father: "k_yongren", name: "癸恩",  pinyin: "Gui En", gender: "m", relation: "次子", birthYear: "同治十二年癸酉十一月廿五日", confidence: "low" },
+    { id: "k_wushi", gen: 23, name: "吳氏",  pinyin: "Madam Wu", ritualName: "求恩", ritualPinyin: "Qiu'en", gender: "f", spouseOf: "k_guien", confidence: "low" },
+    { id: "k_yaoci", gen: 23, father: "k_yongren", name: "耀慈",  pinyin: "Yao Ci",  gender: "m", relation: "三子", birthYear: "光緒二年丙子二月廿一日", birthPlace: "p_changle", confidence: "low" },
+    { id: "k_yaoxiang", gen: 23, father: "k_yongren", name: "耀祥",  pinyin: "Yao Xiang", gender: "m", relation: "五子", birthYear: "光緒六年庚辰五月十六日", birthPlace: "p_changle", confidence: "low" },
+    { id: "k_yunying", gen: 23, father: "k_yongren", name: "雲英",  pinyin: "Yun Ying", gender: "f", relation: "四女", birthYear: "光緒四年戊寅二月初九日", confidence: "low" },
+    { id: "k_yaohua", gen: 23, father: "k_yongren", name: "耀華",  pinyin: "Yao Hua", gender: "m", relation: "六子", note: "過繼永崇 (adopted to 永崇's line).", confidence: "low" },
+    { id: "k_fuying", gen: 23, father: "k_yongren", name: "福英",  pinyin: "Fu Ying", gender: "f", relation: "七女", birthYear: "光緒十年甲申十二月十七日", birthPlace: "p_changle", confidence: "low" },
+    { id: "k_yaoan", gen: 23, father: "k_yongren", name: "耀安",  pinyin: "Yao An",  gender: "m", relation: "八子", birthYear: "光緒十三年丁亥四月十二日", birthPlace: "p_changle", confidence: "low" },
+    { id: "k_qingying", gen: 23, father: "k_yongren", name: "慶英",  pinyin: "Qing Ying", gender: "f", relation: "九女", birthYear: "光緒十五年己丑七月十二日", birthPlace: "p_changle", confidence: "low" },
+    { id: "k_yaozhen", gen: 23, father: "k_yongren", name: "耀珍",  pinyin: "Yao Zhen", gender: "m", relation: "十子", birthYear: "光緒十九年癸巳六月二十日", birthPlace: "p_papar", confidence: "low" },
 
-    // ===== Gen 25 — children of 俊明 (其/有) =====
-    { id: "k_luoying",   gen: 25, father: "k_junming", name: "珞英",  pinyin: "Luo Ying", gender: "f", relation: "長女", birthYear: "光緒二十五年己亥", birthPlace: "p_yongan", note: "生于永安駱坑教堂.", confidence: "low" },
-    { id: "k_qizhen",    gen: 25, father: "k_junming", name: "其禎",  pinyin: "Qi Zhen", gender: "m", relation: "次子", birthYear: "光緒二十八年壬寅", birthPlace: "p_sandakan", confidence: "low" },
-    { id: "k_qixiang",   gen: 25, father: "k_junming", name: "其祥",  pinyin: "Qi Xiang", gender: "m", relation: "三子", birthYear: "民國十年辛酉 (1921)", confidence: "low" },
-    { id: "k_qichang",   gen: 25, father: "k_junming", name: "其昌",  pinyin: "Qi Chang", formalName: "有喬", gender: "m", relation: "四子 (direct line)", birthYear: "民國二年 (1913)", religion: "有喬 乳名 其昌", residencePlace: "p_lianzhou", note: "原籍連州.", confidence: "med" },
-    { id: "k_qifang",    gen: 25, father: "k_junming", name: "其芳",  pinyin: "Qi Fang", formalName: "有梓", gender: "m", relation: "五子", religion: "有梓 乳名 其芳", confidence: "med" },
-    { id: "k_qiqing",    gen: 25, father: "k_junming", name: "其清",  pinyin: "Qi Qing", gender: "m", relation: "六子", birthYear: "宣統元年己酉 (1909)", birthPlace: "p_sandakan", confidence: "low" },
-    { id: "k_qiyong",    gen: 25, father: "k_junming", name: "其永",  pinyin: "Qi Yong", gender: "m", relation: "七子", confidence: "low" },
-    { id: "k_daoxi",     gen: 25, father: "k_junen", name: "道希",  pinyin: "Dao Xi",  gender: "f", relation: "長女", note: "早喪, 古達.", confidence: "low" },
-    { id: "k_liying",    gen: 25, father: "k_junen", name: "麗英",  pinyin: "Li Ying", gender: "f", relation: "次女", confidence: "low" },
-    { id: "k_daozhen",   gen: 25, father: "k_junen", name: "道珍",  pinyin: "Dao Zhen", gender: "m", relation: "三子", birthYear: "光緒廿九年癸卯", birthPlace: "p_kudat", confidence: "low" },
-    { id: "k_xuaizhen",  gen: 25, name: "徐愛貞",  pinyin: "Xu Aizhen", gender: "f", spouseOf: "k_qichang", note: "民國八年 (1919) 結婚.", confidence: "low" },
-    { id: "k_huangciying", gen: 25, name: "黃慈英", pinyin: "Huang Ciying", gender: "f", spouseOf: "k_qifang", confidence: "low" },
+    // ===== Gen 24 — children of 俊明 (其/有) =====
+    { id: "k_luoying", gen: 24, father: "k_junming", name: "珞英",  pinyin: "Luo Ying", gender: "f", relation: "長女", birthYear: "光緒二十五年己亥", birthPlace: "p_yongan", note: "生于永安駱坑教堂.", confidence: "low" },
+    { id: "k_qizhen", gen: 24, father: "k_junming", name: "其禎",  pinyin: "Qi Zhen", gender: "m", relation: "次子", birthYear: "光緒二十八年壬寅", birthPlace: "p_sandakan", confidence: "low" },
+    { id: "k_qixiang", gen: 24, father: "k_junming", name: "其祥",  pinyin: "Qi Xiang", gender: "m", relation: "三子", birthYear: "民國十年辛酉 (1921)", confidence: "low" },
+    { id: "k_qichang", gen: 24, father: "k_junming", name: "其昌",  pinyin: "Qi Chang", formalName: "有喬", gender: "m", relation: "四子 (direct line)", birthYear: "民國二年 (1913)", religion: "有喬 乳名 其昌", residencePlace: "p_lianzhou", note: "原籍連州.", confidence: "med" },
+    { id: "k_qifang", gen: 24, father: "k_junming", name: "其芳",  pinyin: "Qi Fang", formalName: "有梓", gender: "m", relation: "五子", religion: "有梓 乳名 其芳", confidence: "med" },
+    { id: "k_qiqing", gen: 24, father: "k_junming", name: "其清",  pinyin: "Qi Qing", gender: "m", relation: "六子", birthYear: "宣統元年己酉 (1909)", birthPlace: "p_sandakan", confidence: "low" },
+    { id: "k_qiyong", gen: 24, father: "k_junming", name: "其永",  pinyin: "Qi Yong", gender: "m", relation: "七子", confidence: "low" },
+    { id: "k_daoxi", gen: 24, father: "k_junen", name: "道希",  pinyin: "Dao Xi",  gender: "f", relation: "長女", note: "早喪, 古達.", confidence: "low" },
+    { id: "k_liying", gen: 24, father: "k_junen", name: "麗英",  pinyin: "Li Ying", gender: "f", relation: "次女", confidence: "low" },
+    { id: "k_daozhen", gen: 24, father: "k_junen", name: "道珍",  pinyin: "Dao Zhen", gender: "m", relation: "三子", birthYear: "光緒廿九年癸卯", birthPlace: "p_kudat", confidence: "low" },
+    { id: "k_xuaizhen", gen: 24, name: "徐愛貞",  pinyin: "Xu Aizhen", gender: "f", spouseOf: "k_qichang", note: "民國八年 (1919) 結婚.", confidence: "low" },
+    { id: "k_huangciying", gen: 24, name: "黃慈英", pinyin: "Huang Ciying", gender: "f", spouseOf: "k_qifang", confidence: "low" },
 
-    // ===== Gen 26 — 漢 generation =====
-    { id: "k_hanqiang",  gen: 26, father: "k_qichang", name: "漢強",  pinyin: "Han Qiang", gender: "m", relation: "長子", birthYear: "民國十三年 / 1924", confidence: "low" },
-    { id: "k_hanxing",   gen: 26, father: "k_qichang", name: "漢興",  pinyin: "Han Xing", gender: "m", relation: "次子", birthYear: "民國十五年 / 1926", confidence: "low" },
-    { id: "k_hanying",   gen: 26, father: "k_qichang", name: "漢英",  pinyin: "Han Ying", gender: "f", relation: "三女", birthYear: "民國十八年 / 1929", confidence: "low" },
-    { id: "k_hanxian",   gen: 26, father: "k_qichang", name: "漢賢",  pinyin: "Han Xian", gender: "m", relation: "四子", birthYear: "民國廿三年 / 1934", confidence: "low" },
-    { id: "k_ruizhu",    gen: 26, father: "k_qichang", name: "瑞珠",  pinyin: "Rui Zhu", gender: "f", relation: "五女", birthYear: "民國廿二年", confidence: "low" },
-    { id: "k_hanneng",   gen: 26, father: "k_qifang", name: "漢能",  pinyin: "Han Neng", gender: "m", relation: "子", birthYear: "民國廿一年 / 1932", confidence: "low" },
-    { id: "k_runzhu",    gen: 26, father: "k_qifang", name: "潤珠",  pinyin: "Run Zhu", gender: "f", relation: "女", birthYear: "民國廿三年 / 1934", confidence: "low" },
+    // ===== Gen 25 — 漢 generation =====
+    { id: "k_hanqiang", gen: 25, father: "k_qichang", name: "漢強",  pinyin: "Han Qiang", gender: "m", relation: "長子", birthYear: "民國十三年 / 1924", confidence: "low" },
+    { id: "k_hanxing", gen: 25, father: "k_qichang", name: "漢興",  pinyin: "Han Xing", gender: "m", relation: "次子", birthYear: "民國十五年 / 1926", confidence: "low" },
+    { id: "k_hanying", gen: 25, father: "k_qichang", name: "漢英",  pinyin: "Han Ying", gender: "f", relation: "三女", birthYear: "民國十八年 / 1929", confidence: "low" },
+    { id: "k_hanxian", gen: 25, father: "k_qichang", name: "漢賢",  pinyin: "Han Xian", gender: "m", relation: "四子", birthYear: "民國廿三年 / 1934", confidence: "low" },
+    { id: "k_ruizhu", gen: 25, father: "k_qichang", name: "瑞珠",  pinyin: "Rui Zhu", gender: "f", relation: "五女", birthYear: "民國廿二年", confidence: "low" },
+    { id: "k_hanneng", gen: 25, father: "k_qifang", name: "漢能",  pinyin: "Han Neng", gender: "m", relation: "子", birthYear: "民國廿一年 / 1932", confidence: "low" },
+    { id: "k_runzhu", gen: 25, father: "k_qifang", name: "潤珠",  pinyin: "Run Zhu", gender: "f", relation: "女", birthYear: "民國廿三年 / 1934", confidence: "low" },
 
     // ===== COLLATERAL — 九房 起瀨公 house (pt2 pp.53–58) =====
     // Brother of 起瀾公; all confidence low (cursive handwriting). 起瀨/起清/起瀾
@@ -590,27 +626,34 @@ window.LINEAGE = {
     // NOTE: the 承夏/承周/紹潇/承富/大成/大全/承貴/大參/大旭 cluster on pt2 pp.49–50
     // belongs to an earlier house whose divider I haven't re-read yet — deferred to
     // avoid a wrong parent link.
-    { id: "n8_qiqing",  gen: 18, father: "a17", name: "起清公", pinyin: "Qiqing", gender: "m", relation: "十八世 · 八房 (行十)", confidence: "low", note: "妣文氏。生紹穎、紹江、紹泗、紹汪。" },
+    { id: "n8_qiqing",  gen: 18, father: "a17", name: "起清公", pinyin: "Qiqing", gender: "m", relation: "十八世 · 八房 (行壬)", confidence: "low", note: "妣文氏。生紹顥、紹江、紹澇、紹汪 (pt2 p.51)。" },
     { id: "n8_qiqing_w", gen: 18, name: "文氏", pinyin: "Madam Wen", gender: "f", spouseOf: "n8_qiqing", confidence: "low" },
 
-    { id: "n8_shaoying", gen: 19, father: "n8_qiqing", name: "紹穎公", pinyin: "Shaoying", gender: "m", relation: "十九世", confidence: "low" },
+    { id: "n8_shaoying", gen: 19, father: "n8_qiqing", name: "紹顥公", pinyin: "Shaohao", gender: "m", relation: "十九世 · 八房長子", confidence: "low", note: "妻何氏。生承超、承漢、承招 (pt2 p.51)。舊譜錄作 紹穎。" },
+    { id: "n8_shaoying_w", gen: 19, name: "何氏", pinyin: "Madam He", gender: "f", spouseOf: "n8_shaoying", confidence: "low" },
     { id: "n8_shaojiang", gen: 19, father: "n8_qiqing", name: "紹江公", pinyin: "Shaojiang", gender: "m", relation: "十九世", confidence: "low", note: "妻孫氏。生承見、承趫。" },
-    { id: "n8_shaosi",   gen: 19, father: "n8_qiqing", name: "紹泗公", pinyin: "Shaosi", gender: "m", relation: "十九世 (八房之紹泗，與直系紹泗不同人)", confidence: "low", note: "妻卓氏、何氏。生承奕、承超、承漢、承招。" },
+    { id: "n8_shaolao",  gen: 19, father: "n8_qiqing", name: "紹澇公", pinyin: "Shaolao", gender: "m", relation: "十九世 · 八房三子", confidence: "low", note: "妻卓氏。生承奕 (pt2 p.50)。曾被誤錄為「紹泗」(與直系紹泗混) 及「紹芳」(誤置七房) — 2026-08 合併訂正。" },
+    { id: "n8_shaolao_w", gen: 19, name: "卓氏", pinyin: "Madam Zhuo", gender: "f", spouseOf: "n8_shaolao", confidence: "low" },
     { id: "n8_shaowang", gen: 19, father: "n8_qiqing", name: "紹汪公", pinyin: "Shaowang", gender: "m", relation: "十九世", confidence: "low", note: "妻溫氏。生承魁、承滔、承良。" },
 
     // 紹江 line
     { id: "n8_chengjian", gen: 20, father: "n8_shaojiang", name: "承見", pinyin: "Cheng Jian", gender: "m", relation: "二十世", confidence: "low" },
     { id: "n8_chengqiao", gen: 20, father: "n8_shaojiang", name: "承趫", pinyin: "Cheng Qiao", gender: "m", relation: "二十世", confidence: "low" },
 
-    // 紹泗 line (八房)
-    { id: "n8_chengyi",  gen: 20, father: "n8_shaosi", name: "承奕", pinyin: "Cheng Yi", aka: "職員名 潤珠", gender: "m", relation: "二十世", confidence: "low", note: "妻張氏。" },
-    { id: "n8_chengchao", gen: 20, father: "n8_shaosi", name: "承超", pinyin: "Cheng Chao", gender: "m", relation: "二十世", confidence: "low" },
-    { id: "n8_chenghan", gen: 20, father: "n8_shaosi", name: "承漢", pinyin: "Cheng Han", gender: "m", relation: "二十世", confidence: "low" },
-    { id: "n8_chengzhao", gen: 20, father: "n8_shaosi", name: "承招", pinyin: "Cheng Zhao", gender: "m", relation: "二十世", confidence: "low", note: "妻潘氏。" },
-    { id: "n8_daqian",   gen: 21, father: "n8_chengyi", name: "大乾", pinyin: "Da Qian", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。" },
-    { id: "n8_yongkui",  gen: 22, father: "n8_daqian", name: "永魁", pinyin: "Yong Kui", gender: "m", relation: "二十二世", confidence: "low", note: "妻李氏。" },
-    { id: "n8_yonggong", gen: 22, father: "n8_daqian", name: "永恭", pinyin: "Yong Gong", gender: "m", relation: "二十二世", confidence: "low" },
-    { id: "n8_damao",    gen: 21, father: "n8_chengzhao", name: "大茂", pinyin: "Da Mao", gender: "m", relation: "二十一世", confidence: "low" },
+    // 紹澇 line — the only son (pt2 p.50)
+    { id: "n8_chengyi",  gen: 20, father: "n8_shaolao", name: "承奕", pinyin: "Cheng Yi", aka: "職員名 潤珠", gender: "m", relation: "二十世", confidence: "low", note: "妻張氏。生大乾。" },
+    // 紹顥 line (pt2 p.51)
+    { id: "n8_chengchao", gen: 20, father: "n8_shaoying", name: "承超", pinyin: "Cheng Chao", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chenghan", gen: 20, father: "n8_shaoying", name: "承漢", pinyin: "Cheng Han", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "n8_chengzhao", gen: 20, father: "n8_shaoying", name: "承招", pinyin: "Cheng Zhao", gender: "m", relation: "二十世", confidence: "low", note: "妻葉氏。生大茂。" },
+    { id: "n8_chengyi_w", gen: 20, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n8_chengyi", confidence: "low" },
+    { id: "n8_daqian",   gen: 21, father: "n8_chengyi", name: "大乾", pinyin: "Da Qian", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。生永魁、永恭。" },
+    { id: "n8_daqian_w", gen: 21, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n8_daqian", confidence: "low" },
+    { id: "n8_yongkui",  gen: 22, father: "n8_daqian", name: "永魁", pinyin: "Yong Kui", gender: "m", relation: "二十二世", confidence: "low", note: "妻李氏、妾〇氏。" },
+    { id: "n8_yongkui_w1", gen: 22, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "n8_yongkui", confidence: "low" },
+    { id: "n8_yonggong", gen: 22, father: "n8_daqian", name: "永恭", pinyin: "Yong Gong", gender: "m", relation: "二十二世", confidence: "low", note: "妻〇氏。" },
+    { id: "n8_damao",    gen: 21, father: "n8_chengzhao", name: "大茂", pinyin: "Da Mao", gender: "m", relation: "二十一世", confidence: "low", note: "承招妻葉氏生 (pt2 p.51)。" },
+    { id: "n8_chengzhao_w", gen: 20, name: "葉氏", pinyin: "Madam Ye", gender: "f", spouseOf: "n8_chengzhao", confidence: "low" },
 
     // 紹汪 line
     { id: "n8_chengkui", gen: 20, father: "n8_shaowang", name: "承魁", pinyin: "Cheng Kui", gender: "m", relation: "二十世", confidence: "low" },
@@ -622,47 +665,46 @@ window.LINEAGE = {
     { id: "n8_xiangyong", gen: 21, father: "n8_chengliang", name: "祥永", pinyin: "Xiang Yong", gender: "m", relation: "二十一世", confidence: "low" },
 
     // ===== 起瀾公 五大房 — 紹泗公's four brothers (pt2 pp.61–66) =====
-    // Sons of 起瀾公 (a18); siblings of the direct ancestor 紹泗公 (a20). Pages label
-    // these 十九世 but kept at gen 20 to match the entry-numbered direct line (紹泗=20,
-    // 承續=21) — same 1825 合譜 ±1 seam noted on a20. All confidence low.
+    // Sons of 起瀾公 (a18); siblings of the direct ancestor 紹泗公 (a20). The pages label
+    // them 十九世, which is now exactly where they sit. All confidence low.
     // — 長房 通漢公 —
-    { id: "f5_tonghan",  gen: 20, seam: true, father: "a18", name: "通漢公", pinyin: "Tonghan", gender: "m", relation: "二十世 · 長房 (大伯祖)", confidence: "low", note: "妣劉氏。" },
-    { id: "f5_chengtong", gen: 21, father: "f5_tonghan", name: "承統公", pinyin: "Cheng Tong", gender: "m", relation: "二十一世", confidence: "low", note: "妣李氏。" },
-    { id: "f5_dachang",  gen: 22, father: "f5_chengtong", name: "大昌公", pinyin: "Da Chang", formalName: "國學名 清輝", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
-    { id: "f5_dakuan",   gen: 22, father: "f5_chengtong", name: "大寬公", pinyin: "Da Kuan", gender: "m", relation: "二十二世", confidence: "low", note: "妣廖氏。" },
-    { id: "f5_dazhen",   gen: 22, father: "f5_chengtong", name: "大振公", pinyin: "Da Zhen", gender: "m", relation: "二十二世", confidence: "low" },
-    { id: "f5_jigong",   gen: 23, father: "f5_dachang", name: "集恭", pinyin: "Ji Gong", gender: "m", relation: "二十三世", confidence: "low", note: "妻凌氏。" },
-    { id: "f5_yongfa",   gen: 23, father: "f5_dakuan", name: "永發", pinyin: "Yong Fa", gender: "m", relation: "二十三世", confidence: "low" },
-    { id: "f5_yongji",   gen: 23, father: "f5_dakuan", name: "永吉", pinyin: "Yong Ji", gender: "m", relation: "二十三世", confidence: "low", note: "妣曾氏。" },
-    { id: "f5_yonghe",   gen: 23, father: "f5_dakuan", name: "永合", pinyin: "Yong He", gender: "m", relation: "二十三世", confidence: "low" },
-    { id: "f5_yonghui",  gen: 23, father: "f5_dakuan", name: "永輝", pinyin: "Yong Hui", gender: "m", relation: "二十三世", confidence: "low" },
-    { id: "f5_jizhen",   gen: 24, father: "f5_yongji", name: "集珍", pinyin: "Ji Zhen", gender: "m", relation: "二十四世", confidence: "low" },
+    { id: "f5_tonghan", gen: 19, father: "a18", name: "通漢公", pinyin: "Tonghan", gender: "m", relation: "十九世 · 長房 (大伯祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_chengtong", gen: 20, father: "f5_tonghan", name: "承統公", pinyin: "Cheng Tong", gender: "m", relation: "二十世", confidence: "low", note: "妣李氏。" },
+    { id: "f5_dachang", gen: 21, father: "f5_chengtong", name: "大昌公", pinyin: "Da Chang", formalName: "國學名 清輝", gender: "m", relation: "二十一世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_dakuan", gen: 21, father: "f5_chengtong", name: "大寬公", pinyin: "Da Kuan", gender: "m", relation: "二十一世", confidence: "low", note: "妣廖氏。" },
+    { id: "f5_dazhen", gen: 21, father: "f5_chengtong", name: "大振公", pinyin: "Da Zhen", gender: "m", relation: "二十一世", confidence: "low" },
+    { id: "f5_jigong", gen: 22, father: "f5_dachang", name: "集恭", pinyin: "Ji Gong", gender: "m", relation: "二十二世", confidence: "low", note: "妻凌氏。" },
+    { id: "f5_yongfa", gen: 22, father: "f5_dakuan", name: "永發", pinyin: "Yong Fa", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "f5_yongji", gen: 22, father: "f5_dakuan", name: "永吉", pinyin: "Yong Ji", gender: "m", relation: "二十二世", confidence: "low", note: "妣曾氏。" },
+    { id: "f5_yonghe", gen: 22, father: "f5_dakuan", name: "永合", pinyin: "Yong He", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "f5_yonghui", gen: 22, father: "f5_dakuan", name: "永輝", pinyin: "Yong Hui", gender: "m", relation: "二十二世", confidence: "low" },
+    { id: "f5_jizhen", gen: 23, father: "f5_yongji", name: "集珍", pinyin: "Ji Zhen", gender: "m", relation: "二十三世", confidence: "low" },
     // — 次房 通澤公 (一名通洋) —
-    { id: "f5_tongze",   gen: 20, seam: true, father: "a18", name: "通澤公", pinyin: "Tongze", aka: "一名 通洋", gender: "m", relation: "二十世 · 次房 (二伯祖)", confidence: "low", note: "妣梁氏。以紹淮公次子承球公為継嗣。" },
-    { id: "f5_chengqiu", gen: 21, father: "f5_tongze", name: "承球公", pinyin: "Cheng Qiu", gender: "m", relation: "二十一世 (継嗣)", confidence: "low", note: "紹淮公次子，過繼通澤公為嗣。" },
-    { id: "f5_daan",     gen: 22, father: "f5_chengqiu", name: "大安公", pinyin: "Da An", gender: "m", relation: "二十二世", confidence: "low", note: "妣林氏。" },
-    { id: "f5_dachangB", gen: 23, father: "f5_daan", name: "大常公", pinyin: "Da Chang", gender: "m", relation: "二十三世", confidence: "low", note: "妣黃氏。" },
-    { id: "f5_yongqing", gen: 23, father: "f5_daan", name: "永清", pinyin: "Yong Qing", gender: "m", relation: "二十三世", confidence: "low", note: "妻劉氏。生光緒十二年秋月。" },
-    { id: "f5_yongfeng", gen: 24, father: "f5_dachangB", name: "永鳳", pinyin: "Yong Feng", gender: "m", relation: "二十四世", confidence: "low" },
-    { id: "f5_yonghuang", gen: 24, father: "f5_dachangB", name: "永凰", pinyin: "Yong Huang", gender: "m", relation: "二十四世", confidence: "low" },
+    { id: "f5_tongze", gen: 19, father: "a18", name: "通澤公", pinyin: "Tongze", aka: "一名 通洋", gender: "m", relation: "十九世 · 次房 (二伯祖)", confidence: "low", note: "妣梁氏。以紹淮公次子承球公為継嗣。" },
+    { id: "f5_chengqiu", gen: 20, father: "f5_tongze", name: "承球公", pinyin: "Cheng Qiu", gender: "m", relation: "二十世 (継嗣)", confidence: "low", note: "紹淮公次子，過繼通澤公為嗣。" },
+    { id: "f5_daan", gen: 21, father: "f5_chengqiu", name: "大安公", pinyin: "Da An", gender: "m", relation: "二十一世", confidence: "low", note: "妣林氏。" },
+    { id: "f5_dachangB", gen: 22, father: "f5_daan", name: "大常公", pinyin: "Da Chang", gender: "m", relation: "二十二世", confidence: "low", note: "妣黃氏。" },
+    { id: "f5_yongqing", gen: 22, father: "f5_daan", name: "永清", pinyin: "Yong Qing", gender: "m", relation: "二十二世", confidence: "low", note: "妻劉氏。生光緒十二年秋月。" },
+    { id: "f5_yongfeng", gen: 23, father: "f5_dachangB", name: "永鳳", pinyin: "Yong Feng", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "f5_yonghuang", gen: 23, father: "f5_dachangB", name: "永凰", pinyin: "Yong Huang", gender: "m", relation: "二十三世", confidence: "low" },
     // — 三房 紹淮公 —
-    { id: "f5_shaohuai", gen: 20, seam: true, father: "a18", name: "紹淮公", pinyin: "Shaohuai", gender: "m", relation: "二十世 · 三房 (三伯祖)", confidence: "low", note: "妣曾氏。生承基、承球(過繼通澤)、承謀、承訓。" },
-    { id: "f5_chengji",  gen: 21, father: "f5_shaohuai", name: "承基", pinyin: "Cheng Ji", gender: "m", relation: "二十一世", confidence: "low" },
-    { id: "f5_chengmou", gen: 21, father: "f5_shaohuai", name: "承謀", pinyin: "Cheng Mou", gender: "m", relation: "二十一世", confidence: "low" },
-    { id: "f5_chengxun", gen: 21, father: "f5_shaohuai", name: "承訓公", pinyin: "Cheng Xun", gender: "m", relation: "二十一世", confidence: "low", note: "妣劉氏。" },
-    { id: "f5_dawen",    gen: 22, father: "f5_chengxun", name: "大文公", pinyin: "Da Wen", gender: "m", relation: "二十二世", confidence: "low", note: "妣宗氏。" },
-    { id: "f5_jinfu",    gen: 23, father: "f5_dawen", name: "金福", pinyin: "Jin Fu", gender: "m", relation: "二十三世", confidence: "low" },
+    { id: "f5_shaohuai", gen: 19, father: "a18", name: "紹淮公", pinyin: "Shaohuai", gender: "m", relation: "十九世 · 三房 (三伯祖)", confidence: "low", note: "妣曾氏。生承基、承球(過繼通澤)、承謀、承訓。" },
+    { id: "f5_chengji", gen: 20, father: "f5_shaohuai", name: "承基", pinyin: "Cheng Ji", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "f5_chengmou", gen: 20, father: "f5_shaohuai", name: "承謀", pinyin: "Cheng Mou", gender: "m", relation: "二十世", confidence: "low" },
+    { id: "f5_chengxun", gen: 20, father: "f5_shaohuai", name: "承訓公", pinyin: "Cheng Xun", gender: "m", relation: "二十世", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_dawen", gen: 21, father: "f5_chengxun", name: "大文公", pinyin: "Da Wen", gender: "m", relation: "二十一世", confidence: "low", note: "妣宗氏。" },
+    { id: "f5_jinfu", gen: 22, father: "f5_dawen", name: "金福", pinyin: "Jin Fu", gender: "m", relation: "二十二世", confidence: "low" },
     // — 五房 紹淡公 —
-    { id: "f5_shaodan",  gen: 20, seam: true, father: "a18", name: "紹淡公", pinyin: "Shaodan", gender: "m", relation: "二十世 · 五房 (五叔祖)", confidence: "low", note: "妣劉氏。" },
-    { id: "f5_chengguo", gen: 21, father: "f5_shaodan", name: "承國公", pinyin: "Cheng Guo", gender: "m", relation: "二十一世", confidence: "low", note: "妣曾氏。" },
-    { id: "f5_dake",     gen: 22, father: "f5_chengguo", name: "大可公", pinyin: "Da Ke", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
-    { id: "f5_yongwei",  gen: 23, father: "f5_dake", name: "永威", pinyin: "Yong Wei", gender: "m", relation: "二十三世", confidence: "low", note: "妣張氏。" },
-    { id: "f5_yuanfa",   gen: 24, father: "f5_yongwei", name: "元發", pinyin: "Yuan Fa", gender: "m", relation: "二十四世", confidence: "low", note: "往金山 (overseas)." },
+    { id: "f5_shaodan", gen: 19, father: "a18", name: "紹淡公", pinyin: "Shaodan", gender: "m", relation: "十九世 · 五房 (五叔祖)", confidence: "low", note: "妣劉氏。" },
+    { id: "f5_chengguo", gen: 20, father: "f5_shaodan", name: "承國公", pinyin: "Cheng Guo", gender: "m", relation: "二十世", confidence: "low", note: "妣曾氏。" },
+    { id: "f5_dake", gen: 21, father: "f5_chengguo", name: "大可公", pinyin: "Da Ke", gender: "m", relation: "二十一世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_yongwei", gen: 22, father: "f5_dake", name: "永威", pinyin: "Yong Wei", gender: "m", relation: "二十二世", confidence: "low", note: "妣張氏。" },
+    { id: "f5_yuanfa", gen: 23, father: "f5_yongwei", name: "元發", pinyin: "Yuan Fa", gender: "m", relation: "二十三世", confidence: "low", note: "往金山 (overseas)." },
 
     // ==========================================
     // 七房 (起章公) - pt2 pp.44-50
     // ==========================================
-    { id: "n7_qizhang", gen: 18, father: "a17", name: "起章公", pinyin: "Qizhang", gender: "m", relation: "十八世 · 七房祖", confidence: "low", note: "起瀾公之兄弟。生紹污、紹濂、紹顯、紹门、紹芳等（據世系表與家譜推斷）。" },
+    { id: "n7_qizhang", gen: 18, father: "a17", name: "起章公", pinyin: "Qizhang", gender: "m", relation: "十八世 · 七房祖", confidence: "low", note: "起瀾公之兄弟（龍躍公九大房之七）。生紹污、紹濂、紹顯、紹门（據世系表與家譜推斷）。舊稿誤將八房之紹澇公抄作「紹芳」列此 — 2026-08 刪除。" },
 
     { id: "n7_shaowu", gen: 19, father: "n7_qizhang", name: "紹污公", pinyin: "Shaowu", gender: "m", relation: "十九世", confidence: "low", note: "妻陳氏。生承賢、承禎、承猷、承紀、承立、承運。" },
     { id: "n7_shaowu_w", gen: 19, name: "陳氏", pinyin: "Madam Chen", gender: "f", spouseOf: "n7_shaowu", confidence: "low" },
@@ -793,18 +835,11 @@ window.LINEAGE = {
     { id: "n7_chengmian", gen: 20, father: "n7_shaomen", name: "承冕", pinyin: "Chengmian", gender: "m", relation: "二十世", confidence: "low" },
     { id: "n7_chengguan", gen: 20, father: "n7_shaomen", name: "承冠", pinyin: "Chengguan", gender: "m", relation: "二十世", confidence: "low" },
 
-    // --- 紹芳公 branch (p.50) ---
-    { id: "n7_shaofang", gen: 19, father: "n7_qizhang", name: "紹芳公", pinyin: "Shaofang", gender: "m", relation: "十九世", confidence: "low", note: "妻卓氏。生承奕。" },
-    { id: "n7_shaofang_w", gen: 19, name: "卓氏", pinyin: "Madam Zhuo", gender: "f", spouseOf: "n7_shaofang", confidence: "low" },
-    { id: "n7_chengyi", gen: 20, father: "n7_shaofang", name: "承奕", pinyin: "Chengyi", aka: "職員名 潤珠", gender: "m", relation: "二十世", confidence: "low", note: "妻張氏。生大乾。" },
-    { id: "n7_chengyi_w", gen: 20, name: "張氏", pinyin: "Madam Zhang", gender: "f", spouseOf: "n7_chengyi", confidence: "low" },
-    { id: "n7_daqian", gen: 21, father: "n7_chengyi", name: "大乾", pinyin: "Daqian", gender: "m", relation: "二十一世", confidence: "low", note: "妻廖氏。生永魁、永恭。" },
-    { id: "n7_daqian_w", gen: 21, name: "廖氏", pinyin: "Madam Liao", gender: "f", spouseOf: "n7_daqian", confidence: "low" },
-    { id: "n7_yongkui", gen: 22, father: "n7_daqian", name: "永魁", pinyin: "Yongkui", gender: "m", relation: "二十二世", confidence: "low", note: "妻李氏、妾〇氏。" },
-    { id: "n7_yongkui_w1", gen: 22, name: "李氏", pinyin: "Madam Li", gender: "f", spouseOf: "n7_yongkui", confidence: "low" },
-    { id: "n7_yongkui_w2", gen: 22, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_yongkui", confidence: "low", note: "妾" },
-    { id: "n7_yonggong", gen: 22, father: "n7_daqian", name: "永恭", pinyin: "Yonggong", gender: "m", relation: "二十二世", confidence: "low", note: "妻〇氏。" },
-    { id: "n7_yonggong_w", gen: 22, name: "〇氏", pinyin: "Madam Unknown", gender: "f", spouseOf: "n7_yonggong", confidence: "low" },
+    // --- REMOVED 2026-08: the "紹芳公 → 承奕 → 大乾 → 永魁/永恭" block that used to sit here.
+    // It was a duplicate of the SAME people already recorded under 八房 起清公 (n8_shaolao …).
+    // pt2 p.50 reads 紹澇公 (妻卓氏 → 承奕, 職員名 潤珠), and p.51 names 起清公's four sons
+    // outright: 紹顥、紹江、紹澇、紹汪 — so 紹澇 is 八房's, not 七房's, and "紹芳" was a
+    // misreading of the same 紹澇. 七房 起章公's attested sons are 紹污/紹濂/紹顯/紹门.
   ],
 
   // --- ERAS / SWIM LANES ----------------------------------------------------
@@ -820,13 +855,13 @@ window.LINEAGE = {
     { fromGen: 7,  toGen: 10, place: "惠州 永安・海豐", placeEn: "Yong'an & Haifeng, Huizhou",
       era: "明（約1500s–1600s）", eraEn: "Ming (c. 1500s–1600s)", color: "#3d6b8e1c",
       note: "下義約、蛋家田、羊屎坑等。" },
-    { fromGen: 11, toGen: 19, place: "永安 → 長樂 遷徙（李朗支於此分出）", placeEn: "Yong'an → Changle (Lilang branch diverged)",
+    { fromGen: 11, toGen: 18, place: "永安 → 長樂 遷徙（李朗支於此分出）", placeEn: "Yong'an → Changle (Lilang branch diverged)",
       era: "明末–清（約1600s–1700s）", eraEn: "late Ming–Qing (c. 1600s–1700s)", color: "#7a4fa31c",
       note: "約1569年遷長樂；朝湧／朝鴻一支遷新安李朗（今深圳）—— 旁支。" },
-    { fromGen: 20, toGen: 22, place: "長樂 彰村・元坑（今五華）", placeEn: "Changle: Changcun (now Wuhua)",
+    { fromGen: 19, toGen: 21, place: "長樂 彰村・元坑（今五華）", placeEn: "Changle: Changcun (now Wuhua)",
       era: "清（約1700s–1800s）", eraEn: "Qing (c. 1700s–1800s)", color: "#9e2b251c",
       note: "紹泗 → 承續 → 大信；巴色會入信。" },
-    { fromGen: 23, toGen: 26, place: "長樂 → 沙巴（古達・山打根・吧巴）", placeEn: "Changle → Sabah (Kudat · Sandakan · Papar)",
+    { fromGen: 22, toGen: 27, place: "長樂 → 沙巴（古達・山打根・吧巴）", placeEn: "Changle → Sabah (Kudat · Sandakan · Papar)",
       era: "清末–民國（約1860s–1940s）", eraEn: "late Qing–Republic (c. 1860s–1940s)", color: "#2d6b4f26",
       note: "巴色會客家信徒移民英屬北婆羅洲。" }
   ]

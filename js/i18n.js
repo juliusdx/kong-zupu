@@ -69,6 +69,11 @@
       f_opt_add_child: "Add a child to someone", f_opt_add_spouse: "Add a spouse",
       f_opt_edit: "Correct / enrich an existing person", f_opt_add_place: "Add / fix a location (祠堂 / grave)",
       f_relatedto: "Relative this connects to", f_section_person: "Person details",
+      f_relatedto_child: "Parent — the new child is added under this person",
+      f_relatedto_spouse: "Spouse of — the new spouse is added beside this person",
+      f_relatedto_place: "Relative this location belongs to",
+      f_relatedto_edit: "Person you are correcting",
+      f_relatedto_edit_hint: "The details below will replace this person's record. To add someone new, switch the action above to \u201cAdd a child\u201d.",
       f_name: "Name 名 (Chinese)", f_pinyin: "Romanization / English",
       f_ritual: "Ritual / baptism name 禮名", f_milk: "Milk name 乳名",
       f_aka: "Other names (字 / 號 / nickname)", f_gender: "Gender",
@@ -192,8 +197,8 @@
       ab_privacy: "The lineage and ancestral sites are public. Photos and details of <i>living</i> members are shown only to signed-in family. Contact details are private. Minors are hidden by default, and anyone may ask to be removed.",
       ab_h_tech: "Technical",
       ab_tech: "Static site (hostable free on GitHub Pages) + optional Supabase backend for accounts, uploads and moderation. See <code>README.md</code> and <code>supabase/schema.sql</code> in the repository.",
-      ab_h_seam: "About the generation numbers (1825 合譜 seam)",
-      ab_seam: "In 1825 (道光五年) the family merged two genealogies — an older <b>新安老族譜</b> (which began only about four generations back, from 賴氏 / 貴七公) was joined onto the deeper line down to the 始祖 <b>江八郎</b>. Splicing the two leaves a small <b>seam</b> around <b>起瀾公 (gen 18)</b> → his five sons <b>(gen 20)</b>, where one generation is absorbed in the merge — so the book's printed 世 label and this app's generation number can differ by about one in that region. The tree numbers everyone consistently and lays them out by parent–child links, so the gap is harmless. Affected ancestors are marked <span class=\"seam-mark\">※</span> on their card."
+      ab_h_seam: "About the generation numbers",
+      ab_seam: "Every generation number here follows the 世 label the book itself prints on the biographical pages, and they run without a gap: <b>16 朝纓 (字成祥) → 17 龍躍 / 龍見 → 18 起瀾 → 19 紹泗 → 20 承續 → 21 大信 → 22 永宏 / 永仁 / 永宗 → 23 俊 → 24 其 / 有 → 25 漢</b>. That matches the master chart in part 1 column for column (十八世 通…, 十九世 紹…, 廿世 承…, 廿一世 大信, 廿二世 永…, 廿三世 俊…), and the 李朗 branch lines up with it generation for generation. An earlier version of this site read p.66 as 二十一世祖承續公 (it reads 二十世祖) and carried a one-generation offset from 紹泗 downwards; that was corrected in August 2026. In 1825 (道光五年) the family did merge two genealogies — the older <b>新安老族譜</b>, which began only about four generations back from 賴氏 / 貴七公, was joined onto the deeper line down to the 始祖 <b>江八郎</b> — but the join leaves no gap in the numbering."
     },
 
     zh: {
@@ -262,6 +267,11 @@
       f_opt_add_child: "為某人新增子女", f_opt_add_spouse: "新增配偶",
       f_opt_edit: "修正／補充現有人物", f_opt_add_place: "新增／修正地點（祠堂／墳墓）",
       f_relatedto: "關聯的親屬", f_section_person: "人物資料",
+      f_relatedto_child: "父／母 — 新增的子女掛在此人之下",
+      f_relatedto_spouse: "配偶 — 新增的配偶列在此人旁",
+      f_relatedto_place: "此地點所屬的親屬",
+      f_relatedto_edit: "要修正的人物",
+      f_relatedto_edit_hint: "以下資料將覆寫此人的記錄。若要新增人物，請將上方動作改為「為某人新增子女」。",
       f_name: "姓名 名（中文）", f_pinyin: "羅馬拼音／英文",
       f_ritual: "禮名／洗禮名", f_milk: "乳名", f_aka: "其他名字（字／號／綽號）", f_gender: "性別",
       f_male: "男", f_female: "女", f_gen: "世代 世（數字）",
@@ -383,8 +393,8 @@
       ab_privacy: "世系與祖地公開可見。<i>在世</i>成員的相片與細節僅向已登入的家族成員顯示。聯絡方式為私密。未成年者預設隱藏，任何人亦可要求移除。",
       ab_h_tech: "技術",
       ab_tech: "靜態網站（可免費託管於 GitHub Pages）＋ 可選用的 Supabase 後端，處理帳戶、上載與審核。詳見儲存庫中的 <code>README.md</code> 與 <code>supabase/schema.sql</code>。",
-      ab_h_seam: "關於世代編號（1825 合譜接縫）",
-      ab_seam: "1825年（道光五年）家族合譜，將較淺的《<b>新安老族譜</b>》（僅上溯約四代，以賴氏／貴七公為始祖）接上更早、直達始祖<b>江八郎</b>的世系。兩譜相接處在<b>起瀾公（第18世）</b>→其五大房<b>（第20世）</b>一帶留下<b>接縫</b>，合併時吸收了一代，故此處族書印刷的「世」與本站世代編號相差約一代。本譜採一致編號並依父子關係排版，故跳號不影響族譜結構。受影響的祖先卡片標有 <span class=\"seam-mark\">※</span>。"
+      ab_h_seam: "關於世代編號",
+      ab_seam: "本站的世代編號一律依族書傳記頁自署的「世」，且前後相連無缺：<b>十六世 朝纓（字成祥）→ 十七世 龍躍／龍見 → 十八世 起瀾 → 十九世 紹泗 → 二十世 承續 → 廿一世 大信 → 廿二世 永宏／永仁／永宗 → 廿三世 俊 → 廿四世 其／有 → 廿五世 漢</b>。此與上卷世系總表逐欄相符（十八世通…、十九世紹…、廿世承…、廿一世大信、廿二世永…、廿三世俊…），李朗支亦與直系逐代對齊。舊版曾將第66頁「二十世祖承續公」誤讀為「二十一世祖」，以致紹泗以下整條世系多算一代，已於2026年8月訂正。1825年（道光五年）家族確曾合譜，將僅上溯約四代（以賴氏／貴七公為始）的《<b>新安老族譜</b>》接上直達始祖<b>江八郎</b>的世系，但接合處並未造成世代跳號。"
     }
   };
 

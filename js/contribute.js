@@ -64,8 +64,7 @@
     f.innerHTML = `
       <label>${T("f_action")}
         <select name="action">
-          <option value="add_child">${T("f_opt_add_child")}</option>
-          <option value="add_spouse">${T("f_opt_add_spouse")}</option>
+          <option value="add">${T("f_opt_add")}</option>
           <option value="edit">${T("f_opt_edit")}</option>
           <option value="add_place">${T("f_opt_add_place")}</option>
         </select>
@@ -73,6 +72,14 @@
       <label><span id="relatedto-label">${T("f_relatedto")}</span>
         <select name="relatedTo">${personOptions()}</select>
         <span class="muted fd-hint" id="relatedto-hint"></span>
+      </label>
+      <label id="rel-row">${T("f_kinship")}
+        <select name="kinship">
+          <option value="child">${T("f_rel_child")}</option>
+          <option value="spouse">${T("f_rel_spouse")}</option>
+          <option value="sibling">${T("f_rel_sibling")}</option>
+        </select>
+        <span class="muted fd-hint">${T("f_kinship_hint")}</span>
       </label>
 
       <div class="field-section">${T("f_section_person")}</div>
@@ -84,7 +91,9 @@
       <label>${T("f_gender")}
         <select name="gender"><option value="m">${T("f_male")}</option><option value="f">${T("f_female")}</option></select>
       </label>
-      <label>${T("f_gen")}<input name="gen" type="number" placeholder="27" /></label>
+      <label>${T("f_gen")}<input name="gen" type="number" readonly />
+        <span class="muted fd-hint" id="gen-hint"></span>
+      </label>
       <label>${T("f_living")}
         <select name="living"><option value="true">${T("f_living_yes")}</option><option value="false">${T("f_living_no")}</option></select>
       </label>
@@ -209,7 +218,9 @@
     f.elements.action.addEventListener("change", () => updateRelatedMode(f));
     f.elements.relatedTo.addEventListener("change", () => {
       if (f.elements.action.value === "edit") loadEditTarget(f);
+      updateGen(f);
     });
+    if (f.elements.kinship) f.elements.kinship.addEventListener("change", () => updateGen(f));
     updateRelatedMode(f);
     // map pin: hand off to the shared picker (map view + address search), fill lat/lng
     const pick = f.querySelector("#pin-pick");
@@ -236,10 +247,39 @@
     const a = f.elements.action.value;
     const lbl = f.querySelector("#relatedto-label"), hint = f.querySelector("#relatedto-hint");
     const key = a === "edit" ? "f_relatedto_edit"
-              : a === "add_spouse" ? "f_relatedto_spouse"
-              : a === "add_place" ? "f_relatedto_place" : "f_relatedto_child";
+              : a === "add_place" ? "f_relatedto_place" : "f_relatedto_add";
     if (lbl) lbl.textContent = T(key);
     if (hint) hint.textContent = a === "edit" ? T("f_relatedto_edit_hint") : "";
+    const relRow = f.querySelector("#rel-row");
+    if (relRow) relRow.hidden = (a !== "add");
+    updateGen(f);
+  }
+
+  // The generation is worked out from the relationship, never typed: a child is one
+  // below the relative, a spouse or sibling sits level with them. This is what stopped
+  // people landing at "generation 2" or "generation 30" by mistyping the box.
+  function updateGen(f) {
+    const genEl = f.elements.gen, hint = f.querySelector("#gen-hint");
+    if (!genEl) return;
+    const a = f.elements.action.value;
+    if (a === "add_place") { if (hint) hint.textContent = ""; return; }
+    const target = LINEAGE.persons.find(x => x.id === f.elements.relatedTo.value);
+    if (a === "edit") {
+      const cur = target && target.gen != null ? target.gen : "";
+      genEl.value = cur;
+      if (hint) hint.textContent = cur === "" ? "" : T("f_gen_hint_edit").replace("{name}", target.name);
+      return;
+    }
+    const rel = f.elements.kinship ? f.elements.kinship.value : "child";
+    if (!target || target.gen == null) {
+      genEl.value = "";
+      if (hint) hint.textContent = T("f_gen_hint_unknown");
+      return;
+    }
+    const g = rel === "child" ? target.gen + 1 : target.gen;
+    genEl.value = g;
+    if (hint) hint.textContent = T("f_gen_hint_" + rel)
+      .replace("{gen}", g).replace("{name}", target.name).replace("{tgen}", target.gen);
   }
 
   // Copy the selected person's current values into the form so an "edit" starts from what
@@ -278,6 +318,27 @@
     const f = e.target;
     const data = Object.fromEntries(new FormData(f).entries());
     const submitBtn = f.querySelector('button[type="submit"]');
+
+    // "Add a person" + a relationship is what the family fills in; the stored payload
+    // keeps the older add_child / add_spouse actions the approval path understands.
+    // A sibling is stored as a child of the SAME father, which is what the tree needs.
+    if (data.action === "add") {
+      const rel = data.kinship || "child";
+      const target = LINEAGE.persons.find(x => x.id === data.relatedTo);
+      if (rel === "spouse") data.action = "add_spouse";
+      else {
+        data.action = "add_child";
+        if (rel === "sibling") {
+          if (!target || !target.father) {
+            alert(T("f_err_sibling").replace("{name}", target ? target.name : "?"));
+            return;
+          }
+          data.siblingOf = data.relatedTo;      // keep what was meant, for the reviewer
+          data.relatedTo = target.father;
+        }
+      }
+    }
+    delete data.kinship;
 
     // Birth date: if the calendar mode is showing and filled, it wins over the text input.
     const cal = f.querySelector(".dt-cal");

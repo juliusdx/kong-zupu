@@ -242,7 +242,7 @@
               milkName:"milk name", aka:"also known as", gender:"gender", gen:"generation",
               birth:"birth year", bio:"bio", living:"living", lat:"latitude", lng:"longitude" };
             const skip = new Set(["action","relatedTo","contributor","contributorContact",
-              "contributorLocation","relationship","contactConsent","submittedAt","status",
+              "contributorLocation","relationship","kinship","siblingOf","contactConsent","submittedAt","status",
               "photo","personPhone","personWechat","personEmail","changes","submitterEmail","submitterId"]);
             const changes = Object.entries(p)
               .filter(([k, v]) => !skip.has(k) && v !== "" && v != null)
@@ -259,7 +259,11 @@
             const rel = a === "add_spouse" ? "spouse of" : "child of";
             const parent = personById(p.relatedTo);
             const parentName = parent ? esc(parent.name) : esc(p.relatedTo || "?");
-            return `Add <b>${esc(p.name || "?")}</b> as ${rel} <b>${parentName}</b>`;
+            // A "brother / sister of X" submission is stored as a child of X's father —
+            // say so, or the card looks like it names the wrong relative.
+            const sib = p.siblingOf ? personById(p.siblingOf) : null;
+            const via = sib ? ` (as a sibling of <b>${esc(sib.name)}</b>)` : "";
+            return `Add <b>${esc(p.name || "?")}</b> as ${rel} <b>${parentName}</b>${via}`;
           }
           if (a === "add_place" || a === "update_place") {
             const verb = a === "add_place" ? "Add" : "Update";
@@ -290,7 +294,11 @@
           `</tbody></table></div>`;
       }
 
+      // Archived people live here so there is one obvious place to undo a removal.
+      html += `<h3>${T("at_arch_h")}</h3><div id="archived-list"></div>`;
+
       wrap.innerHTML = html;
+      buildArchivedList();
       const payloadById = Object.fromEntries(pending.map(c => [c.id, c.payload]));
       wrap.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => decide(b.dataset.approve, "approved", payloadById[b.dataset.approve]));
       wrap.querySelectorAll("[data-reject]").forEach(b => b.onclick = () => decide(b.dataset.reject, "rejected", payloadById[b.dataset.reject]));
@@ -436,6 +444,19 @@
       </div></div>`;
   }
   async function decide(id, status, payload) {
+    // A correction that replaces the target's name outright is the signature of a
+    // mistargeted submission — someone filled the form in for a NEW person while the
+    // picker still pointed at a relative. That is how 有章's details were written onto
+    // his father 俊華. Make the admin read the swap out loud before it is applied.
+    if (status === "approved" && payload && payload.action === "edit" && payload.name) {
+      const target = personById(payload.relatedTo);
+      const cur = (target && target.name || "").trim(), next = String(payload.name).trim();
+      if (target && cur && next && cur !== next && !next.includes(cur) && !cur.includes(next)) {
+        const msg = fill(I18N.t("r_confirm_rename"),
+          { old: cur, new: next, pin: target.pinyin || "—" });
+        if (!confirm(msg)) return;
+      }
+    }
     try {
       const sb = Auth.client(), st = Auth.state();
       // On approve, promote new-person contributions onto the live tree.
@@ -449,7 +470,10 @@
           milk_name: payload.milkName || null,
           aka: payload.aka || null,
           gender: payload.gender || "m",
-          gen: payload.gen ? parseInt(payload.gen, 10) : null,
+          // Generation comes from the relative, not from whatever was typed: a child is
+          // one below their parent, a spouse sits level. A submitted number is used only
+          // when the relative has no generation of their own to derive from.
+          gen: relGen(payload.action, payload.relatedTo, payload.gen),
           bio: payload.bio || null,
           birth_year: payload.birth || null,
           living: payload.living === "true",
@@ -481,7 +505,13 @@
         if (has("milkName"))   fields.milk_name = payload.milkName || null;
         if (has("aka"))        fields.aka = payload.aka || null;
         if (payload.gender === "m" || payload.gender === "f") fields.gender = payload.gender;
-        if (has("gen") && payload.gen !== "") fields.gen = parseInt(payload.gen, 10);
+        if (has("gen") && payload.gen !== "") {
+          // An edit may not move someone between generations by hand — the tree
+          // derives that from parentage. Keep the person where their father puts them.
+          const cur = personById(pid), dad = cur && cur.father ? personById(cur.father) : null;
+          const derived = dad && dad.gen != null ? dad.gen + 1 : null;
+          fields.gen = derived != null ? derived : parseInt(payload.gen, 10);
+        }
         const elat = parseFloat(payload.lat), elng = parseFloat(payload.lng);   // dropped pin → person's map dot
         if (isFinite(elat) && isFinite(elng)) { fields.lat = elat; fields.lng = elng; }
         if (has("birth"))      fields.birth_year = payload.birth || null;
@@ -640,6 +670,13 @@
     const ex = list.find(x => x.id === row.id);
     if (ex) Object.assign(ex, row); else list.push(row);
   }
+  // An archived live row masks its seed twin: pull the person out of the tree
+  // entirely rather than merging the row in. Restoring re-merges it (the archive
+  // wrote a full snapshot, so nothing is lost for seed-only people).
+  function dropRow(list, id) {
+    const i = list.findIndex(x => x.id === id);
+    if (i >= 0) list.splice(i, 1);
+  }
   async function loadLiveData() {
     if (!Auth.LIVE) return;
     const sb = Auth.client(); if (!sb) return;
@@ -650,7 +687,10 @@
         sb.from("media").select("*")
       ]);
       (pl.data || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
-      (pp.data || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
+      (pp.data || []).forEach(r => {
+        if (r.archived) dropRow(LINEAGE.persons, r.id);
+        else mergeRow(LINEAGE.persons, camel(r));
+      });
       // Signed-out visitors don't receive member-tier (living) rows from `persons` (RLS).
       // The family chose to keep living adults findable by NAME + tree position, so pull
       // a column-limited public view (no birth year, bio, location, photo, contact; no
@@ -983,6 +1023,14 @@
   // Snapshot an in-memory (seed) person into a live persons-table row. Used whenever a
   // seed-only ancestor first needs a DB row — approved edits and admin verification.
   // undefined fields are dropped so we never send columns the row doesn't have a value for.
+  // Generation implied by an add: child → one below the parent, spouse → level with
+  // them. Falls back to the submitted number only when the relative has none.
+  function relGen(action, relatedTo, submitted) {
+    const rel = relatedTo ? personById(relatedTo) : null;
+    if (rel && rel.gen != null) return action === "add_spouse" ? rel.gen : rel.gen + 1;
+    return submitted ? parseInt(submitted, 10) : null;
+  }
+
   function seedPersonRow(p) {
     const row = {
       id: p.id, name: p.name, gen: p.gen, pinyin: p.pinyin,
@@ -998,6 +1046,251 @@
     };
     Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
     return row;
+  }
+
+  /* ---- Admin person tools: move · merge · archive -------------------------
+   * These exist because corrections kept landing on the wrong ancestor and the
+   * only repair was hand-written SQL. All three write through writePerson(),
+   * which updates a live row if there is one and otherwise inserts a snapshot of
+   * the seed person with the change on top — the same update-or-insert the
+   * approve path uses, so people who live only in data/lineage.js are editable.
+   * ------------------------------------------------------------------------ */
+
+  // Update-or-insert one person's fields. Returns nothing; throws on failure.
+  async function writePerson(id, fields) {
+    const sb = Auth.client(); if (!sb) throw new Error("not connected");
+    const { data, error } = await sb.from("persons").update(fields).eq("id", id).select();
+    if (error) throw error;
+    if (data && data.length) return;
+    const p = personById(id);
+    if (!p) throw new Error("Unknown person: " + id);
+    const row = seedPersonRow(p);
+    Object.assign(row, fields);
+    const { error: insErr } = await sb.from("persons").upsert(row);
+    if (insErr) throw insErr;
+  }
+
+  // Everyone descending from id, nearest first. Blood links only (spouses carry
+  // their partner's generation and are handled where they are written).
+  function descendantsOf(id) {
+    const out = [], queue = [id];
+    while (queue.length) {
+      const cur = queue.shift();
+      LINEAGE.persons.filter(p => p.father === cur && !p.spouseOf).forEach(k => {
+        out.push(k); queue.push(k.id);
+      });
+    }
+    return out;
+  }
+
+  // After a move, every descendant's generation shifts by the same amount, and so
+  // does each of their spouses. Returns how many rows were rewritten.
+  async function cascadeGen(rootId, delta) {
+    if (!delta) return 0;
+    const kin = descendantsOf(rootId);
+    LINEAGE.persons.forEach(sp => {
+      if (sp.spouseOf && (sp.spouseOf === rootId || kin.some(k => k.id === sp.spouseOf))) kin.push(sp);
+    });
+    let n = 0;
+    for (const k of kin) {
+      if (k.gen == null) continue;
+      await writePerson(k.id, { gen: k.gen + delta });
+      n++;
+    }
+    return n;
+  }
+
+  // A <select> of everyone, generation-ordered, for the move / merge pickers.
+  function personPickerOptions(excludeId) {
+    return LINEAGE.persons
+      .filter(p => p.id !== excludeId)
+      .slice()
+      .sort((a, b) => (a.gen || 0) - (b.gen || 0) || String(a.name).localeCompare(String(b.name)))
+      .map(p => `<option value="${p.id}">${p.gen != null ? "第" + p.gen + "世 · " : ""}${esc(p.name)}${p.pinyin ? " " + esc(p.pinyin) : ""}</option>`)
+      .join("");
+  }
+
+  // Fill every {placeholder} in a phrase — String.replace() only does the first.
+  function fill(str, vals) {
+    return Object.keys(vals).reduce((out, k) => out.split("{" + k + "}").join(vals[k]), String(str));
+  }
+
+  // Generation implied by a relationship, or null when it can't be worked out.
+  function genFor(relationship, target) {
+    if (!target || target.gen == null) return null;
+    if (relationship === "child") return target.gen + 1;
+    if (relationship === "parent") return target.gen - 1;
+    return target.gen;                                  // spouse and sibling sit level
+  }
+
+  // Panel shown inside the drawer by the three admin buttons.
+  function adminToolPanel(mode, p) {
+    const T = I18N.t;
+    if (mode === "move") {
+      return `<div class="admin-tool" id="admin-tool">
+        <div class="field-section">${T("at_move_h")}</div>
+        <p class="muted">${fill(T("at_move_intro"), { name: esc(p.name) })}</p>
+        <label>${T("at_rel")}
+          <select id="at-rel">
+            <option value="child">${T("at_rel_child")}</option>
+            <option value="spouse">${T("at_rel_spouse")}</option>
+            <option value="sibling">${T("at_rel_sibling")}</option>
+          </select>
+        </label>
+        <label>${T("at_person")}<select id="at-target">${personPickerOptions(p.id)}</select></label>
+        <p class="at-preview" id="at-preview"></p>
+        <div class="admin-tool-actions">
+          <button class="action" id="at-apply">${T("at_apply")}</button>
+          <button class="action ghost" id="at-cancel">${T("at_cancel")}</button>
+        </div>
+      </div>`;
+    }
+    if (mode === "merge") {
+      return `<div class="admin-tool" id="admin-tool">
+        <div class="field-section">${T("at_merge_panel_h")}</div>
+        <p class="muted">${fill(T("at_merge_intro"), { name: esc(p.name) })}</p>
+        <label>${fill(T("at_merge_pick"), { name: esc(p.name) })}<select id="at-target">${personPickerOptions(p.id)}</select></label>
+        <p class="at-preview" id="at-preview"></p>
+        <div class="admin-tool-actions">
+          <button class="action" id="at-apply">${T("at_merge_apply")}</button>
+          <button class="action ghost" id="at-cancel">${T("at_cancel")}</button>
+        </div>
+      </div>`;
+    }
+    const kids = LINEAGE.persons.filter(x => (x.father === p.id || x.spouseOf === p.id));
+    return `<div class="admin-tool" id="admin-tool">
+      <div class="field-section">${T("at_arch_panel_h")}</div>
+      <p class="muted">${fill(T("at_arch_intro"), { name: esc(p.name) })}</p>
+      ${kids.length ? `<p class="at-warn">${fill(T("at_arch_warn"), { n: kids.length })}<br>${kids.slice(0, 8).map(k => esc(k.name)).join("、")}${kids.length > 8 ? "…" : ""}</p>` : ""}
+      <label>${T("at_arch_reason")}<input id="at-reason" placeholder="${T("at_arch_reason_ph")}"></label>
+      <div class="admin-tool-actions">
+        <button class="action danger" id="at-apply">${T("at_arch_apply")}</button>
+        <button class="action ghost" id="at-cancel">${T("at_cancel")}</button>
+      </div>
+    </div>`;
+  }
+
+  function openAdminTool(mode, id) {
+    const p = personById(id); if (!p) return;
+    const T = I18N.t;
+    const host = $("#drawer-body");
+    const existing = $("#admin-tool"); if (existing) existing.remove();
+    host.insertAdjacentHTML("beforeend", adminToolPanel(mode, p));
+    const panel = $("#admin-tool");
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const sel = $("#at-target"), rel = $("#at-rel"), prev = $("#at-preview");
+
+    function refresh() {
+      if (!prev) return;
+      const t = personById(sel.value);
+      if (!t) { prev.textContent = ""; return; }
+      if (mode === "move") {
+        // Refuse a move that would put someone under their own descendant before the
+        // admin commits to it, rather than only failing on apply.
+        if (descendantsOf(p.id).some(d => d.id === t.id)) {
+          prev.innerHTML = `<span class="at-warn-inline">${T("at_err_loop")}</span>`;
+          return;
+        }
+        const g = genFor(rel.value, t);
+        if (g == null) { prev.textContent = T("at_prev_nogen"); return; }
+        const delta = p.gen == null ? 0 : g - p.gen;
+        const kin = descendantsOf(p.id).length;
+        prev.innerHTML = fill(T("at_prev_move"), { name: esc(p.name), gen: g, was: p.gen == null ? "—" : p.gen })
+          + (delta && kin ? "<br>" + fill(T("at_prev_cascade"), { n: kin, d: delta > 0 ? "+" + delta : delta }) : "");
+      } else if (mode === "merge") {
+        const moving = LINEAGE.persons.filter(x => x.father === t.id || x.spouseOf === t.id).length;
+        prev.innerHTML = fill(T("at_prev_merge"), { dup: esc(t.name), keep: esc(p.name), n: moving });
+      }
+    }
+    if (sel) sel.onchange = refresh;
+    if (rel) rel.onchange = refresh;
+    refresh();
+
+    $("#at-cancel").onclick = () => panel.remove();
+    $("#at-apply").onclick = async () => {
+      const btn = $("#at-apply"); btn.disabled = true; btn.textContent = T("at_working");
+      try {
+        if (mode === "move") await applyMove(p, rel.value, sel.value);
+        else if (mode === "merge") await applyMerge(p, sel.value);
+        else await applyArchive(p, ($("#at-reason") || {}).value || null);
+        await loadLiveData();
+        if (mode === "archive") { closeDrawer(); }
+        else openPerson(p.id);
+      } catch (e) {
+        alert(T("at_failed") + (e.message || e));
+        btn.disabled = false; btn.textContent = T("at_apply");
+      }
+    };
+  }
+
+  async function applyMove(p, relationship, targetId) {
+    const t = personById(targetId);
+    if (!t) throw new Error("pick someone first");
+    if (descendantsOf(p.id).some(d => d.id === targetId))
+      throw new Error(I18N.t("at_err_loop"));
+    const g = genFor(relationship, t);
+    const fields = { gen: g };
+    if (relationship === "child")        { fields.father_id = t.id; fields.spouse_of = null; }
+    else if (relationship === "spouse")  { fields.spouse_of = t.id; fields.father_id = null; }
+    else if (relationship === "sibling") { fields.father_id = t.father || null; fields.spouse_of = null; }
+    const delta = (g == null || p.gen == null) ? 0 : g - p.gen;
+    await writePerson(p.id, fields);
+    if (delta) await cascadeGen(p.id, delta);
+  }
+
+  // Fold `dupId` into `keep`: everything hanging off the duplicate is re-pointed
+  // at the survivor, then the duplicate is archived (never deleted — if the merge
+  // was wrong, restoring it brings the record back).
+  async function applyMerge(keep, dupId) {
+    const sb = Auth.client(); if (!sb) throw new Error("not connected");
+    const dup = personById(dupId);
+    if (!dup) throw new Error("pick someone first");
+    if (keep.id === dupId) throw new Error("same person");
+    for (const k of LINEAGE.persons.filter(x => x.father === dupId && !x.spouseOf))
+      await writePerson(k.id, { father_id: keep.id });
+    for (const sp of LINEAGE.persons.filter(x => x.spouseOf === dupId))
+      await writePerson(sp.id, { spouse_of: keep.id });
+    // carry photos, private details and contacts across; ignore what isn't there
+    for (const tbl of [["media", "person_id"], ["person_details", "person_id"], ["contacts", "person_id"]]) {
+      try { await sb.from(tbl[0]).update({ [tbl[1]]: keep.id }).eq(tbl[1], dupId); } catch (_) { /* table absent or nothing to move */ }
+    }
+    await applyArchive(dup, "merged into " + keep.id + " (" + keep.name + ")");
+  }
+
+  async function applyArchive(p, reason) {
+    const me = Auth.state();
+    await writePerson(p.id, {
+      archived: true,
+      archived_at: new Date().toISOString(),
+      archived_by: me.user ? me.user.id : null,
+      archived_reason: reason || null
+    });
+  }
+
+  async function restorePerson(id) {
+    try {
+      await writePerson(id, { archived: false, archived_at: null, archived_by: null, archived_reason: null });
+      await loadLiveData();
+      await buildArchivedList();
+    } catch (e) { alert(I18N.t("at_failed") + (e.message || e)); }
+  }
+
+  // Archived people are filtered out of the tree, so read them straight from the
+  // table (RLS returns them to admins only).
+  async function buildArchivedList() {
+    const host = $("#archived-list"); if (!host) return;
+    const sb = Auth.client();
+    if (!sb) { host.innerHTML = ""; return; }
+    const { data } = await sb.from("persons").select("*").eq("archived", true);
+    const rows = data || [];
+    host.innerHTML = rows.length
+      ? rows.map(r => `<div class="arch-row">
+          <span><b>${esc(r.name)}</b> ${r.pinyin ? esc(r.pinyin) : ""} ${r.gen != null ? "· 第" + r.gen + "世" : ""}
+          ${r.archived_reason ? `<br><span class="muted">${esc(r.archived_reason)}</span>` : ""}</span>
+          <button class="action" data-restore="${r.id}">${I18N.t("at_restore")}</button>
+        </div>`).join("")
+      : `<p class="muted">${I18N.t("at_none")}</p>`;
+    $$("#archived-list [data-restore]").forEach(b => b.onclick = () => restorePerson(b.dataset.restore));
   }
 
   // Clear a person's ⚠ "needs verification" badge by lifting confidence to "high".
@@ -1134,10 +1427,19 @@
       ${contactHtml}
       ${(p.confidence === "low" && (ADMIN || me.isAdmin)) ? `<button class="action verify-action" data-verify="${p.id}">${T("d_verify")}</button>` : ""}
       <button class="action" data-edit="${p.id}">${T("d_suggest")}</button>
+      ${me.isAdmin ? `
+        <div class="field-section">${T("at_section")}</div>
+        <div class="admin-tools">
+          <button class="action" data-tool="move" data-id="${p.id}">${T("at_move")}</button>
+          <button class="action" data-tool="merge" data-id="${p.id}">${T("at_merge")}</button>
+          <button class="action danger" data-tool="archive" data-id="${p.id}">${T("at_arch")}</button>
+        </div>` : ""}
     `;
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
     const vBtn = $("#drawer-body [data-verify]");
     if (vBtn) vBtn.onclick = () => markVerified(p.id);
+    $$("#drawer-body [data-tool]").forEach(b =>
+      b.onclick = () => openAdminTool(b.dataset.tool, b.dataset.id));
     $("#drawer-body [data-edit]").onclick = () => {
       Contribute.prefill(personPrefill(p));   // carry this person's data into the form
       closeDrawer();

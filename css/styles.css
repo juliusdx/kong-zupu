@@ -666,3 +666,24 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   .tree-toolbar label,.map-toolbar label{min-height:36px;display:inline-flex;align-items:center}
   .layer-toggle,.tree-toolbar input[type=checkbox]{width:20px;height:20px}
 }
+
+/* ---- Admin person tools (move · merge · archive) -------------------------- */
+.admin-tools{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}
+.admin-tools .action{margin-top:0;flex:1 1 auto}
+#drawer button.action.danger{border-color:var(--seal);color:var(--seal)}
+#drawer button.action.danger:hover{background:var(--seal);color:var(--paper)}
+#drawer button.action.ghost{opacity:.75}
+.admin-tool{margin-top:.9rem;padding:.8rem;border:1px solid var(--line);border-radius:8px;background:var(--paper-2)}
+.admin-tool label{display:block;margin:.5rem 0;font-size:.85rem;color:var(--ink-soft)}
+.admin-tool select,.admin-tool input{width:100%;margin-top:.25rem;padding:.4rem;border:1px solid var(--line);
+  border-radius:5px;background:var(--paper);color:var(--ink);font-family:inherit;font-size:.9rem}
+.admin-tool .field-section{margin-top:0;border-top:none;padding-top:0}
+.at-preview{margin:.6rem 0 0;font-size:.85rem;color:var(--ink);line-height:1.5}
+.at-warn{margin:.6rem 0 0;padding:.5rem .6rem;border-left:3px solid var(--seal);
+  background:rgba(158,43,37,.07);font-size:.85rem;line-height:1.5}
+.admin-tool-actions{display:flex;gap:.5rem;margin-top:.8rem}
+.admin-tool-actions .action{margin-top:0;flex:1 1 auto}
+.arch-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.8rem;
+  padding:.6rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.arch-row .action{margin-top:0;white-space:nowrap}
+.at-warn-inline{color:var(--seal);font-weight:600}

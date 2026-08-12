@@ -210,13 +210,20 @@
     wrap.innerHTML = head + "<p class='muted'>" + T("r_loading") + "</p>";
     try {
       const sb = Auth.client();
-      const [pendingRes, histRes] = await Promise.all([
+      // members_admin is admin-only and carries name + email, so the log can name the
+      // reviewer rather than showing a bare uuid. With several people approving now,
+      // "who decided this" matters as much as "what changed".
+      const [pendingRes, histRes, memRes] = await Promise.all([
         sb.from("contributions").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-        sb.from("contributions").select("*").neq("status", "pending").order("reviewed_at", { ascending: false }).limit(50)
+        sb.from("contributions").select("*").neq("status", "pending").order("reviewed_at", { ascending: false }).limit(50),
+        sb.from("members_admin").select("id, email, full_name")
       ]);
       if (pendingRes.error) throw pendingRes.error;
       const pending = pendingRes.data || [];
       const history = histRes.data || [];
+      const reviewerById = {};
+      (memRes && memRes.data || []).forEach(m => { reviewerById[m.id] = m.full_name || m.email || m.id; });
+      const reviewerName = uid => uid ? esc(reviewerById[uid] || uid.slice(0, 8) + "…") : "—";
 
       let html = head;
       html += pending.length
@@ -279,17 +286,21 @@
           <h3 class="rh-head">${T("r_history")}</h3>
           <table class="rh-table"><thead><tr>
             <th>${T("r_hist_reviewed")}</th><th>${T("r_hist_action")}</th>
-            <th>${T("r_hist_who")}</th><th>${T("r_hist_status")}</th><th>${T("r_hist_reason")}</th>
+            <th>${T("r_hist_who")}</th><th>${T("r_hist_by")}</th><th>${T("r_hist_status")}</th><th>${T("r_hist_reason")}</th>
           </tr></thead><tbody>` +
           history.map(c => {
             const p = c.payload || {};
-            const reviewed = c.reviewed_at ? new Date(c.reviewed_at).toLocaleDateString() : "—";
+            const when = c.reviewed_at ? new Date(c.reviewed_at) : null;
+            const reviewed = when
+              ? `<span title="${esc(when.toLocaleString())}">${esc(when.toLocaleDateString())}</span>`
+              : "—";
             const who = esc(p.contributor || p.contributorContact || "—");
             const badge = c.status === "approved"
               ? `<span class="rh-badge rh-ok">✓ approved</span>`
               : `<span class="rh-badge rh-no">✗ rejected</span>`;
             const reason = c.rejection_reason ? esc(c.rejection_reason) : "—";
-            return `<tr><td>${reviewed}</td><td class="rh-detail">${histDetail(p)}</td><td>${who}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
+            return `<tr><td>${reviewed}</td><td class="rh-detail">${histDetail(p)}</td><td>${who}</td>` +
+                   `<td class="rh-by">${reviewerName(c.reviewed_by)}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
           }).join("") +
           `</tbody></table></div>`;
       }
@@ -342,8 +353,14 @@
           const btn = canApprove
             ? `<button class="primary" data-approve-member="${esc(r.id)}">${T("m_approve")}</button>`
             : (r.is_admin ? "" : `<button class="ghost" data-revoke-member="${esc(r.id)}">${T("m_revoke")}</button>`);
+          // Reviewer rights are only offered to already-approved members, and never
+          // for yourself — set_member_admin refuses self-demotion server-side too.
+          const adminBtn = canApprove || self ? ""
+            : (r.is_admin
+                ? `<button class="ghost" data-demote="${esc(r.id)}">${T("m_demote")}</button>`
+                : `<button class="ghost" data-promote="${esc(r.id)}">${T("m_promote")}</button>`);
           return `<tr><td>${name}${badges}</td><td class="mem-email">${esc(r.email || "—")}</td>` +
-                 `<td>${joined}</td><td class="mem-act">${btn}</td></tr>`;
+                 `<td>${joined}</td><td class="mem-act">${btn} ${adminBtn}</td></tr>`;
         }).join("") + `</tbody></table>`;
 
       let html = head + `<p class="muted">${T("m_intro")}</p>`;
@@ -357,11 +374,29 @@
         b.onclick = () => setMemberApproved(b.dataset.approveMember, true));
       wrap.querySelectorAll("[data-revoke-member]").forEach(b =>
         b.onclick = () => { if (confirm(T("m_revoke_confirm"))) setMemberApproved(b.dataset.revokeMember, false); });
+      wrap.querySelectorAll("[data-promote]").forEach(b =>
+        b.onclick = () => { if (confirm(T("m_promote_confirm"))) setMemberAdmin(b.dataset.promote, true); });
+      wrap.querySelectorAll("[data-demote]").forEach(b =>
+        b.onclick = () => { if (confirm(T("m_demote_confirm"))) setMemberAdmin(b.dataset.demote, false); });
 
       membersPending = pending.length;
       updateMembersBadge();
     } catch (e) {
       wrap.innerHTML = head + `<p class="muted">${T("m_error")}${esc(e.message)}</p>`;
+    }
+  }
+
+  // Grant or remove reviewer rights. The RPC re-checks is_admin() and refuses
+  // self-demotion, so the UI guards here are convenience, not security.
+  async function setMemberAdmin(id, makeAdmin) {
+    const msg = $("#mem-msg");
+    if (msg) msg.textContent = I18N.t("m_working");
+    try {
+      const { error } = await Auth.client().rpc("set_member_admin", { target_id: id, make_admin: makeAdmin });
+      if (error) throw error;
+      await buildMembers();
+    } catch (e) {
+      if (msg) msg.textContent = I18N.t("m_error") + e.message;
     }
   }
 
@@ -1281,14 +1316,27 @@
     const host = $("#archived-list"); if (!host) return;
     const sb = Auth.client();
     if (!sb) { host.innerHTML = ""; return; }
-    const { data } = await sb.from("persons").select("*").eq("archived", true);
+    const [{ data }, mem] = await Promise.all([
+      sb.from("persons").select("*").eq("archived", true),
+      sb.from("members_admin").select("id, email, full_name")
+    ]);
+    const byId = {};
+    (mem && mem.data || []).forEach(m => { byId[m.id] = m.full_name || m.email || m.id; });
     const rows = data || [];
     host.innerHTML = rows.length
-      ? rows.map(r => `<div class="arch-row">
-          <span><b>${esc(r.name)}</b> ${r.pinyin ? esc(r.pinyin) : ""} ${r.gen != null ? "· 第" + r.gen + "世" : ""}
-          ${r.archived_reason ? `<br><span class="muted">${esc(r.archived_reason)}</span>` : ""}</span>
-          <button class="action" data-restore="${r.id}">${I18N.t("at_restore")}</button>
-        </div>`).join("")
+      ? rows.map(r => {
+          // Who removed this, and when — the same accountability the review log has.
+          const who = r.archived_by ? esc(byId[r.archived_by] || r.archived_by.slice(0, 8) + "…") : null;
+          const when = r.archived_at ? new Date(r.archived_at).toLocaleDateString() : null;
+          const trail = who || when
+            ? `<br><span class="muted">${fill(I18N.t("at_arch_by"), { who: who || "—", when: when || "—" })}</span>`
+            : "";
+          return `<div class="arch-row">
+            <span><b>${esc(r.name)}</b> ${r.pinyin ? esc(r.pinyin) : ""} ${r.gen != null ? "· 第" + r.gen + "世" : ""}
+            ${r.archived_reason ? `<br><span class="muted">${esc(r.archived_reason)}</span>` : ""}${trail}</span>
+            <button class="action" data-restore="${r.id}">${I18N.t("at_restore")}</button>
+          </div>`;
+        }).join("")
       : `<p class="muted">${I18N.t("at_none")}</p>`;
     $$("#archived-list [data-restore]").forEach(b => b.onclick = () => restorePerson(b.dataset.restore));
   }

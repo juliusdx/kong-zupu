@@ -1,34 +1,83 @@
 /* Lineage tree — top-down, generation-banded, collapsible. D3 v7. */
 (function () {
-  const NODE_W = 132, NODE_H = 58, H_GAP = 26, V_GAP = 112;
-  const SPOUSE_W = 96, SP_GAP = 10;                 // spouse mini-card width + gap from main card
+  // Cards are sized for the longest names the family actually uses — Sabah relatives
+  // carry four-part romanised names ("Justina Nyuk Lan Kong", "Dr. Yuet Yu Kong Yit
+  // Sin") that a Chinese-width card could only show by shrinking to a squint or
+  // cutting off. Wide enough to wrap them onto two lines instead.
+  const NODE_W = 150, NODE_H = 72, H_GAP = 26, V_GAP = 126;
+  const SPOUSE_W = 116, SP_GAP = 10;                // spouse mini-card width + gap from main card
+  const SPOUSE_H = 56;                              // tall enough for a two-line name + romanisation
   const SPOUSE_DX = NODE_W / 2 + SP_GAP + SPOUSE_W / 2;   // spouse centre, fully right of main card
   const AV_R = 17, AV_CX = -NODE_W / 2 + 15;   // avatar radius + local x (left edge of card)
   // label fitting: usable text width with / without an avatar on the left, plus the
   // rightward shift applied to name+sub so they clear the avatar instead of overlapping it.
-  const LBL_W = NODE_W - 14;       // full width, no photo
-  const LBL_W_PHOTO = 84;          // narrower when an avatar occupies the left of the card
+  const LBL_W = NODE_W - 16;       // full width, no photo
+  const LBL_W_PHOTO = NODE_W - 62; // narrower when an avatar occupies the left of the card
   const LBL_X_PHOTO = 16;          // shift name/sub right, past the avatar
   const HOME_DEPTH = 3;   // first-load view shows generations 1..HOME_DEPTH, deeper branches collapsed
+  const SVGNS = "http://www.w3.org/2000/svg";
 
-  // Fit an SVG <text> into maxW px: first shrink the font (down to minPx) so the WHOLE
-  // name stays readable, and only ellipsis-truncate if it still won't fit at the floor.
+  // Split a phrase into the two lines whose longer half is as short as possible, so a
+  // wrapped name looks balanced rather than "Justina Nyuk Lan / Kong".
+  function bestSplit(measure, full) {
+    const words = full.split(/\s+/).filter(Boolean);
+    if (words.length < 2) return null;
+    let best = null, bestScore = Infinity;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(" "), b = words.slice(i).join(" ");
+      const score = Math.max(measure(a), measure(b));
+      if (score < bestScore) { bestScore = score; best = [a, b, score]; }
+    }
+    return best;
+  }
+
+  function setLines(el, lines, x) {
+    el.textContent = "";
+    lines.forEach((ln, i) => {
+      const t = document.createElementNS(SVGNS, "tspan");
+      t.setAttribute("x", x);
+      if (i) t.setAttribute("dy", "1.05em");
+      t.textContent = ln;
+      el.appendChild(t);
+    });
+  }
+
+  // Fit an SVG <text> into maxW px and report how many lines it used.
+  //   1. fits as-is → done.
+  //   2. wrap:true and it has spaces → break it over two balanced lines, shrinking only
+  //      as far as wrapMin. This is what keeps long romanised names whole and legible.
+  //   3. otherwise → shrink to minPx, then ellipsis-truncate as a last resort.
   // basePx resets the font each render so a reused element doesn't keep an earlier shrink.
-  function fitText(el, full, maxW, basePx, minPx) {
+  function fitText(el, full, maxW, basePx, minPx, wrap) {
+    const x = +(el.getAttribute("x") || 0);
     el.textContent = full || "";
     el.style.fontSize = basePx + "px";
-    if (!full) return;
-    let w = el.getComputedTextLength();
-    if (w <= maxW) return;
-    const size = Math.max(minPx, basePx * (maxW / w));   // linear first estimate
+    if (!full) return 1;
+    const measure = s => { el.textContent = s; return el.getComputedTextLength(); };
+    if (measure(full) <= maxW) { el.textContent = full; return 1; }
+
+    if (wrap && /\s/.test(full)) {
+      const floor = wrap.min || minPx;
+      for (let px = basePx; px >= floor; px -= 0.5) {
+        el.style.fontSize = px + "px";
+        const sp = bestSplit(measure, full);
+        if (sp && sp[2] <= maxW) { setLines(el, [sp[0], sp[1]], x); return 2; }
+      }
+      el.style.fontSize = basePx + "px";                  // no split fit — shrink instead
+    }
+
+    el.textContent = full;
+    const w = el.getComputedTextLength();
+    const size = Math.max(minPx, basePx * (maxW / w));    // linear first estimate
     el.style.fontSize = size + "px";
-    if (el.getComputedTextLength() <= maxW) return;
+    if (el.getComputedTextLength() <= maxW) return 1;
     let s = full;                                         // still too wide at the floor → trim
     while (s.length > 1) {
       s = s.slice(0, -1);
       el.textContent = s.replace(/[\s·]+$/, "") + "…";
       if (el.getComputedTextLength() <= maxW) break;
     }
+    return 1;
   }
   let svg, g, gLinks, gNodes, gBands, gSwim, zoom, ro;
   let opts = { daughters: true, pinyin: true, swim: true, photos: true };
@@ -198,10 +247,10 @@
     const node = gNodes.selectAll("g.node-card").data(nodes, d => d.data.id);
     const nE = node.enter().append("g").attr("class", "node-card");
     nE.append("rect").attr("class", "node-rect").attr("width", NODE_W).attr("height", NODE_H).attr("x", -NODE_W/2).attr("y", -NODE_H/2).attr("rx", 7);
-    nE.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-2");
-    nE.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "11");
-    nE.append("text").attr("class", "node-gen").attr("text-anchor", "middle").attr("dy", "-19");
-    nE.append("text").attr("class", "node-years").attr("text-anchor", "middle").attr("dy", "21");
+    nE.append("text").attr("class", "node-name").attr("text-anchor", "middle");
+    nE.append("text").attr("class", "node-sub").attr("text-anchor", "middle");
+    nE.append("text").attr("class", "node-gen").attr("text-anchor", "middle").attr("dy", "-26");
+    nE.append("text").attr("class", "node-years").attr("text-anchor", "middle");
 
     const all = nE.merge(node);
     all.attr("transform", d => `translate(${d.x},${d.y})`)
@@ -212,17 +261,24 @@
     all.select("text.node-name").each(function (d) {
       const photo = opts.photos && d.data.photo;
       d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
-      fitText(this, d.data.name, photo ? LBL_W_PHOTO : LBL_W, 17 * fs, 9.5);
+      // wrap.min 11 keeps a two-line name readable; below that a single shrunk line reads better
+      d.__nameLines = fitText(this, d.data.name, photo ? LBL_W_PHOTO : LBL_W, 17 * fs, 9.5, { min: 11 });
+      d3.select(this).attr("dy", d.__nameLines > 1 ? -13 : -3);
     });
     all.select("text.node-sub").each(function (d) {
       let s = opts.pinyin ? (d.data.pinyin || "") : "";
       if (d.data.ritualName) s += (s ? " · " : "") + "禮名 " + d.data.ritualName;
       const photo = opts.photos && d.data.photo;   // spouse shown on its own card, not here
-      d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0);
-      fitText(this, s, photo ? LBL_W_PHOTO : LBL_W, 10 * fs, 8);
+      const two = d.__nameLines > 1;
+      d3.select(this).attr("x", photo ? LBL_X_PHOTO : 0).attr("dy", two ? 21 : 12);
+      // the romanisation only wraps when the name above it didn't need the extra line
+      fitText(this, s, photo ? LBL_W_PHOTO : LBL_W, 10 * fs, 8, two ? null : { min: 8.5 });
     });
     all.select("text.node-gen").each(function (d) { fitText(this, relLabel(d.data), LBL_W, 9 * fs, 7); });
-    all.select("text.node-years").each(function (d) { fitText(this, yearStr(d.data), LBL_W, 9 * fs, 7); });
+    all.select("text.node-years").each(function (d) {
+      d3.select(this).attr("dy", d.__nameLines > 1 ? 30 : 25);
+      fitText(this, yearStr(d.data), LBL_W, 9 * fs, 7);
+    });
 
     // candidate flag (unresolved placeholder generations)
     all.selectAll(".cand-flag").remove();
@@ -272,12 +328,15 @@
           .style("cursor", "pointer").on("click", e => { e.stopPropagation(); onSelect(sp.id); });
         gLinks.append("path").attr("class", "link").attr("style", "stroke-dasharray:4 3")
           .attr("d", `M${d.x + NODE_W/2},${d.y} L${d.x + SPOUSE_DX - SPOUSE_W/2},${d.y}`);
-        m.append("rect").attr("class", "node-rect spouse").attr("width", SPOUSE_W).attr("height", 38).attr("x", -SPOUSE_W/2).attr("y", -19).attr("rx", 6);
-        const spName = m.append("text").attr("class", "node-name").attr("text-anchor", "middle").attr("dy", "-1");
-        fitText(spName.node(), sp.name, SPOUSE_W - 12, 14 * fs, 9);
+        m.append("rect").attr("class", "node-rect spouse").attr("width", SPOUSE_W).attr("height", SPOUSE_H)
+          .attr("x", -SPOUSE_W/2).attr("y", -SPOUSE_H/2).attr("rx", 6);
+        const spName = m.append("text").attr("class", "node-name").attr("text-anchor", "middle");
+        const spLines = fitText(spName.node(), sp.name, SPOUSE_W - 14, 14 * fs, 9, { min: 9.5 });
+        spName.attr("dy", spLines > 1 ? -11 : -4);
         const ss = sp.ritualName ? "禮名 " + sp.ritualName : (sp.pinyin || "");
-        const spSub = m.append("text").attr("class", "node-sub").attr("text-anchor", "middle").attr("dy", "12");
-        fitText(spSub.node(), ss, SPOUSE_W - 12, 10 * fs, 8);
+        const spSub = m.append("text").attr("class", "node-sub").attr("text-anchor", "middle")
+          .attr("dy", spLines > 1 ? 20 : 12);
+        fitText(spSub.node(), ss, SPOUSE_W - 14, 10 * fs, 8, spLines > 1 ? null : { min: 8.5 });
       });
     }
     node.exit().remove();

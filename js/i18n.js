@@ -48,7 +48,7 @@
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
       tt_photos: "Photos",
-      tt_home: "⌂ Home", tt_expand: "Expand all", tt_fit: "Fit", tt_swim: "Place · era lanes",
+      tt_home: "⌂ Home", tt_expand: "Expand all", tt_fit: "Fit", tt_export: "⤓ CSV", tt_swim: "Place · era lanes",
       tt_options: "Options", mt_layers: "Layers",
       bc_here: "You are here:",
       tt_verify: "To verify", vp_title: "⚠ Needs verification",
@@ -286,7 +286,7 @@
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
       tt_photos: "相片",
-      tt_home: "⌂ 起點", tt_expand: "全部展開", tt_fit: "置中", tt_swim: "遷徙年代帶（地點・年代）",
+      tt_home: "⌂ 起點", tt_expand: "全部展開", tt_fit: "置中", tt_export: "⤓ 匯出 CSV", tt_swim: "遷徙年代帶（地點・年代）",
       tt_options: "選項", mt_layers: "圖層",
       bc_here: "你在這裡：",
       tt_verify: "待考證", vp_title: "⚠ 待考證清單",

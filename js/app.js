@@ -1652,6 +1652,87 @@
   function openVerify() { buildVerifyList(); $("#verify-panel").classList.add("open"); }
   function closeVerify() { $("#verify-panel").classList.remove("open"); }
 
+  /* ---- CSV export ----------------------------------------------------------
+   * Exports exactly what the current viewer is already allowed to see. The rows are
+   * built from LINEAGE.persons, which RLS has already filtered on the way in: an
+   * anonymous visitor gets the deceased public tree, a signed-in member also gets
+   * living relatives' names and positions, an approved member their birth years and
+   * bios. Private contact details are admin-only and are left out unless the viewer
+   * is an admin — a spreadsheet is easy to forward, so it should not be the one place
+   * that quietly widens who can read a phone number.
+   * ------------------------------------------------------------------------ */
+  const CSV_COLS = [
+    ["id",          p => p.id],
+    ["generation",  p => p.gen],
+    ["name",        p => p.name],
+    ["romanization", p => p.pinyin],
+    ["ritual_name", p => p.ritualName],
+    ["formal_name", p => p.formalName],
+    ["style_hao",   p => [p.style, p.hao].filter(Boolean).join(" / ")],
+    ["milk_name",   p => p.milkName],
+    ["also_known_as", p => p.aka],
+    ["gender",      p => p.gender === "f" ? "female" : "male"],
+    ["living",      p => p.living ? "yes" : "no"],
+    ["relation",    p => p.relation],
+    ["father_id",   p => p.father],
+    ["father_name", p => { const f = p.father && personById(p.father); return f ? f.name : ""; }],
+    ["spouse_of_id", p => p.spouseOf],
+    ["spouse_of_name", p => { const f = p.spouseOf && personById(p.spouseOf); return f ? f.name : ""; }],
+    ["spouse_name", p => { const sp = Tree.spouseFor(p.id); return sp ? sp.name : ""; }],
+    ["children",    p => LINEAGE.persons.filter(k => k.father === p.id && !k.spouseOf)
+                          .map(k => k.name).join("; ")],
+    ["birth_year",  p => p.birthYear],
+    ["death_year",  p => p.deathYear],
+    ["lifespan",    p => p.lifespan],
+    ["married_out", p => p.marriedOut],
+    ["religion",    p => p.religion],
+    ["birth_place", p => placeName(p.birthPlace)],
+    ["residence_place", p => placeName(p.residencePlace)],
+    ["burial_place", p => placeName(p.burialPlace)],
+    ["confidence",  p => p.confidence],
+    ["bio",         p => p.bio],
+    ["note",        p => p.note]
+  ];
+  const CSV_CONTACT_COLS = [
+    ["phone",  p => p.contact && p.contact.phone],
+    ["wechat", p => p.contact && p.contact.wechat],
+    ["email",  p => p.contact && p.contact.email],
+    ["address", p => p.contact && p.contact.address]
+  ];
+  function placeName(id) { const pl = id && placeById(id); return pl ? pl.name : ""; }
+
+  // Quote per RFC 4180, and defuse anything a spreadsheet would run as a formula:
+  // a leading = + - @ turns the cell into an expression in Excel and Sheets.
+  function csvCell(v) {
+    let t = v == null ? "" : String(v);
+    if (/^[=+\-@]/.test(t)) t = "'" + t;
+    return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  }
+  function buildCsv() {
+    const cols = Auth.state().isAdmin ? CSV_COLS.concat(CSV_CONTACT_COLS) : CSV_COLS;
+    const rows = LINEAGE.persons.slice().sort((a, b) =>
+      (a.gen || 0) - (b.gen || 0) || String(a.name).localeCompare(String(b.name)));
+    const lines = [cols.map(c => csvCell(c[0])).join(",")];
+    rows.forEach(p => lines.push(cols.map(c => {
+      let v; try { v = c[1](p); } catch (_) { v = ""; }
+      return csvCell(v);
+    }).join(",")));
+    return lines.join("\r\n");
+  }
+  function exportCsv() {
+    // The BOM is what makes Excel read the Chinese as UTF-8 instead of mojibake.
+    const blob = new Blob(["\uFEFF" + buildCsv()], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const d = new Date(), pad = n => String(n).padStart(2, "0");
+    a.href = url;
+    a.download = `kong-zupu-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /* ---- Search (live autocomplete dropdown) ----------------------------------
    * Stored romanisations are HAKKA — "Nyiap Len", "Fui Chung", "Yit Sin" — because
    * that is how the Sabah family spells its own names. A relative who only knows
@@ -2390,6 +2471,10 @@
     $("#btn-home").onclick = () => { Tree.home(); hideBreadcrumb(); };
     $("#btn-expand").onclick = () => Tree.expandAll();
     $("#btn-fit").onclick = () => Tree.fit();
+    // Guarded: a returning visitor can hold a cached index.html while picking up fresh
+    // JS, and an unguarded assignment here would throw and abandon the rest of init().
+    const exportBtn = $("#btn-export");
+    if (exportBtn) exportBtn.onclick = exportCsv;
     $("#btn-verify").onclick = openVerify;
     $("#verify-close").onclick = closeVerify;
     updateVerifyCount();

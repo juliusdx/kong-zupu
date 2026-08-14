@@ -687,3 +687,5 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
   padding:.6rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
 .arch-row .action{margin-top:0;white-space:nowrap}
 .at-warn-inline{color:var(--seal);font-weight:600}
+.sr-py{opacity:.85}
+.sr-py mark{background:rgba(176,136,51,.28)}

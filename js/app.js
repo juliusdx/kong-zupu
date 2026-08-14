@@ -786,6 +786,7 @@
         const main = ap.find(m => m.cover) || ap[0];
         if (main) p.photo = main.url; else delete p.photo;
       });
+      clearPyCache();                            // names may have changed — rebuild on demand
       Tree.render("#tree-canvas", openPerson);   // re-index + redraw with merged data
       if (window.MapView && MapView.refresh) MapView.refresh();
       updateVerifyCount();
@@ -1651,14 +1652,98 @@
   function openVerify() { buildVerifyList(); $("#verify-panel").classList.add("open"); }
   function closeVerify() { $("#verify-panel").classList.remove("open"); }
 
-  /* ---- Search (live autocomplete dropdown) ---- */
+  /* ---- Search (live autocomplete dropdown) ----------------------------------
+   * Stored romanisations are HAKKA — "Nyiap Len", "Fui Chung", "Yit Sin" — because
+   * that is how the Sabah family spells its own names. A relative who only knows
+   * Mandarin pinyin would type "ye" and find nothing, though 業 is right there. So
+   * alongside the stored fields we index the Mandarin reading of every Chinese
+   * character (data/pinyin.js, loaded on first keystroke) and match against that too.
+   * Comparing both sides as pinyin also makes 业 find 業 without a
+   * simplified↔traditional conversion table.
+   * ------------------------------------------------------------------------- */
   const SEARCH_FIELDS = ["name", "pinyin", "ritualName", "ritualPinyin", "style", "formalName", "hao", "milkName", "aka"];
+  const CN_FIELDS = ["name", "ritualName", "style", "formalName", "hao", "milkName", "aka"];
+  const HAN = /[\u3400-\u9fff]/;
   const SEARCH_LIMIT = 20;
   let searchMatches = [], searchActive = -1;
+
+  // char → [readings]. Null until data/pinyin.js has loaded; every pinyin path is a
+  // no-op before then, so search keeps working on the stored fields alone.
+  let pyChar = null, pyLoading = null;
+  function loadPinyin() {
+    if (pyChar || pyLoading) return pyLoading || Promise.resolve(pyChar);
+    pyLoading = new Promise(resolve => {
+      const el = document.createElement("script");
+      el.src = "data/pinyin.js";
+      el.onload = () => {
+        const m = {};
+        Object.keys(window.PY_GROUPS || {}).forEach(syl => {
+          for (const ch of window.PY_GROUPS[syl]) (m[ch] = m[ch] || []).push(syl);
+        });
+        pyChar = m;
+        pyCache = {};                       // index was built without readings — redo it
+        if ($("#search") && $("#search").value.trim()) renderSearch($("#search").value);
+        resolve(pyChar);
+      };
+      el.onerror = () => { pyChar = {}; resolve(pyChar); };   // degrade quietly
+      document.head.appendChild(el);
+    });
+    return pyLoading;
+  }
+
+  // Per-person index, rebuilt whenever the live data reloads (clearPyCache()).
+  //   join     first reading of each char, run together   → 惠良 "huiliang"
+  //   bag      every reading of every char, space-delimited → " hui liang "
+  //   initials first letters of the first readings          → "hl"
+  //   display  first readings, spaced, for the dropdown     → "hui liang"
+  let pyCache = {};
+  function clearPyCache() { pyCache = {}; }
+  function pyIndex(p) {
+    if (pyCache[p.id]) return pyCache[p.id];
+    const join = [], bag = new Set(), initials = [], display = [];
+    // The stored romanisations are spaced ("Yik Liang", "Fui Leong"), so someone typing
+    // them as one word found nothing. Index them stripped as well.
+    const roman = SEARCH_FIELDS.map(f => p[f] || "").join(" ").toLowerCase().replace(/[^a-z]/g, "");
+    if (pyChar) {
+      for (const f of CN_FIELDS) {
+        const v = p[f]; if (!v) continue;
+        const parts = [];
+        for (const ch of String(v)) {
+          const rs = pyChar[ch];
+          if (!rs || !rs.length) continue;
+          rs.forEach(r => bag.add(r));
+          parts.push(rs[0]);
+          initials.push(rs[0][0]);
+        }
+        if (parts.length) { join.push(parts.join("")); if (f === "name") display.push(parts.join(" ")); }
+      }
+    }
+    return (pyCache[p.id] = {
+      roman,
+      join: join.join(" "),
+      bag: bag.size ? " " + [...bag].join(" ") + " " : "",
+      initials: initials.join(""),
+      display: display.join(" ")
+    });
+  }
+
+  // A query may itself be Chinese (possibly the other script): read it as pinyin so it
+  // can be compared with the index. Returns "" when nothing maps.
+  function queryToPinyin(q) {
+    if (!pyChar) return "";
+    const out = [];
+    for (const ch of q) {
+      const rs = pyChar[ch];
+      if (rs && rs.length) out.push(rs[0]);
+    }
+    return out.join("");
+  }
 
   function searchHits(q) {
     q = q.trim().toLowerCase();
     if (!q) return [];
+    const latin = q.replace(/[^a-z]/g, "");          // "yong hong" / "yong-hong" → "yonghong"
+    const asPinyin = HAN.test(q) ? queryToPinyin(q) : "";
     const scored = [];
     for (const p of LINEAGE.persons) {
       let rank = 99;
@@ -1667,6 +1752,25 @@
         const idx = String(v).toLowerCase().indexOf(q);
         if (idx === 0) { rank = 0; break; }       // prefix match ranks first
         if (idx > 0) rank = Math.min(rank, 1);    // substring match
+      }
+      if (rank > 1 && latin) {
+        const ix = pyIndex(p);
+        if (ix.roman.startsWith(latin)) rank = 0;          // "yikliang" → "Yik Liang"
+        else if (ix.roman.includes(latin)) rank = Math.min(rank, 1);
+      }
+      if (rank > 1 && pyChar) {
+        const ix = pyIndex(p);
+        const probe = asPinyin || latin;
+        if (probe) {
+          // 2 the name read in Mandarin starts with what was typed ("huiliang" → 惠良)
+          // 3 one whole character is read that way ("ye" → 業 / 业 / 葉)
+          // 4 it falls inside the reading but across syllables — a weaker, coincidental hit
+          // 5 the initials spell it ("hl" → 惠良), only once it is unambiguous
+          if (ix.join.startsWith(probe) || ix.join.includes(" " + probe)) rank = Math.min(rank, 2);
+          else if (probe.length > 1 && ix.bag.includes(" " + probe + " ")) rank = Math.min(rank, 3);
+          else if (ix.join.includes(probe)) rank = Math.min(rank, 4);
+          else if (probe.length > 1 && ix.initials.startsWith(probe)) rank = Math.min(rank, 5);
+        }
       }
       if (rank < 99) scored.push({ p, rank });
     }
@@ -1691,12 +1795,20 @@
       box.classList.add("open"); return;
     }
     const ql = q.toLowerCase();
+    const latin = ql.replace(/[^a-z]/g, "");
     box.innerHTML = searchMatches.map((p, i) => {
       const sub = [];
       if (p.pinyin) sub.push(hl(p.pinyin, q));
       ["ritualName", "style", "formalName", "hao", "milkName", "aka"].forEach(f => {
         if (p[f] && String(p[f]).toLowerCase().includes(ql)) sub.push(hl(p[f], q));
       });
+      // The stored romanisation is Hakka, so when a Mandarin query is what matched,
+      // say so — otherwise the row looks unrelated to what was typed.
+      const ix = pyChar ? pyIndex(p) : null;
+      if (ix && ix.display && latin && !String(p.pinyin || "").toLowerCase().includes(ql)
+          && (ix.join.includes(latin) || ix.bag.includes(" " + latin) || ix.initials.startsWith(latin))) {
+        sub.push(`<span class="sr-py">${I18N.t("search_mandarin")} ${hl(ix.display, latin)}</span>`);
+      }
       const gen = p.gen != null ? "第" + p.gen + "世" : "";
       const subTxt = sub.filter(Boolean).join(" · ");
       return `<li role="option" data-id="${p.id}" data-i="${i}">
@@ -2222,7 +2334,11 @@
     $("#verify-close").onclick = closeVerify;
     updateVerifyCount();
     const sEl = $("#search");
-    sEl.addEventListener("input", e => renderSearch(e.target.value));
+    // The pinyin table is ~73 KB, so it is fetched the moment someone shows intent to
+    // search rather than on every page load. Results render immediately from the stored
+    // fields and re-render once it arrives.
+    sEl.addEventListener("focus", loadPinyin, { once: true });
+    sEl.addEventListener("input", e => { loadPinyin(); renderSearch(e.target.value); });
     sEl.addEventListener("focus", e => { if (e.target.value.trim()) renderSearch(e.target.value); });
     sEl.addEventListener("keydown", e => {
       if (e.key === "ArrowDown") { e.preventDefault(); moveActive(1); }

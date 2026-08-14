@@ -42,6 +42,7 @@
       r_tx_current: "Current text",
       r_tx_new: "Suggested text",
       search_ph: "Search name / 名…", search_none: "No matches", search_more: " more…",
+      search_mandarin: "Mandarin:",
       auth_signin: "Sign in", auth_guest: "Guest",
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
 
@@ -279,6 +280,7 @@
       r_tx_current: "原文",
       r_tx_new: "建議",
       search_ph: "搜尋姓名 / 名…", search_none: "沒有相符", search_more: " 項…",
+      search_mandarin: "普通話：",
       auth_signin: "登入", auth_guest: "訪客",
       auth_signout_confirm: "登出？", lang_switch: "EN",
 

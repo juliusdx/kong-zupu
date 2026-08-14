@@ -249,7 +249,7 @@
               milkName:"milk name", aka:"also known as", gender:"gender", gen:"generation",
               birth:"birth year", bio:"bio", living:"living", lat:"latitude", lng:"longitude" };
             const skip = new Set(["action","relatedTo","contributor","contributorContact",
-              "contributorLocation","relationship","kinship","siblingOf","contactConsent","submittedAt","status",
+              "contributorLocation","relationship","kinship","siblingOf","cleared","contactConsent","submittedAt","status",
               "photo","personPhone","personWechat","personEmail","changes","submitterEmail","submitterId"]);
             const changes = Object.entries(p)
               .filter(([k, v]) => !skip.has(k) && v !== "" && v != null)
@@ -555,6 +555,15 @@
           fields.living = payload.living === "true";
           fields.visibility = fields.living ? "member" : "public";
         }
+        // Fields the submitter deliberately emptied. They cannot ride along in `fields`
+        // above, because the payload drops empty values before it is stored — so the
+        // intent is carried as a list of field names instead.
+        const CLEARABLE_COLS = { pinyin: "pinyin", ritualName: "ritual_name",
+          milkName: "milk_name", aka: "aka", birth: "birth_year", bio: "bio" };
+        (Array.isArray(payload.cleared) ? payload.cleared : []).forEach(f => {
+          if (CLEARABLE_COLS[f]) fields[CLEARABLE_COLS[f]] = null;
+        });
+
         const { data: upData, error: upErr } = await sb.from("persons")
           .update(fields).eq("id", pid).select();
         if (upErr) throw upErr;
@@ -568,6 +577,23 @@
           const { error: insErr } = await sb.from("persons").upsert(fullRow);
           if (insErr) throw insErr;
         }
+        // Living members keep birth year and bio in person_details, which loadLiveData
+        // applies ON TOP of the persons row — so an edit that only touched persons would
+        // be overwritten again on the next load. Keep the two in step.
+        const detail = {};
+        if (has("birth")) detail.birth_year = payload.birth || null;
+        if (has("bio")) detail.bio = payload.bio || null;
+        (Array.isArray(payload.cleared) ? payload.cleared : []).forEach(f => {
+          if (f === "birth") detail.birth_year = null;
+          if (f === "bio") detail.bio = null;
+        });
+        if (Object.keys(detail).length) {
+          try {
+            const { data: dRow } = await sb.from("person_details").select("person_id").eq("person_id", pid);
+            if (dRow && dRow.length) await sb.from("person_details").update(detail).eq("person_id", pid);
+          } catch (_) { /* table not migrated, or not visible to this admin — persons row stands */ }
+        }
+
         const cur = personById(pid);
         await attachContribPhoto(pid, payload.photo, vis || (cur && cur.living ? "member" : "public"));
         await attachContribContact(pid, payload);

@@ -307,6 +307,11 @@
     }
   }
 
+  // Fields a correction may blank out. Name, gender, generation and living status are
+  // left off deliberately: the first two must always hold a value, and the last two are
+  // derived from the person's place in the tree rather than typed.
+  const CLEARABLE = new Set(["pinyin", "ritualName", "milkName", "aka", "birth", "bio"]);
+
   // Open the form pre-filled to correct an existing person, then let the caller show it.
   function startEdit(data) { prefillData = data; build(); }
   // Drop any stale correction prefill so a normal "Contribute" visit starts blank.
@@ -397,6 +402,11 @@
         if (before !== after) changes.push({ field: k, label: FIELD_LABELS[k], from: before, to: after });
       });
       if (changes.length) data.changes = changes;
+      // Emptying a field is a real edit, but the line below strips empty keys, so a
+      // deliberate "delete this year" arrived looking identical to "didn't mention it"
+      // and the approval quietly did nothing. Record the intent separately.
+      const cleared = changes.filter(c => c.to === "" && CLEARABLE.has(c.field)).map(c => c.field);
+      if (cleared.length) data.cleared = cleared;
     }
 
     // Drop empties so the stored payload and the reviewer's card stay clean.

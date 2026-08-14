@@ -1703,7 +1703,10 @@
     const join = [], bag = new Set(), initials = [], display = [];
     // The stored romanisations are spaced ("Yik Liang", "Fui Leong"), so someone typing
     // them as one word found nothing. Index them stripped as well.
-    const roman = SEARCH_FIELDS.map(f => p[f] || "").join(" ").toLowerCase().replace(/[^a-z]/g, "");
+    const romanRaw = SEARCH_FIELDS.map(f => p[f] || "").join(" ");
+    const roman = romanRaw.toLowerCase().replace(/[^a-z]/g, "");
+    const foldTok = foldPhrase(romanRaw);          // ["matthew","fui","liong"]
+    const fold = foldTok.join("");                 // "matthewfuiliong"
     if (pyChar) {
       for (const f of CN_FIELDS) {
         const v = p[f]; if (!v) continue;
@@ -1719,12 +1722,59 @@
       }
     }
     return (pyCache[p.id] = {
-      roman,
+      roman, fold, foldTok,
       join: join.join(" "),
       bag: bag.size ? " " + [...bag].join(" ") + " " : "",
       initials: initials.join(""),
       display: display.join(" ")
     });
+  }
+
+  /* ---- Hakka spelling variants ---------------------------------------------
+   * The same syllable is spelt a dozen ways across Malaysian family records —
+   * Fui / Fooi, Siew / Siu / Xiu, Chung / Chong / Tsung, Nyuk / Ngiuk, Vun / Woon,
+   * Yee / Yi. Nobody can be expected to guess which one an entry used, so both the
+   * query and the stored spelling are folded to a rough phonetic key before they are
+   * compared, and near-misses are allowed one typo on top of that.
+   * The rules are deliberately loose: this is a 600-person family tree, so finding
+   * cousins matters more than precision, and fuzzy hits rank below exact ones.
+   * ------------------------------------------------------------------------ */
+  function foldRoman(tok) {
+    let s = String(tok).toLowerCase().replace(/[^a-z]/g, "");
+    if (!s) return "";
+    s = s.replace(/ch/g, "C");                     // protect ch before the c/k and s rules
+    s = s.replace(/ph/g, "f").replace(/th/g, "t").replace(/kh/g, "k");
+    s = s.replace(/zh|ts|tz|j|q/g, "C");           // tsun ↔ chun, pinyin ji/qi ↔ chi
+    s = s.replace(/sh/g, "s").replace(/x/g, "s");  // shim ↔ sim, pinyin xiu ↔ siu
+    s = s.replace(/ck/g, "k");
+    s = s.replace(/v/g, "w");                      // vun ↔ wun
+    s = s.replace(/ny|ngi/g, "ni");                // nyuk ↔ ngiuk
+    s = s.replace(/oo/g, "u").replace(/ee|ea/g, "i");   // fooi → fui, yee → yi
+    s = s.replace(/iew|ew/g, "iu").replace(/ei/g, "i"); // siew → siu, mei → mi
+    s = s.replace(/eo|eu/g, "iu");                 // leong ↔ leung
+    s = s.replace(/aw/g, "au").replace(/oy/g, "oi");
+    s = s.replace(/h$/, "");                       // fah → fa, foh → fo
+    s = s.replace(/(.)\1+/g, "$1");                // henn → hen
+    return s.replace(/C/g, "ch");
+  }
+  function foldPhrase(str) {
+    return String(str).toLowerCase().split(/[^a-z]+/i).filter(Boolean).map(foldRoman).filter(Boolean);
+  }
+  // One insertion, deletion or substitution apart — enough for chong/chung, kwok/kok,
+  // yit/yet, without pulling in unrelated names.
+  function nearMiss(a, b) {
+    if (a === b) return true;
+    if (Math.abs(a.length - b.length) > 1) return false;
+    if (a.length < 3 || b.length < 3) return false;
+    let i = 0, j = 0, edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (a.length === b.length) { i++; j++; }
+      else if (a.length > b.length) i++;
+      else j++;
+    }
+    return edits + (a.length - i) + (b.length - j) <= 1;
   }
 
   // A query may itself be Chinese (possibly the other script): read it as pinyin so it
@@ -1743,6 +1793,8 @@
     q = q.trim().toLowerCase();
     if (!q) return [];
     const latin = q.replace(/[^a-z]/g, "");          // "yong hong" / "yong-hong" → "yonghong"
+    const qTok = foldPhrase(q);
+    const qFold = { tok: qTok, join: qTok.join("") };
     const asPinyin = HAN.test(q) ? queryToPinyin(q) : "";
     const scored = [];
     for (const p of LINEAGE.persons) {
@@ -1757,6 +1809,14 @@
         const ix = pyIndex(p);
         if (ix.roman.startsWith(latin)) rank = 0;          // "yikliang" → "Yik Liang"
         else if (ix.roman.includes(latin)) rank = Math.min(rank, 1);
+        else if (qFold.join) {
+          // spelling variants: "fooi leong" → "Fui Leong"
+          if (ix.fold.startsWith(qFold.join)) rank = Math.min(rank, 2);
+          else if (ix.fold.includes(qFold.join)) rank = Math.min(rank, 3);
+          else if (qFold.tok.length && qFold.tok.every(qt =>
+                   ix.foldTok.some(ft => ft.startsWith(qt) || nearMiss(ft, qt))))
+            rank = Math.min(rank, 4);               // every word matches one, a typo apart
+        }
       }
       if (rank > 1 && pyChar) {
         const ix = pyIndex(p);
@@ -1768,8 +1828,8 @@
           // 5 the initials spell it ("hl" → 惠良), only once it is unambiguous
           if (ix.join.startsWith(probe) || ix.join.includes(" " + probe)) rank = Math.min(rank, 2);
           else if (probe.length > 1 && ix.bag.includes(" " + probe + " ")) rank = Math.min(rank, 3);
-          else if (ix.join.includes(probe)) rank = Math.min(rank, 4);
-          else if (probe.length > 1 && ix.initials.startsWith(probe)) rank = Math.min(rank, 5);
+          else if (ix.join.includes(probe)) rank = Math.min(rank, 5);
+          else if (probe.length > 1 && ix.initials.startsWith(probe)) rank = Math.min(rank, 6);
         }
       }
       if (rank < 99) scored.push({ p, rank });

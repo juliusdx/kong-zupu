@@ -82,6 +82,22 @@
         <span class="muted fd-hint">${T("f_kinship_hint")}</span>
       </label>
 
+      <div id="move-block" hidden>
+        <label class="full checkbox-row"><input type="checkbox" name="moveEnable" value="yes" id="move-enable" />
+          <span>${T("f_move_toggle")}</span></label>
+        <div id="move-fields" hidden>
+          <label>${T("f_move_rel")}
+            <select name="moveRel">
+              <option value="child">${T("f_rel_child")}</option>
+              <option value="spouse">${T("f_rel_spouse")}</option>
+              <option value="sibling">${T("f_rel_sibling")}</option>
+            </select>
+          </label>
+          <label>${T("f_move_to")}<select name="moveTo">${personOptions()}</select></label>
+          <p class="at-preview" id="move-hint"></p>
+        </div>
+      </div>
+
       <div class="field-section">${T("f_section_person")}</div>
       <label>${T("f_name")}<input name="name" placeholder="例：漢明" /></label>
       <label>${T("f_pinyin")}<input name="pinyin" placeholder="Han Ming" /></label>
@@ -226,6 +242,13 @@
       updateGen(f);
     });
     if (f.elements.kinship) f.elements.kinship.addEventListener("change", () => updateGen(f));
+    const mEn = f.elements.moveEnable;
+    if (mEn) mEn.addEventListener("change", () => {
+      f.querySelector("#move-fields").hidden = !mEn.checked;
+      updateMove(f);
+    });
+    if (f.elements.moveRel) f.elements.moveRel.addEventListener("change", () => updateMove(f));
+    if (f.elements.moveTo) f.elements.moveTo.addEventListener("change", () => updateMove(f));
     updateRelatedMode(f);
     // map pin: hand off to the shared picker (map view + address search), fill lat/lng
     const pick = f.querySelector("#pin-pick");
@@ -257,7 +280,51 @@
     if (hint) hint.textContent = a === "edit" ? T("f_relatedto_edit_hint") : "";
     const relRow = f.querySelector("#rel-row");
     if (relRow) relRow.hidden = (a !== "add");
+    const moveBlock = f.querySelector("#move-block");
+    if (moveBlock) moveBlock.hidden = (a !== "edit");
+    updateMove(f);
     updateGen(f);
+  }
+
+  // Everyone below a person, so a correction can't propose hanging them under one of
+  // their own descendants — the tree would fold into a loop.
+  function descendantIds(id) {
+    const out = new Set(), queue = [id];
+    while (queue.length) {
+      const cur = queue.shift();
+      LINEAGE.persons.forEach(p => {
+        if (p.father === cur && !p.spouseOf && !out.has(p.id)) { out.add(p.id); queue.push(p.id); }
+      });
+    }
+    return out;
+  }
+
+  // Spell out where the person would land, or why the move can't be made. Returns the
+  // problem string, or "" when the move is fine — submit() re-uses that check.
+  function moveProblem(f) {
+    if (!f.elements.moveEnable || !f.elements.moveEnable.checked) return "";
+    if (f.elements.action.value !== "edit") return "";
+    const who = f.elements.relatedTo.value, to = f.elements.moveTo.value;
+    if (!to) return T("f_move_err_none");
+    if (to === who) return T("f_move_err_self");
+    if (descendantIds(who).has(to)) return T("f_move_err_loop");
+    return "";
+  }
+  function updateMove(f) {
+    const hint = f.querySelector("#move-hint");
+    if (!hint) return;
+    const problem = moveProblem(f);
+    if (problem) { hint.innerHTML = `<span class="at-warn-inline">${problem}</span>`; return; }
+    if (!f.elements.moveEnable || !f.elements.moveEnable.checked) { hint.textContent = ""; return; }
+    const me = LINEAGE.persons.find(x => x.id === f.elements.relatedTo.value);
+    const to = LINEAGE.persons.find(x => x.id === f.elements.moveTo.value);
+    if (!me || !to || to.gen == null) { hint.textContent = ""; return; }
+    const rel = f.elements.moveRel.value;
+    const g = rel === "child" ? to.gen + 1 : to.gen;
+    const kin = descendantIds(me.id).size;
+    hint.textContent = T("f_move_hint")
+      .replace("{name}", me.name).replace("{gen}", g).replace("{was}", me.gen == null ? "—" : me.gen)
+      + (kin && me.gen != null && g !== me.gen ? " " + T("f_move_hint_kin").replace("{n}", kin) : "");
   }
 
   // The generation is worked out from the relationship, never typed: a child is one
@@ -349,6 +416,27 @@
       }
     }
     delete data.kinship;
+
+    // Re-parenting: carried as moveTo / moveRel so the approval can reuse the same
+    // move logic (and the same loop guard) the admin tool uses. Checked here as well as
+    // on the way in, because the picker can be changed after the hint was last drawn.
+    if (data.action === "edit" && data.moveEnable) {
+      const problem = moveProblem(f);
+      if (problem) { alert(problem); return; }
+      const me = LINEAGE.persons.find(x => x.id === data.relatedTo);
+      const to = LINEAGE.persons.find(x => x.id === data.moveTo);
+      if (me && to) {
+        const rel = data.moveRel || "child";
+        const oldParent = me.father ? LINEAGE.persons.find(x => x.id === me.father) : null;
+        data.moveNote = (rel === "child" ? "child of " : rel === "spouse" ? "spouse of " : "sibling of ") + to.name;
+        data.changes = (data.changes || []).concat([{
+          field: "moveTo", label: "Position in tree",
+          from: oldParent ? "child of " + oldParent.name : (me.spouseOf ? "spouse" : "—"),
+          to: data.moveNote
+        }]);
+      }
+    } else { delete data.moveTo; delete data.moveRel; }
+    delete data.moveEnable;
 
     // Birth date: if the calendar mode is showing and filled, it wins over the text input.
     const cal = f.querySelector(".dt-cal");

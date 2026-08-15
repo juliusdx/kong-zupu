@@ -249,7 +249,7 @@
               milkName:"milk name", aka:"also known as", gender:"gender", gen:"generation",
               birth:"birth year", bio:"bio", living:"living", lat:"latitude", lng:"longitude" };
             const skip = new Set(["action","relatedTo","contributor","contributorContact",
-              "contributorLocation","relationship","kinship","siblingOf","cleared","contactConsent","submittedAt","status",
+              "contributorLocation","relationship","kinship","siblingOf","cleared","moveTo","moveRel","moveNote","contactConsent","submittedAt","status",
               "photo","personPhone","personWechat","personEmail","changes","submitterEmail","submitterId"]);
             const changes = Object.entries(p)
               .filter(([k, v]) => !skip.has(k) && v !== "" && v != null)
@@ -540,9 +540,10 @@
         if (has("milkName"))   fields.milk_name = payload.milkName || null;
         if (has("aka"))        fields.aka = payload.aka || null;
         if (payload.gender === "m" || payload.gender === "f") fields.gender = payload.gender;
-        if (has("gen") && payload.gen !== "") {
+        if (has("gen") && payload.gen !== "" && !payload.moveTo) {
           // An edit may not move someone between generations by hand — the tree
           // derives that from parentage. Keep the person where their father puts them.
+          // Skipped when the same correction re-parents them: the move sets it instead.
           const cur = personById(pid), dad = cur && cur.father ? personById(cur.father) : null;
           const derived = dad && dad.gen != null ? dad.gen + 1 : null;
           fields.gen = derived != null ? derived : parseInt(payload.gen, 10);
@@ -592,6 +593,17 @@
             const { data: dRow } = await sb.from("person_details").select("person_id").eq("person_id", pid);
             if (dRow && dRow.length) await sb.from("person_details").update(detail).eq("person_id", pid);
           } catch (_) { /* table not migrated, or not visible to this admin — persons row stands */ }
+        }
+
+        // Re-parenting, when the correction asked for it. applyMove() is the same code
+        // the admin "Move…" button runs, so this inherits its loop guard and its
+        // generation cascade over everyone below the person. It throws rather than
+        // half-applying, and decide() aborts before marking the contribution approved.
+        if (payload.moveTo) {
+          const mover = personById(pid);
+          if (!mover) throw new Error("Unknown person for this move: " + pid);
+          if (!personById(payload.moveTo)) throw new Error("Unknown target for this move: " + payload.moveTo);
+          await applyMove(mover, payload.moveRel || "child", payload.moveTo);
         }
 
         const cur = personById(pid);

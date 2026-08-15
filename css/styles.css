@@ -194,6 +194,9 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 #contrib-form{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.1rem;margin-top:1.2rem}
 #contrib-form .full{grid-column:1/-1}
 #contrib-form label{display:flex;flex-direction:column;gap:.25rem;font-size:.82rem;color:var(--ink-soft)}
+/* the rule above out-specifies the browser's [hidden]{display:none}, so a label set
+   hidden in JS kept rendering — put it back, for labels and anything else in here */
+#contrib-form [hidden]{display:none}
 /* let grid/flex items shrink below content size so a long field never blows out the
    column width (CSS min-width:auto default) — keeps the form within narrow phones */
 #contrib-form>*{min-width:0}

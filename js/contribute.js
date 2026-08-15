@@ -169,7 +169,12 @@
     // don't stack duplicate handlers and double-submit the contribution.
     f.onsubmit = submit;
     wire(f);
-    if (prefillData) { applyPrefill(f, prefillData); updateLocationMode(f); }
+    // A prefill sets the action directly, without firing a change event, so the
+    // action-dependent presentation has to be re-run by hand. Without this, arriving
+    // via "Suggest a correction" — the main way in — left the form wearing its "add a
+    // person" clothes: the vague "Related to which family member?" label, and a
+    // "How are they related?" selector that does nothing on an edit.
+    if (prefillData) { applyPrefill(f, prefillData); updateLocationMode(f); updateRelatedMode(f); }
   }
 
   // The map pin means different things by action: for a person (add child/spouse/edit)

@@ -478,7 +478,7 @@ window.LINEAGE = {
     // 龍見 as the direct ancestor and had absorbed 龍躍's facts (wife 蕭氏, 九大房, 起瀾).
     { id: "a17", gen: 17, father: "a16", name: "江龍躍公", pinyin: "Longyue", style: "諱義 · 禮名 運洲", gender: "m", relation: "十七世祖 (direct line · 長房)", lifespan: "享壽七十八歲 (aged 78)", confidence: "med",
       bio: "康熙丁亥年(1707)十月廿六日生，終于乾隆四十九年(1784)，享壽七十八歲。公生平修心積善、孝友勤儉，生兒九人，廣栽桃李 — 於李朗設館授徒。長子起瀾公亦進庠。生下九大房。",
-      note: "pt2 p.27「十七世祖江龍躍公。庠生。諱義。禮名運洲」— the 庠生 who taught at 李朗 (Lilang). His 九大房 are the numbered houses in pt2 (七房起章、八房起清、九房起瀨…), 起瀾公 being 長子. Identified by 江學禮 Corin, Aug 2026." },
+      note: "pt2 p.27「十七世祖江龍躍公。庠生。諱義。禮名運洲」— the 庠生 who taught at 李朗 (Lilang). His 九大房 are the numbered houses in pt2 (七房起章、八房起清、九房起瀨…), 起瀾公 being 長子. Identified by 江學禮 Corin, Aug 2026. ⚠ TEN sons are now recorded (起瀾、起濟、起文、起源、起浩、起浚、起波 + 七房起章、八房起清、九房起瀨) against 「生下九大房」— one may be a duplicate reading, or 九大房 may count only the houses that carried on. To verify against the chart." },
     { id: "a17w", gen: 17, name: "蕭氏", pinyin: "Madam Xiao", gender: "f", spouseOf: "a17", note: "丙戌生，享壽八十二歲 (pt2 p.27).", confidence: "med" },
 
     { id: "a17b", gen: 17, father: "a16", name: "江龍見公", pinyin: "Longjian", gender: "m", relation: "十七世叔祖 (次房)", lifespan: "享壽九十四歲 (aged 94)", confidence: "med",
@@ -493,6 +493,19 @@ window.LINEAGE = {
     { id: "a18", gen: 18, father: "a17", name: "江起瀾公", pinyin: "Qilan", style: "庠名 東洋", gender: "m", relation: "十八世祖 (direct line · 龍躍公長子)", burialPlace: "p_dakeng", bio: "公平日博覽群書、廣栽桃李。生於甲辰年五月廿九寅時，卒於乾隆甲午年(1774)。葬大坑圍背黃泥夾，後遷葬。所生五大房：長通漢、次通洋(通澤)、三紹淮、四紹泗、五紹淡。", confidence: "med",
       note: "pt2 p.59「十八世祖江公起瀾。長居。庠名東洋」— eldest of 龍躍公's 九大房, and like his father a 庠生. His 五大房 include 紹泗公, the direct Sabah-line father." },
     { id: "a18w", gen: 18, name: "涂氏", pinyin: "Madam Tu", gender: "f", spouseOf: "a18", confidence: "low", note: "元配; 續妣 何氏." },
+
+    // ===== 龍躍公之九大房 — the remaining brothers of 起瀾公 =====
+    // Supplied by the family 2026-08-16. The three named houses (七房起章 / 八房起清 /
+    // 九房起瀨) sit further down with their own descendants; these six have no issue
+    // recorded yet. ⚠ With 起瀾 that makes TEN sons against the「生下九大房」on pt2 p.27 —
+    // see the note on a17. Names given in simplified 起济; written here in the file's
+    // traditional 起濟.
+    { id: "a18_qiji",   gen: 18, father: "a17", name: "起濟公", pinyin: "Qiji",   gender: "m", relation: "十八世", confidence: "low" },
+    { id: "a18_qiwen",  gen: 18, father: "a17", name: "起文公", pinyin: "Qiwen",  gender: "m", relation: "十八世", confidence: "low" },
+    { id: "a18_qiyuan", gen: 18, father: "a17", name: "起源公", pinyin: "Qiyuan", gender: "m", relation: "十八世", confidence: "low" },
+    { id: "a18_qihao",  gen: 18, father: "a17", name: "起浩公", pinyin: "Qihao",  gender: "m", relation: "十八世", confidence: "low" },
+    { id: "a18_qijun",  gen: 18, father: "a17", name: "起浚公", pinyin: "Qijun",  gender: "m", relation: "十八世", confidence: "low" },
+    { id: "a18_qibo",   gen: 18, father: "a17", name: "起波公", pinyin: "Qibo",   gender: "m", relation: "十八世", confidence: "low" },
 
     // ===== Gen 19 — 紹泗 (pt2 p.59 & p.66; 起瀾公第四房) =====
     // 起瀾(18) → 紹泗(19) → 承續(20): continuous, and it matches every label the book prints —

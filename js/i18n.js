@@ -185,6 +185,8 @@
 
       pl_modern: "今 Modern", pl_type: "Type", pl_linked: "People here",
       pl_approx_warn: "Approximate location — exact GPS needed",
+      pl_noloc: "location not identified",
+      pl_noloc_hint: "Recorded by name only — where this is on a modern map isn't known yet. If you can place it, use “Suggest a location” below.",
       pl_verified: "✓ verified location",
       pl_suggest_loc: "📍 Pin the exact location",
       pl_view_map: "View on map →", pl_photos: "Location photos",
@@ -428,6 +430,8 @@
 
       pl_modern: "今地", pl_type: "類型", pl_linked: "相關人物",
       pl_approx_warn: "座標約略 — 待補精確 GPS",
+      pl_noloc: "位置待考",
+      pl_noloc_hint: "僅存地名記載 —— 今日確切位置尚未查明。若您知道所在，請用下方「提供位置」。",
       pl_verified: "✓ 位置已核實",
       pl_suggest_loc: "📍 標出精確位置",
       pl_view_map: "在地圖檢視 →", pl_photos: "地點相片",

@@ -612,15 +612,21 @@
       }
       // On approve, promote a location contribution onto the map.
       if (status === "approved" && payload && payload.action === "add_place") {
+        // A place may arrive with no pin at all. Half the graves in the book are recorded
+        // only as a土名 —「大坑圍背黃泥夾」,「金銀玩」— and nobody alive knows where that
+        // is on a modern map. Refusing those would either lose the fact or push the
+        // reviewer into inventing coordinates, which is worse than an honest blank. The
+        // map already skips places without coordinates, and the place card offers
+        // "Suggest a location" for whoever can eventually place it.
         const lat = parseFloat(payload.lat), lng = parseFloat(payload.lng);
-        if (!isFinite(lat) || !isFinite(lng))
-          throw new Error("This location submission has no valid latitude/longitude.");
+        const located = isFinite(lat) && isFinite(lng);
         const place = {
           id: "pl_" + id.slice(0, 8),
           type: payload.placeType || "residence",
           name: payload.placeName || payload.place || payload.name || "(unnamed place)",
           name_en: payload.pinyin || null,
-          lat, lng,
+          lat: located ? lat : null,
+          lng: located ? lng : null,
           approximate: false,
           note: payload.bio || null,
           visibility: "public"
@@ -1584,6 +1590,8 @@
     if (pl.modern) row(T("pl_modern"), pl.modern);
     if (who.length) row(T("pl_linked"), who.map(w=>`<a class="kin" data-go="${w.id}">${w.name}</a>`).join("、"));
 
+    const hasCoords = typeof pl.lat === "number" && typeof pl.lng === "number"
+      && !isNaN(pl.lat) && !isNaN(pl.lng);
     const photos = mediaByPlace[pl.id] || [];
     let photoHtml = "";
     if (photos.length) {
@@ -1597,9 +1605,12 @@
     $("#drawer-body").innerHTML = `
       <h2>${pl.name}</h2>
       <div class="pin-name">${pl.nameEn || ""}</div>
-      <div>${pl.approximate
-        ? `<span class="badge low">${T("pl_approx_warn")}</span>`
-        : `<span class="badge verified">${T("pl_verified")}</span>`}</div>
+      <div>${!hasCoords
+        ? `<span class="badge low">${T("pl_noloc")}</span>`
+        : pl.approximate
+          ? `<span class="badge low">${T("pl_approx_warn")}</span>`
+          : `<span class="badge verified">${T("pl_verified")}</span>`}</div>
+      ${!hasCoords ? `<p class="muted">${T("pl_noloc_hint")}</p>` : ""}
       ${pl.note ? `<div class="bio">${pl.note}</div>` : ""}
       ${rows.join("")}
       ${photoHtml}
@@ -1609,7 +1620,7 @@
             ? `<p class="muted">${T("d_maxphotos")}</p>`
             : `<button class="action" id="place-photo">${T("pl_addphoto")}</button><input type="file" id="place-file" accept="image/*" hidden>`)
         : ""}
-      <button class="action" id="place-map">${T("pl_view_map")}</button>
+      ${hasCoords ? `<button class="action" id="place-map">${T("pl_view_map")}</button>` : ""}
     `;
     $$("#drawer-body [data-go]").forEach(a => a.onclick = () => { openPerson(a.dataset.go); Tree.focus(a.dataset.go); });
     if (me.isAdmin) $$("#drawer-body [data-approve-photo]").forEach(b =>
@@ -1623,7 +1634,8 @@
         catch (err) { alert(I18N.t("d_delfail") + (err.message || err)); b.disabled = false; }
       });
     $("#place-pin").onclick = () => suggestLocation(pl);
-    $("#place-map").onclick = () => { closeDrawer(); show("map"); };
+    const mapBtn = $("#place-map");                 // absent when the spot is unknown
+    if (mapBtn) mapBtn.onclick = () => { closeDrawer(); show("map"); };
     if (me.user && photos.length < 5) {
       $("#place-photo").onclick = () => $("#place-file").click();
       $("#place-file").onchange = async e => {

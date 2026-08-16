@@ -623,12 +623,20 @@
         const place = {
           id: "pl_" + id.slice(0, 8),
           type: payload.placeType || "residence",
-          name: payload.placeName || payload.place || payload.name || "(unnamed place)",
-          name_en: payload.pinyin || null,
+          // The book writes a grave as a sentence —「塟于邻浪笄子坑蛇地」— but the place's
+          // NAME is just the spot; the burial is already said by the type and by the
+          // person's card. Strip the leading 葬/塟 于/於/在 and the 土名 ("the place
+          // called") that often follows, keeping the original wording in the note.
+          name: placeNameOf(payload),
+          // name_en used to be taken from payload.pinyin, which belongs to the PERSON
+          // section of the shared form — that is how a grave ended up romanised "Ribiao",
+          // the name of the man buried in it. Place submissions have their own field now.
+          name_en: payload.placeNameEn || null,
           lat: located ? lat : null,
           lng: located ? lng : null,
           approximate: false,
-          note: payload.bio || null,
+          note: [payload.bio || "", placeNameOf(payload) !== String(payload.placeName || "").trim()
+            ? "族譜原文：" + String(payload.placeName || "").trim() : ""].filter(Boolean).join(" ") || null,
           visibility: "public"
         };
         const { error: plErr } = await sb.from("places").upsert(place);
@@ -1103,6 +1111,17 @@
   // Snapshot an in-memory (seed) person into a live persons-table row. Used whenever a
   // seed-only ancestor first needs a DB row — approved edits and admin verification.
   // undefined fields are dropped so we never send columns the row doesn't have a value for.
+  // A place's name as the book gives it, minus the burial preposition.
+  //   「塟于邻浪笄子坑蛇地」 → 「邻浪笄子坑蛇地」
+  //   「葬于土名金銀玩」     → 「金銀玩」
+  function placeNameOf(payload) {
+    const raw = String(payload.placeName || payload.place || payload.name || "(unnamed place)").trim();
+    const type = payload.placeType;
+    if (type !== "grave" && type !== "church_grave") return raw;
+    const trimmed = raw.replace(/^[葬塟葬]\s*[于於在]?\s*(土名)?\s*/, "").trim();
+    return trimmed || raw;                       // never strip a name down to nothing
+  }
+
   // Generation implied by an add: child → one below the parent, spouse → level with
   // them. Falls back to the submitted number only when the relative has none.
   function relGen(action, relatedTo, submitted) {

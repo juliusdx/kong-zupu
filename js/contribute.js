@@ -138,6 +138,7 @@
         </select>
       </label>
       <label class="place-only">${T("f_placename")}<input name="placeName" placeholder="例：起瀾公墓 / 古達聖會" /></label>
+      <label class="place-only">${T("f_placename_en")}<input name="placeNameEn" placeholder="Dakeng, Guangdong" /></label>
       <div class="full pin-field">
         <span class="fd-label" id="pin-label">${T("f_pin")}</span>
         <div class="pin-row">

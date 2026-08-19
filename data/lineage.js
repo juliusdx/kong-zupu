@@ -580,7 +580,12 @@ window.LINEAGE = {
     { id: "k_hanying", gen: 25, father: "k_qichang", name: "漢英",  pinyin: "Han Ying", gender: "f", relation: "三女", birthYear: "民國十八年 / 1929", confidence: "low" },
     { id: "k_hanxian", gen: 25, father: "k_qichang", name: "漢賢",  pinyin: "Han Xian", gender: "m", relation: "四子", birthYear: "民國廿三年 / 1934", confidence: "low" },
     { id: "k_ruizhu", gen: 25, father: "k_qichang", name: "瑞珠",  pinyin: "Rui Zhu", gender: "f", relation: "五女", birthYear: "民國廿二年", confidence: "low" },
-    { id: "k_hanneng", gen: 25, father: "k_qifang", name: "漢能",  pinyin: "Han Neng", gender: "m", relation: "子", birthYear: "民國廿一年 / 1932", confidence: "low" },
+    // 漢能 (k_hanneng, b.1932) was here, from the book transcription. He is recorded as
+    // LIVING in the database — and a son, Albert, has been contributed under him — so he
+    // belongs on the member tier, not in this world-readable file. His full record
+    // (father 其芳, birth year, child) lives in `persons` and signed-in members see him
+    // exactly as before. Removed 2026-08-19; restore this line only if the family
+    // confirms he has died, and clear persons.living at the same time.
     { id: "k_runzhu", gen: 25, father: "k_qifang", name: "潤珠",  pinyin: "Run Zhu", gender: "f", relation: "女", birthYear: "民國廿三年 / 1934", confidence: "low" },
 
     // ===== COLLATERAL — 九房 起瀨公 house (pt2 pp.53–58) =====

@@ -161,6 +161,23 @@ console.log("total:",L.persons.length,"| broken:",broken,"| dupes:",dupes,
 ```
 Keep **broken = 0** and **dupes = 0**.
 
+### Privacy check — run this too, before any push that touches `data/lineage.js`
+
+`data/lineage.js` ships to a **public** repo and has no privacy flags: everything in it is
+world-readable. Living relatives and minors belong in the `persons` table instead, where
+they are gated. Nothing structurally keeps the two apart, and one record (漢能 `k_hanneng`)
+had already crossed over — a transcription pass can easily move more.
+
+```bash
+SUPABASE_KEY=<service-role key> node tools/check_privacy.js
+```
+
+Exit 0 = clean. Exit 1 = someone gated is published, **or** the key given cannot see gated
+rows (an anon key can't, and the script refuses to pass rather than pretend it checked).
+
+The same check runs automatically in the app for a signed-in admin, at the bottom of the
+**審核 Review** tab under "Privacy check".
+
 ## Deploy (owner runs in their own Terminal)
 
 ```bash

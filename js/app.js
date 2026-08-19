@@ -305,7 +305,23 @@
           `</tbody></table></div>`;
       }
 
-      // Mint short-lived signed URLs for pending contribution photos so the reviewer can see
+      // Archived people live here so there is one obvious place to undo a removal,
+      // and the privacy check sits under it — both are "state of the tree", not queue.
+      html += `<h3>${T("at_arch_h")}</h3><div id="archived-list"></div>`;
+      html += `<h3>${T("pc_h")}</h3><div id="privacy-check" class="muted">${T("pc_running")}</div>`;
+
+      wrap.innerHTML = html;
+      signPendingPhotos(wrap);
+      buildArchivedList();
+      runPrivacyCheck();
+      const payloadById = Object.fromEntries(pending.map(c => [c.id, c.payload]));
+      wrap.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => decide(b.dataset.approve, "approved", payloadById[b.dataset.approve]));
+      wrap.querySelectorAll("[data-reject]").forEach(b => b.onclick = () => decide(b.dataset.reject, "rejected", payloadById[b.dataset.reject]));
+    } catch (e) {
+      wrap.innerHTML = head + "<p class='muted'>" + T("r_error") + e.message + "</p>";
+    }
+  }
+  // Mint short-lived signed URLs for pending contribution photos so the reviewer can see
   // what they are approving. Only an admin gets here, and the link dies in an hour.
   async function signPendingPhotos(root) {
     const imgs = [...root.querySelectorAll("img[data-privpath]")];
@@ -320,19 +336,47 @@
     }
   }
 
-  // Archived people live here so there is one obvious place to undo a removal.
-      html += `<h3>${T("at_arch_h")}</h3><div id="archived-list"></div>`;
+  // Is anyone GATED in the database also published in the world-readable data/lineage.js?
+  // The two datasets carry different privacy models and nothing keeps them apart; one
+  // record (漢能 k_hanneng) had already crossed over. An admin session can see gated rows,
+  // so the check is meaningful here. The same check exists as tools/check_privacy.js for
+  // the transcription workflow.
+  async function runPrivacyCheck() {
+    const box = $("#privacy-check"); if (!box) return;
+    const T = I18N.t;
+    try {
+      // Re-read the static file on its own: LINEAGE.persons in memory is already merged
+      // with the database, so it cannot say what the PUBLIC file alone contains.
+      const txt = await (await fetch("data/lineage.js", { cache: "no-store" })).text();
+      const sandbox = {};
+      new Function("window", txt)(sandbox);
+      const publicIds = new Set(((sandbox.LINEAGE || {}).persons || []).map(p => p.id));
+      if (!publicIds.size) { box.textContent = T("pc_failed") + "lineage.js"; return; }
 
-      wrap.innerHTML = html;
-      signPendingPhotos(wrap);
-      buildArchivedList();
-      const payloadById = Object.fromEntries(pending.map(c => [c.id, c.payload]));
-      wrap.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => decide(b.dataset.approve, "approved", payloadById[b.dataset.approve]));
-      wrap.querySelectorAll("[data-reject]").forEach(b => b.onclick = () => decide(b.dataset.reject, "rejected", payloadById[b.dataset.reject]));
+      const sb = Auth.client(); if (!sb) { box.textContent = T("pc_offline"); return; }
+      const { data, error } = await sb.from("persons")
+        .select("id, name, living, is_minor, visibility")
+        .or("living.eq.true,is_minor.eq.true");
+      if (error) throw error;
+      const gated = data || [];
+      if (!gated.length) { box.textContent = T("pc_nokey"); return; }
+
+      const bad = gated.filter(p => publicIds.has(p.id));
+      if (!bad.length) {
+        box.className = "muted";
+        box.textContent = fill(T("pc_clean"), { n: publicIds.size, g: gated.length });
+        return;
+      }
+      box.className = "";
+      box.innerHTML = `<p class="at-warn">${fill(T("pc_bad"), { n: bad.length })}</p>` +
+        bad.map(p => `<div class="arch-row"><span><b>${esc(p.name)}</b> <span class="muted">${esc(p.id)}</span>` +
+          `<br><span class="muted">${p.is_minor ? "MINOR · " : ""}${p.living ? "living · " : ""}${esc(p.visibility)}</span></span></div>`).join("") +
+        `<p class="muted">${T("pc_fix")}</p>`;
     } catch (e) {
-      wrap.innerHTML = head + "<p class='muted'>" + T("r_error") + e.message + "</p>";
+      box.textContent = T("pc_failed") + (e.message || e);
     }
   }
+
   /* ---- Members (admin): approve / revoke family sign-ups -------------------
    * profiles.approved gates living-member detail (person_details, contacts, photos).
    * New sign-ups default to false — handle_new_user doesn't set the column — so until

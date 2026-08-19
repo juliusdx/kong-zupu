@@ -305,10 +305,26 @@
           `</tbody></table></div>`;
       }
 
-      // Archived people live here so there is one obvious place to undo a removal.
+      // Mint short-lived signed URLs for pending contribution photos so the reviewer can see
+  // what they are approving. Only an admin gets here, and the link dies in an hour.
+  async function signPendingPhotos(root) {
+    const imgs = [...root.querySelectorAll("img[data-privpath]")];
+    if (!imgs.length) return;
+    const sb = Auth.client(); if (!sb) return;
+    for (const img of imgs) {
+      try {
+        const { data } = await sb.storage.from("photos-private")
+          .createSignedUrl(img.dataset.privpath, 3600);
+        if (data && data.signedUrl) img.src = data.signedUrl;
+      } catch (_) { /* leave the slot empty rather than breaking the card */ }
+    }
+  }
+
+  // Archived people live here so there is one obvious place to undo a removal.
       html += `<h3>${T("at_arch_h")}</h3><div id="archived-list"></div>`;
 
       wrap.innerHTML = html;
+      signPendingPhotos(wrap);
       buildArchivedList();
       const payloadById = Object.fromEntries(pending.map(c => [c.id, c.payload]));
       wrap.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => decide(b.dataset.approve, "approved", payloadById[b.dataset.approve]));
@@ -466,8 +482,12 @@
     const rows = Object.entries(p)
       .filter(([k, v]) => v && !HIDE.includes(k))
       .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
+    // A pending photo now waits in the private bucket, so the reviewer's preview needs a
+    // signed URL rather than a src. Render the slot, fill it in after mount.
     const photoHtml = p.photo
-      ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(p.photo)}" alt=""></span></div>`
+      ? (isPrivRef(p.photo)
+          ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" data-privpath="${esc(privPathOf(p.photo))}" alt=""></span></div>`
+          : `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(p.photo)}" alt=""></span></div>`)
       : "";
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
@@ -907,6 +927,12 @@
     } catch (e) { console.warn("downscale skipped", e); return file; }
   }
 
+  // A pending contribution photo is identified by this marker instead of a URL: it lives
+  // in the private bucket, so only a signed URL minted at display time can reach it.
+  const PRIV_PREFIX = "private:";
+  const isPrivRef = v => typeof v === "string" && v.startsWith(PRIV_PREFIX);
+  const privPathOf = v => String(v).slice(PRIV_PREFIX.length);
+
   // Upload a photo attached to either a person (member tier) or a place (public).
   async function uploadMedia(subject, file) {
     const sb = Auth.client(), st = Auth.state();
@@ -937,17 +963,23 @@
   const uploadPhoto = (personId, file) => uploadMedia({ personId }, file);
 
   // Upload a photo chosen on the CONTRIBUTION form (the person doesn't exist yet, so we
-  // can't insert a media row). Store the file in the public photos bucket and return its
-  // URL; an editor links it to the new person on approval (see attachContribPhoto).
+  // can't insert a media row yet). It waits in the PRIVATE bucket until an editor links
+  // it to the new person on approval (see attachContribPhoto).
+  //
+  // It used to wait in the public bucket, which meant a photo of a living relative was
+  // fetchable by URL from the moment it was submitted — and stayed there for good if the
+  // contribution was never approved. That is how a member-tier photo came to be sitting
+  // in the public bucket (fixed 2026-08-19). Returns a "private:<path>" marker rather
+  // than a URL, because there is no URL that works without a signature.
   async function uploadContributionPhoto(file) {
     const sb = Auth.client(), st = Auth.state();
     if (!sb || !st.user) throw new Error("Sign in to upload a photo.");
     file = await downscaleImage(file);
     const safe = file.name.replace(/[^\w.\-]/g, "_");
     const path = "contrib/" + st.user.id + "/" + Date.now() + "_" + safe;
-    const up = await sb.storage.from("photos").upload(path, file, { upsert: false });
+    const up = await sb.storage.from("photos-private").upload(path, file, { upsert: false });
     if (up.error) throw up.error;
-    return sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+    return PRIV_PREFIX + path;
   }
   window.uploadContributionPhoto = uploadContributionPhoto;
 
@@ -989,10 +1021,24 @@
       // Get the image bytes whether it arrived as a data: URL (anonymous embed) or an
       // http URL pointing at the pending file in the public bucket (signed-in upload).
       const toBlob = async () => {
+        if (isPrivRef(photo)) {                        // waiting in the private bucket
+          const dl = await sb.storage.from("photos-private").download(privPathOf(photo));
+          return dl.error ? null : dl.data;
+        }
         if (/^data:/.test(photo) || /^https?:\/\//.test(photo)) return await (await fetch(photo)).blob();
         return null;
       };
       if (tier === "member") {
+        // Already sitting in the private bucket — adopt the staged file in place rather
+        // than copying bytes around for no reason.
+        if (isPrivRef(photo)) {
+          const { error } = await sb.from("media").insert({
+            person_id: personId, private_path: privPathOf(photo), url: "",
+            uploaded_by: st.user.id, approved: true, visibility: "member"
+          });
+          if (error) throw error;
+          return;
+        }
         // member-tier → store in the PRIVATE bucket, keep only the path
         const blob = await toBlob();
         if (!blob) return;
@@ -1013,7 +1059,18 @@
       } else {
         // public tier (e.g. a deceased ancestor's portrait) → public bucket, public URL
         let url = photo;
-        if (/^data:/.test(photo)) {
+        if (isPrivRef(photo)) {
+          // Deliberately made public by the editor: copy it out of the private bucket,
+          // then drop the staged copy.
+          const blob = await toBlob();
+          if (!blob) return;
+          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+          const path = personId + "/" + Date.now() + "_contrib." + ext;
+          const up = await sb.storage.from("photos").upload(path, blob, { upsert: false, contentType: blob.type });
+          if (up.error) throw up.error;
+          url = sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+          sb.storage.from("photos-private").remove([privPathOf(photo)]).catch(() => {});
+        } else if (/^data:/.test(photo)) {
           const blob = await (await fetch(photo)).blob();
           const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
           const path = personId + "/" + Date.now() + "_contrib." + ext;

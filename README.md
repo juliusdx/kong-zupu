@@ -19,6 +19,12 @@ write-ups, pin GPS locations, and extend their own branch.
 | **地圖 Map** | Two layers — ancestral sites in Guangdong (origin, graves, church grounds) and the diaspora in Sabah — with a migration line between them. |
 | **貢獻 Contribute** | A form to add a child/spouse, correct a record, or pin a 祠堂/grave. Reviewed before going live. |
 | **關於 About** | The family story, the 字輩 characters, and the privacy model. |
+| **審核 Review** *(reviewer)* | The contribution queue with a from→to diff per correction, who approved what, an Archived list to undo removals, and a privacy check that flags anyone gated in the database who appears in the public file. |
+
+**Search** matches a name three ways: as typed, by the Mandarin reading of its characters
+(so "ye" finds 業 and 业 finds 業), and across Hakka spelling variants (Fooi finds Fui,
+"siu ha" finds Siew Ha) — the family's romanisations are Hakka, not pinyin.
+**⤓ CSV** exports the whole tree as a spreadsheet, limited to what the viewer may see.
 
 ## Privacy model (3 tiers)
 
@@ -28,6 +34,12 @@ write-ups, pin GPS locations, and extend their own branch.
 
 Minors are hidden by default; anyone can ask to be removed. These rules are enforced
 **at the database level** by Row-Level Security (see `supabase/schema.sql`), not just in the UI.
+
+Member photos live in the private `photos-private` bucket and are served as short-lived
+signed URLs; nothing member-tier is reachable by URL. `data/lineage.js` is world-readable
+and carries **no** privacy flags, so nobody `living` or `is_minor` may appear in it —
+`tools/check_privacy.js` fails the build if one does, and the Review tab shows the same
+check live.
 
 ## Run locally
 

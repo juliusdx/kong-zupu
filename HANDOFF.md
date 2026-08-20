@@ -10,8 +10,9 @@ app-building history. Everything below is current as of this handoff.
 
 - The app is **built and deployed** (GitHub Pages + Supabase). The only file you edit to
   add people is **`data/lineage.js`** (the `persons` array on `window.LINEAGE`).
-- The tree currently has **467 people** (direct spine + collateral cousins + Sabah branch + Lilang branch + 7/8/9房).
-  0 broken links, 0 duplicates. ~433 are flagged `confidence:"low"` (⚠) for verification.
+- The tree currently has **486 people** in `data/lineage.js` (direct spine + collateral cousins +
+  Sabah branch + Lilang branch + 7/8/9房), plus the living members held in Supabase.
+  0 broken links, 0 duplicates, 0 generation gaps. 449 are flagged `confidence:"low"` (⚠).
 - Remaining work is **adding more named people from the book**, flagged low, with correct
   `father` links — then validate, then `git push` (auto-deploys).
 - Relatives can also verify/add through the live app (⚠ "To verify" filter + Contribute
@@ -129,7 +130,14 @@ label, and add a `note` if they conflict. The tree positions by depth, so gen ga
   Sabah generations (永/俊/耀/其/漢, the `k_*` ids) are already richly captured.
 - **pt2 pp.70–84** — Sabah generations swept for missing descendants and missing siblings.
 - **Shenzhen / Lilang Branch** — (ll_*) fully mapped from 朝陽.
-- **Sabah Branch Deep Connection** — Master tree Gen 14-18 accurately connected (`a15` 日輝, `a16` 朝滔, `a17` 龍見).
+- **Sabah Branch Deep Connection** — Master tree Gen 14-18 connected: `a15` 日輝, `a16` **朝纓 字成祥**
+  (pt2 p.19 — the pt1 chart's "朝滔" is the same man in a different hand), `a17` **龍躍** (pt2 p.27, the
+  庠生 who taught at 李朗), with `a17b` **龍見** beside him as the collateral 叔祖 (pt2 p.20). 龍躍's ten
+  recorded sons include 起瀾公 (the direct line) and the numbered 七/八/九房 — see the ⚠ on `a17`, which
+  is one more than the「生下九大房」the book states.
+- **Generation numbering** — renumbered 2026-08-11 to the book's own 世 labels, which run gapless
+  16 朝纓 → 17 龍躍 → 18 起瀾 → 19 紹泗 → 20 承續 → 21 大信 → 22 永 → 23 俊 → 24 其/有 → 25 漢.
+  The old "1825 合譜 ±1 seam" was a misreading of p.66 and no longer exists.
 
 ## What remains (priority order)
 

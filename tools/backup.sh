@@ -33,18 +33,35 @@ pg_dump "$PGURI" --schema-only --no-owner --no-privileges --schema=public > "$OU
 echo "  data…"
 pg_dump "$PGURI" --data-only  --no-owner --no-privileges --schema=public > "$OUT/data.sql"
 
+# Auth headers depend on the key type. The legacy service_role key was a JWT and
+# wanted both headers. A modern secret key (sb_secret_…) is NOT a JWT: sent as a
+# Bearer token the platform tries to parse it as one and refuses, so it goes on
+# the apikey header alone.
+EMPTY_BUCKETS=0
+
+case "$SUPABASE_KEY" in
+  sb_secret_*|sb_publishable_*) SB_AUTH=(-H "apikey: $SUPABASE_KEY") ;;
+  *) SB_AUTH=(-H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY") ;;
+esac
+
 # 2. Storage. The buckets hold the family's photos and the scanned book — the part that
 #    cannot be re-typed from the book if it is lost.
 for BUCKET in photos photos-private documents; do
-  echo "  bucket $BUCKET…"
+  echo "  bucket ${BUCKET}…"
   mkdir -p "$OUT/storage/$BUCKET"
   curl -s -X POST "$SUPABASE_URL/storage/v1/object/list/$BUCKET" \
-    -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" \
+    "${SB_AUTH[@]}" \
     -H "Content-Type: application/json" \
     -d '{"prefix":"","limit":1000}' \
   | python3 -c '
 import sys, json
-for o in json.load(sys.stdin):
+try:
+    data = json.load(sys.stdin)
+except ValueError as e:
+    sys.exit("  ! storage list returned no JSON (%s) - check SUPABASE_KEY" % e)
+if not isinstance(data, list):
+    sys.exit("  ! storage list refused: %s" % json.dumps(data)[:300])
+for o in data:
     if o.get("name"): print(o["name"])
 ' > "$OUT/storage/$BUCKET.list"
 
@@ -52,7 +69,7 @@ for o in json.load(sys.stdin):
   while read -r ENTRY; do
     [ -z "$ENTRY" ] && continue
     curl -s -X POST "$SUPABASE_URL/storage/v1/object/list/$BUCKET" \
-      -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" \
+      "${SB_AUTH[@]}" \
       -H "Content-Type: application/json" \
       -d "{\"prefix\":\"$ENTRY\",\"limit\":1000}" \
     | python3 -c "
@@ -66,13 +83,23 @@ for o in json.load(sys.stdin):
   # the top level may itself hold files, not just folders
   cat "$OUT/storage/$BUCKET.list" >> "$OUT/storage/$BUCKET.files"
 
+  # A key without storage access lists an empty bucket rather than erroring, so a
+  # silent zero here would look exactly like a successful backup. Say so loudly:
+  # an archive you think you have is worse than one you know you don't.
+  WANT=$(sort -u "$OUT/storage/$BUCKET.files" | grep -c . || true)
+  if [ "$WANT" -eq 0 ]; then
+    echo "  ! $BUCKET listed 0 objects — expected photos=1 photos-private=3 documents=4."
+    echo "  ! If that is not a real change, SUPABASE_KEY cannot read storage. Backup is INCOMPLETE."
+    EMPTY_BUCKETS=$((EMPTY_BUCKETS + 1))
+  fi
+
   sort -u "$OUT/storage/$BUCKET.files" | while read -r F; do
     [ -z "$F" ] && continue
     DEST="$OUT/storage/$BUCKET/$F"
     mkdir -p "$(dirname "$DEST")"
     CODE=$(curl -s -o "$DEST" -w '%{http_code}' \
       "$SUPABASE_URL/storage/v1/object/$BUCKET/$F" \
-      -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY")
+      "${SB_AUTH[@]}")
     [ "$CODE" = "200" ] || rm -f "$DEST"      # folders come back as errors; drop them
   done
 done
@@ -84,3 +111,11 @@ echo
 echo "done:"
 du -sh "$OUT"
 find "$OUT/storage" -type f ! -name '*.list' ! -name '*.files' | wc -l | xargs echo "  files backed up:"
+for B in photos photos-private documents; do
+  echo "    $B: $(find "$OUT/storage/$B" -type f 2>/dev/null | wc -l | tr -d ' ')"
+done
+if [ "$EMPTY_BUCKETS" -gt 0 ]; then
+  echo
+  echo "INCOMPLETE: $EMPTY_BUCKETS bucket(s) came back empty. Do not treat this as a backup."
+  exit 1
+fi

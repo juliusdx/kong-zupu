@@ -82,47 +82,62 @@ esac
 for BUCKET in photos photos-private documents; do
   echo "  bucket ${BUCKET}…"
   mkdir -p "$OUT/storage/$BUCKET"
-  curl -s -X POST "$SUPABASE_URL/storage/v1/object/list/$BUCKET" \
-    "${SB_AUTH[@]}" \
-    -H "Content-Type: application/json" \
-    -d '{"prefix":"","limit":1000}' \
-  | python3 -c '
-import sys, json
-try:
-    data = json.load(sys.stdin)
-except ValueError as e:
-    sys.exit("  ! storage list returned no JSON (%s) - check SUPABASE_KEY" % e)
-if not isinstance(data, list):
-    sys.exit("  ! storage list refused: %s" % json.dumps(data)[:300])
-for o in data:
-    if o.get("name"): print(o["name"])
-' > "$OUT/storage/$BUCKET.list"
+  # List the bucket recursively. The API returns one level at a time: entries with
+  # an id are objects, entries without are folders. Walking a fixed two levels — as
+  # this did — silently dropped anything deeper, and contribution photos stage at
+  # contrib/<uuid>/<file>, which is three. A backup that quietly skips a whole
+  # shape of file is the kind of thing you discover when you need it.
+  SUPABASE_URL="$SUPABASE_URL" SUPABASE_KEY="$SUPABASE_KEY" BUCKET="$BUCKET" \
+  python3 - > "$OUT/storage/$BUCKET.files" <<'PY'
+import json, os, sys, urllib.request
 
-  # list only returns one level, so walk any folders it reported
-  while read -r ENTRY; do
-    [ -z "$ENTRY" ] && continue
-    curl -s -X POST "$SUPABASE_URL/storage/v1/object/list/$BUCKET" \
-      "${SB_AUTH[@]}" \
-      -H "Content-Type: application/json" \
-      -d "{\"prefix\":\"$ENTRY\",\"limit\":1000}" \
-    | python3 -c "
-import sys, json
-for o in json.load(sys.stdin):
-    n = o.get('name')
-    if n and o.get('id'): print('$ENTRY/' + n)
-"
-  done < "$OUT/storage/$BUCKET.list" >> "$OUT/storage/$BUCKET.files" || true
+url    = os.environ["SUPABASE_URL"].rstrip("/")
+key    = os.environ["SUPABASE_KEY"]
+bucket = os.environ["BUCKET"]
+hdrs   = {"apikey": key, "Content-Type": "application/json"}
+if not key.startswith(("sb_secret_", "sb_publishable_")):
+    hdrs["Authorization"] = "Bearer " + key   # legacy JWT keys want both
 
-  # the top level may itself hold files, not just folders
-  cat "$OUT/storage/$BUCKET.list" >> "$OUT/storage/$BUCKET.files"
+def page(prefix):
+    out, offset = [], 0
+    while True:
+        body = json.dumps({"prefix": prefix, "limit": 1000, "offset": offset}).encode()
+        req  = urllib.request.Request(
+            "%s/storage/v1/object/list/%s" % (url, bucket), data=body, headers=hdrs)
+        try:
+            data = json.load(urllib.request.urlopen(req))
+        except Exception as e:
+            sys.exit("  ! listing %s/%s failed: %s" % (bucket, prefix, e))
+        if not isinstance(data, list):
+            sys.exit("  ! listing refused: %s" % json.dumps(data)[:300])
+        out += data
+        if len(data) < 1000:
+            return out
+        offset += len(data)          # keep paging; a bucket can outgrow one page
+
+seen, queue = [], [""]
+while queue:
+    prefix = queue.pop()
+    for o in page(prefix):
+        name = o.get("name")
+        if not name:
+            continue
+        full = prefix + name if not prefix else prefix + "/" + name
+        if o.get("id"):
+            seen.append(full)        # an object
+        else:
+            queue.append(full)       # a folder: go deeper
+for f in sorted(set(seen)):
+    print(f)
+PY
 
   # A key without storage access lists an empty bucket rather than erroring, so a
-  # silent zero here would look exactly like a successful backup. Say so loudly:
-  # an archive you think you have is worse than one you know you don't.
-  WANT=$(sort -u "$OUT/storage/$BUCKET.files" | grep -c . || true)
+  # silent zero would look exactly like a successful backup. Say so loudly: an
+  # archive you think you have is worse than one you know you don't.
+  WANT=$(grep -c . "$OUT/storage/$BUCKET.files" || true)
+  echo "    listed $WANT object(s)"
   if [ "$WANT" -eq 0 ]; then
-    echo "  ! $BUCKET listed 0 objects — expected photos=1 photos-private=3 documents=4."
-    echo "  ! If that is not a real change, SUPABASE_KEY cannot read storage. Backup is INCOMPLETE."
+    echo "  ! $BUCKET listed 0 objects — SUPABASE_KEY may not be able to read storage."
     EMPTY_BUCKETS=$((EMPTY_BUCKETS + 1))
   fi
 
@@ -133,8 +148,16 @@ for o in json.load(sys.stdin):
     CODE=$(curl -s -o "$DEST" -w '%{http_code}' \
       "$SUPABASE_URL/storage/v1/object/$BUCKET/$F" \
       "${SB_AUTH[@]}")
-    [ "$CODE" = "200" ] || rm -f "$DEST"      # folders come back as errors; drop them
+    [ "$CODE" = "200" ] || { echo "  ! $BUCKET/$F -> HTTP $CODE"; rm -f "$DEST"; }
   done
+
+  # Listed and downloaded must agree. A 404 or a permission failure on a single
+  # object would otherwise vanish into a count nobody checks.
+  GOT=$(find "$OUT/storage/$BUCKET" -type f | wc -l | tr -d ' ')
+  if [ "$GOT" -ne "$WANT" ]; then
+    echo "  ! $BUCKET: listed $WANT but downloaded $GOT. Backup is INCOMPLETE."
+    EMPTY_BUCKETS=$((EMPTY_BUCKETS + 1))
+  fi
 done
 
 # 3. The public static data, so a restore doesn't depend on the repo being reachable.

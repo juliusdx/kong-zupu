@@ -1,0 +1,17 @@
+# Belt and braces. The library, SQL and tools should never be inside the web root
+# at all — deploy `public/` as the document root and keep the rest above it. If
+# the whole folder does end up served, this still refuses the parts that matter.
+<IfModule mod_authz_core.c>
+  <FilesMatch "\.(sql|md|sh)$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "\.(sql|md|sh)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
+
+RedirectMatch 404 ^/(lib|sql|tools|tests)/
+RedirectMatch 404 ^/config\.php$

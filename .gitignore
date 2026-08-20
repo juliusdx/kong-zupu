@@ -31,3 +31,7 @@ map_screenshot.png
 Kong_Family_book*
 # ...but the derived public transcriptions (text only, no scans) are meant to be shared
 !Kong_Family_book*_Transcription.html
+
+# SiteGround backend: holds the database password and mail credentials.
+# This repo is PUBLIC.
+siteground/config.php

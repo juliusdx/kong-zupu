@@ -19,9 +19,42 @@
 set -euo pipefail
 
 OUT="${1:-$HOME/Projects_2026/China Lineage Trip/zupu-backups/$(date +%Y-%m-%d_%H%M)}"
-: "${PGURI:?set PGURI — see the header of this script}"
-: "${SUPABASE_URL:?set SUPABASE_URL}"
-: "${SUPABASE_KEY:?set SUPABASE_KEY (service-role)}"
+
+# Credentials are prompted for when not already set. Putting them on the command
+# line means one very long line, which mangles on paste and leaves both secrets
+# sitting in shell history. Typed here they are echoed nowhere and stored nowhere.
+ask() {                       # ask VAR "prompt" [default]
+  local var="$1" prompt="$2" default="${3:-}" val=""
+  if [ -n "${!var:-}" ]; then return 0; fi
+  if [ ! -t 0 ]; then echo "$var is not set and there is no terminal to ask on." >&2; exit 1; fi
+  if [ -n "$default" ]; then
+    printf '%s [%s]: ' "$prompt" "$default" >&2; IFS= read -r val || true
+    val="${val:-$default}"
+  else
+    printf '%s: ' "$prompt" >&2; IFS= read -rs val || true; printf '\n' >&2
+  fi
+  [ -n "$val" ] || { echo "$var is required." >&2; exit 1; }
+  printf -v "$var" '%s' "$val"
+}
+ask SUPABASE_URL "Project URL" "https://pefnwwlbjfksyaenapgv.supabase.co"
+ask PGURI        "Session-pooler URI (dashboard > Database > Connection string)"
+ask SUPABASE_KEY "Secret key (sb_secret_...)"
+
+# pg_dump must be at least as new as the server, or it refuses outright. Homebrew
+# often leaves an older one first on PATH, so find a good one rather than blaming
+# the user for a PATH they did not know they had.
+SERVER_MAJOR=17
+if ! command -v pg_dump >/dev/null || [ "$(pg_dump --version | sed -E 's/.* ([0-9]+).*/\1/')" -lt "$SERVER_MAJOR" ]; then
+  for CAND in /opt/homebrew/opt/postgresql@*/bin /usr/local/opt/postgresql@*/bin /opt/homebrew/opt/libpq/bin; do
+    if [ -x "$CAND/pg_dump" ] && [ "$("$CAND/pg_dump" --version | sed -E 's/.* ([0-9]+).*/\1/')" -ge "$SERVER_MAJOR" ]; then
+      PATH="$CAND:$PATH"; break
+    fi
+  done
+fi
+if ! command -v pg_dump >/dev/null; then
+  echo "pg_dump not found. brew install postgresql@17" >&2; exit 1
+fi
+echo "  using $(command -v pg_dump) ($(pg_dump --version))"
 
 mkdir -p "$OUT/storage"
 echo "→ $OUT"

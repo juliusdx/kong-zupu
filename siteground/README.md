@@ -22,11 +22,14 @@ no URL that bypasses the check**, because the URL *is* the check.
 
     lib/visibility.php   the privacy model — the only definition of who sees what
     lib/repo.php         every read of a gated table; nothing else may SELECT
+    lib/contributions.php every write the tree receives; submit and decide
     lib/auth.php         magic-link sign-in
     lib/bootstrap.php    config, hardened session, viewer identity
     lib/db.php           PDO, real prepared statements
     public/photo.php     the gate and the file, one code path
     public/api/tree.php  the tree, filtered to the caller
+    public/api/contribute.php  submit a contribution (open, signed out)
+    public/api/review.php      the queue, and approve/reject (admins)
     public/auth/*.php    request / verify / logout / me
     sql/schema.mysql.sql the target schema
     sql/schema.sqlite.sql the same schema for tests
@@ -35,8 +38,9 @@ no URL that bypasses the check**, because the URL *is* the check.
 
 ## Tests
 
-    php tests/run.php          # 38 assertions: visibility, detail, contacts, photos, tokens
-    php tests/http_photo.php   # photo.php over real HTTP, including path traversal
+    php tests/run.php           # 50 assertions: visibility, detail, contacts, photos, tokens
+    php tests/contributions.php # 44 assertions: submit, approve, reject, re-parent
+    php tests/http_photo.php    # photo.php over real HTTP, including path traversal
 
 Both pass. `tests/run.php` includes the assertions that would have caught the
 original leak — a signed-out visitor must not be served a member photo, and a
@@ -104,7 +108,6 @@ day one.
 
 ## Still to build
 
-- Write endpoints: contribution submit and the admin approve/reject path.
 - The admin panel's members and review screens.
 - The front-end swap in `js/app.js` — the 14 `.from()` calls become `fetch`.
 - Photo upload, which on this side is a plain POST to a script that writes

@@ -832,24 +832,24 @@
     if (!Auth.LIVE) return;
     const sb = Auth.client(); if (!sb) return;
     try {
-      const [pp, pl, md] = await Promise.all([
-        sb.from("persons").select("*"),
-        sb.from("places").select("*"),
-        sb.from("media").select("*")
-      ]);
-      (pl.data || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
-      (pp.data || []).forEach(r => {
+      // One call through the adapter. On Supabase this is still three reads; on
+      // the PHP backend the filtering happens server-side and it is one request.
+      const tree = await Backend.tree(sb);
+      (tree.places || []).forEach(r => mergeRow(LINEAGE.places, camelPlace(r)));
+      (tree.persons || []).forEach(r => {
         if (r.archived) dropRow(LINEAGE.persons, r.id);
         else mergeRow(LINEAGE.persons, camel(r));
       });
+      const md = { data: tree.media || [] };
       // Signed-out visitors don't receive member-tier (living) rows from `persons` (RLS).
       // The family chose to keep living adults findable by NAME + tree position, so pull
       // a column-limited public view (no birth year, bio, location, photo, contact; no
       // minors). Signed-in members already get these via the persons fetch above.
       if (!Auth.state().user) {
         try {
-          const { data: lm } = await sb.from("persons_public_search").select("*");
-          (lm || []).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
+          // Folded into the tree response on the PHP backend, where the same
+          // rule lives in repo.php; still a separate view on Supabase.
+          (await Backend.publicSearch(sb)).forEach(r => mergeRow(LINEAGE.persons, camel(r)));
         } catch (_) { /* view not migrated yet — living members stay hidden to anon */ }
       }
       // Gated detail for LIVING members: birth year / bio live in person_details,

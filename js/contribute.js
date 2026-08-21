@@ -511,12 +511,8 @@
 
     if (LIVE) {
       try {
-        const res = await fetch(`${cfg.SUPABASE_URL}/rest/v1/contributions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: cfg.SUPABASE_ANON_KEY, Prefer: "return=minimal" },
-          body: JSON.stringify({ payload: data, status: "pending" })
-        });
-        if (!res.ok) throw new Error(await res.text());
+        // Through the adapter, so the same form works against either backend.
+        await Backend.submitContribution(data);
         // Show a floating toast (fixed, stays visible across view transition) then go back
         const banner = document.createElement("div");
         banner.className = "contrib-success";

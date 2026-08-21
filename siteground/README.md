@@ -23,6 +23,7 @@ no URL that bypasses the check**, because the URL *is* the check.
     lib/visibility.php   the privacy model — the only definition of who sees what
     lib/repo.php         every read of a gated table; nothing else may SELECT
     lib/contributions.php every write the tree receives; submit and decide
+    lib/uploads.php      receiving a photo; the counterpart to photo.php
     lib/auth.php         magic-link sign-in
     lib/bootstrap.php    config, hardened session, viewer identity
     lib/db.php           PDO, real prepared statements
@@ -30,6 +31,7 @@ no URL that bypasses the check**, because the URL *is* the check.
     public/api/tree.php  the tree, filtered to the caller
     public/api/contribute.php  submit a contribution (open, signed out)
     public/api/review.php      the queue, and approve/reject (admins)
+    public/api/upload.php      receive a photo, and approve or refuse one
     public/auth/*.php    request / verify / logout / me
     sql/schema.mysql.sql the target schema
     sql/schema.sqlite.sql the same schema for tests
@@ -40,6 +42,7 @@ no URL that bypasses the check**, because the URL *is* the check.
 
     php tests/run.php           # 50 assertions: visibility, detail, contacts, photos, tokens
     php tests/contributions.php # 44 assertions: submit, approve, reject, re-parent
+    php tests/uploads.php       # 28 assertions: file types, subject gating, traversal
     php tests/http_photo.php    # photo.php over real HTTP, including path traversal
 
 Both pass. `tests/run.php` includes the assertions that would have caught the
@@ -109,6 +112,11 @@ day one.
 ## Still to build
 
 - The admin panel's members and review screens.
-- The front-end swap in `js/app.js` — the 14 `.from()` calls become `fetch`.
-- Photo upload, which on this side is a plain POST to a script that writes
-  outside the web root.
+- The rest of the front-end swap. `js/backend.js` is the adapter and
+  `APP_CONFIG.BACKEND` the switch; the tree read and the contribution submit
+  go through it today. **There are 77 Supabase call sites in `js/`, not the 14
+  an earlier note estimated** — 68 `.from()`, 20 storage, 3 rpc, 6 auth — so
+  this is the largest remaining piece by some distance. Anything not yet ported
+  keeps using Supabase whichever way the switch is set, which is what lets both
+  backends run side by side.
+- Members and transcriptions have no PHP endpoint yet, so they stay on Supabase.

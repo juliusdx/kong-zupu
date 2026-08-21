@@ -63,7 +63,18 @@ function check(string $what, $got, $want) {
 $ids = fn(array $rows) => array_map(fn($r) => $r['id'], $rows);
 
 echo "\nPEOPLE\n";
-check('anon sees only the public ancestor',       $ids(repo_persons($anon)),     ['anc1']);
+check('anon sees the ancestor AND the living adult', $ids(repo_persons($anon)),   ['anc1','mem1']);
+check('anon still never sees the minor',          in_array('kid1', $ids(repo_persons($anon)), true), false);
+
+// The living adult reaches a signed-out visitor by NAME and TREE POSITION only.
+// Anything that would locate or describe them must come back empty, or this
+// path has quietly become a way to read member-tier data without signing in.
+$anonMem = array_values(array_filter(repo_persons($anon), fn($r) => $r['id'] === 'mem1'))[0];
+check('anon gets the living adult\'s name',       $anonMem['name'],            'Living Relative');
+check('anon gets their tree position',            $anonMem['gen'],             26);
+foreach (['birth_year','bio','birth_place','residence_place','burial_place','lat','lng','relation'] as $blocked) {
+    check("anon gets no {$blocked} for a living adult", $anonMem[$blocked] ?? null, null);
+}
 check('member also sees the living relative',     $ids(repo_persons($member)),   ['anc1','mem1']);
 check('member never sees the minor',              in_array('kid1', $ids(repo_persons($member)), true), false);
 check('approved member still never sees a minor', in_array('kid1', $ids(repo_persons($approved)), true), false);
@@ -106,7 +117,8 @@ echo "\nDEPLOY-DAY SWITCH\n";
 $GLOBALS['ZUPU_CONFIG']['enforce_approval'] = false;
 check('permissive: unapproved member gets detail', $memRow(repo_persons($member))['birth_year'] ?? null, '1980');
 check('permissive still hides minors from members', in_array('kid1', $ids(repo_persons($member)), true), false);
-check('permissive still hides members from anon',  $ids(repo_persons($anon)), ['anc1']);
+check('permissive does not widen what anon sees',  $ids(repo_persons($anon)), ['anc1','mem1']);
+check('permissive still hides minors from anon',  in_array('kid1', $ids(repo_persons($anon)), true), false);
 check('the grace was logged',
     (int)q1("SELECT COUNT(*) c FROM access_log WHERE verdict = 'would_refuse'")['c'] > 0, true);
 $GLOBALS['ZUPU_CONFIG']['enforce_approval'] = true;

@@ -12,10 +12,38 @@ const PERSON_BASIC = 'id, gen, name, pinyin, ritual_name, formal_name, hao, milk
                       gender, father_id, spouse_of, relation, living, confidence, visibility,
                       birth_place, residence_place, burial_place, lat, lng';
 
+/**
+ * What a SIGNED-OUT visitor may see of a living adult: their name and where they
+ * sit in the tree, and nothing else. The redacted columns are selected as NULL
+ * rather than omitted, so every row comes back the same shape as PERSON_BASIC
+ * and the redaction is visible in the query instead of implied by its absence.
+ */
+const PERSON_SEARCH = "id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
+                       gender, father_id, spouse_of, NULL AS relation, living, confidence, visibility,
+                       NULL AS birth_place, NULL AS residence_place, NULL AS burial_place,
+                       NULL AS lat, NULL AS lng";
+
 function repo_persons(Viewer $v): array
 {
     [$gate] = Visibility::rowGate($v, 'p');
     $rows = q("SELECT " . PERSON_BASIC . " FROM persons p WHERE {$gate} ORDER BY gen, name")->fetchAll();
+
+    // The family decided that living ADULTS stay findable by name and tree
+    // position without signing in — relatives use the tree to find each other.
+    // Supabase encoded that in the persons_public_search view; it is carried
+    // over here so that changing hosts does not quietly change what the family
+    // chose. Everything that makes a person locatable or knowable — dates,
+    // places, bio, photos, contacts — still needs a sign-in, and minors are
+    // never included. The is_minor and archived guards are spelled out again
+    // rather than inherited, so neither can be lost by editing the tier logic.
+    if (!$v->isSignedIn()) {
+        $rows = array_merge($rows, q(
+            "SELECT " . PERSON_SEARCH . " FROM persons
+              WHERE visibility = 'member' AND living = 1
+                AND is_minor = 0 AND archived = 0"
+        )->fetchAll());
+        usort($rows, fn($a, $b) => [$a['gen'], $a['name']] <=> [$b['gen'], $b['name']]);
+    }
 
     // Detail is a second decision, not part of the row gate: a signed-in member
     // sees WHO their relatives are; an APPROVED member sees their details.

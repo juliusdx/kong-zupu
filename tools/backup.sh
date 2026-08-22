@@ -40,6 +40,21 @@ ask SUPABASE_URL "Project URL" "https://pefnwwlbjfksyaenapgv.supabase.co"
 ask PGURI        "Session-pooler URI (dashboard > Database > Connection string)"
 ask SUPABASE_KEY "Secret key (sb_secret_...)"
 
+# The prompts are silent, so a half-paste would otherwise surface as a
+# baffling pg_dump error minutes later — or worse, as a backup nobody
+# doubts. Fail here, loudly, with the actual mistake.
+case "$PGURI" in
+  postgres://*|postgresql://*) echo "  uri ok: ${PGURI:0:24}…" ;;
+  *) echo "! That was not the URI — it should START with postgresql:// and END with /postgres.
+  (You may have pasted the database PASSWORD instead. The URI looks like:
+   postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres)" >&2; exit 1 ;;
+esac
+case "$SUPABASE_KEY" in
+  sb_secret_*|sb_publishable_*) echo "  key ok: ${SUPABASE_KEY:0:12}…" ;;
+  eyJ*) echo "  ! that is a legacy JWT key — those are revoked. Use the sb_secret_ key from Settings → API Keys." >&2; exit 1 ;;
+  *) echo "! That does not look like a Supabase API key (expected sb_secret_…)." >&2; exit 1 ;;
+esac
+
 # pg_dump must be at least as new as the server, or it refuses outright. Homebrew
 # often leaves an older one first on PATH, so find a good one rather than blaming
 # the user for a PATH they did not know they had.

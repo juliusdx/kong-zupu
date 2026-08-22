@@ -211,7 +211,7 @@
       s_desc: "Family members sign in to add photos, see living-member details, and contribute. Your email is never shown publicly.",
       s_email: "Email", s_magic: "Email me a magic link", s_or: "or",
       s_google: "Continue with Google", s_enter_email: "Enter your email first.",
-      s_sending: "Sending…", s_sent: "✓ Check your inbox for the sign-in link.",
+      s_sending: "Sending…", s_sent: "✓ Check your inbox for the sign-in link. If nothing arrives, please look in your spam/junk folder.",
       s_redir: "Redirecting to Google…", s_err: "Error: ",
 
       a_msg: "⚑ Admin mode — click an ancestor marked ⚑ to confirm its identity.",
@@ -465,7 +465,7 @@
       s_desc: "家族成員登入後可新增相片、查看在世成員資料並參與貢獻。您的電郵不會公開。",
       s_email: "電郵", s_magic: "寄送登入連結至電郵", s_or: "或",
       s_google: "使用 Google 登入", s_enter_email: "請先輸入電郵。",
-      s_sending: "傳送中…", s_sent: "✓ 請查收電郵中的登入連結。",
+      s_sending: "傳送中…", s_sent: "✓ 請查收電郵中的登入連結。若未收到，請檢查垃圾郵件資料夾。",
       s_redir: "轉往 Google…", s_err: "錯誤：",
 
       a_msg: "⚑ 管理模式 — 點選標示 ⚑ 的祖先以確認身分。",

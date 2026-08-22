@@ -13,7 +13,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') json_error('POST only', 405);
 
 $body  = json_decode(file_get_contents('php://input') ?: '{}', true) ?: $_POST;
 $email = auth_normalise_email((string)($body['email'] ?? ''));
-$same  = ['ok' => true, 'message' => 'If that address is in the family records, a sign-in link is on its way.'];
+$same  = ['ok' => true, 'message' => 'If that address is in the family records, a sign-in link is on its way. If nothing arrives, please check your spam folder too.'];
 
 if ($email === null) json_out($same);
 

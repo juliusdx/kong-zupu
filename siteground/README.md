@@ -104,8 +104,16 @@ day one.
 - **SSH or FTP details** — I cannot deploy or test on the real host without them.
 - **PHP and MySQL versions** on the plan. Written for PHP 8.1+; tested on 8.5.
 - **Is SSH available**, or FTP only? It changes how the import is run.
-- **Is SMTP enabled** for the domain, and from which address? Magic links are
-  useless if mail lands in spam — worth checking SPF/DKIM before cutover.
+## What I still need from you
+
+- ~~**Is SMTP enabled** for the domain~~ — **answered 2026-08-22.** Mailbox
+  `zupu@accme.my` exists; SPF/DKIM/DMARC all pass; authenticated SMTP works.
+  Deliverability: Gmail inboxes us on first contact, Outlook/Live junks us
+  despite perfect authentication (cold-sender reputation). Mitigated by the
+  "check your spam folder" line in the sign-in response; relatives mark
+  Not-Junk once and Microsoft remembers per-recipient. A transactional relay
+  stays in reserve if anyone gets locked out. Retest any time:
+  `php tests/mail_smtp.php <address> [label]` from `~/zupu-mailtest/`.
 - **Where the home directory is**, so `media_root` can be set somewhere that is
   definitely not under `public_html`.
 

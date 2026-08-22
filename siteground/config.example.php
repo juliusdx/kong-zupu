@@ -21,8 +21,19 @@ return [
     'site_url' => 'https://zupu.example.com',
 
     'mail' => [
-        'from'      => 'zupu@example.com',
+        'from'      => 'zupu@accme.my',
         'from_name' => '江氏族譜 Kong Family Zupu',
+
+        // Authenticated SMTP (Site Tools → Email → Accounts). When host is
+        // set, mail leaves through the real mailbox — better regarded by
+        // Outlook/Microsoft junk filters than raw mail(), which junked on
+        // first test despite perfect DKIM. Leave host '' to fall back to
+        // PHP mail() with an aligned -f envelope (tests, fresh installs).
+        // The password lives only in this git-ignored file.
+        'smtp_host' => '',           // e.g. mail.accme.my
+        'smtp_port' => 465,          // 465 = implicit TLS; 587 = STARTTLS
+        'smtp_user' => '',           // zupu@accme.my
+        'smtp_pass' => '',
     ],
 
     // Cookies are only sent over HTTPS. Leave true in production; set false only

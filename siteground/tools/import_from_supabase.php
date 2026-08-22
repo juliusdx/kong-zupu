@@ -36,7 +36,10 @@ function sb_get(string $table, string $select = '*'): array
     $from = 0;
     do {                                   // PostgREST caps a page at 1000
         $ctx = stream_context_create(['http' => ['method' => 'GET', 'header' =>
-            "apikey: {$SB_KEY}\r\nAuthorization: Bearer {$SB_KEY}\r\n" .
+            // apikey ONLY: the sb_secret_ keys are not JWTs, and putting one
+            // on Authorization makes the platform try to parse it as one.
+            // Same trap tools/backup.sh fell into (fixed 2026-08-20).
+            "apikey: {$SB_KEY}\r\n" .
             'Range: ' . $from . '-' . ($from + 999) . "\r\n", 'ignore_errors' => true]]);
         $raw = file_get_contents("{$SB_URL}/rest/v1/{$table}?select={$select}", false, $ctx);
         if ($raw === false) { fwrite(STDERR, "read failed: {$table}\n"); exit(1); }

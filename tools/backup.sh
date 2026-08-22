@@ -46,6 +46,7 @@ ask SUPABASE_KEY "Secret key (sb_secret_...)"
 case "$PGURI" in
   postgres://*|postgresql://*) echo "  uri ok: ${PGURI:0:24}…" ;;
   *) echo "! That was not the URI — it should START with postgresql:// and END with /postgres.
+  What arrived began with: \"${PGURI:0:12}\"
   (You may have pasted the database PASSWORD instead. The URI looks like:
    postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres)" >&2; exit 1 ;;
 esac

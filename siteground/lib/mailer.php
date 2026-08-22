@@ -41,10 +41,17 @@ function mail_send(string $to, string $subject, string $body): bool
          . 'MIME-Version: 1.0' . "\r\n"
          . 'Content-Type: text/plain; charset=UTF-8' . "\r\n";
     $subj = mail_encode_header($subject);
-    $smtp = $m['smtp'] ?? [];
 
-    if (!empty($smtp['host'])) {
-        return smtp_send($to, $subj, $body, $hdr);
+    if (!empty($m['smtp_host'])) {
+        // Config carries the credentials flat (smtp_host/smtp_port/…);
+        // gather them once here so smtp_send stays about the conversation.
+        $s = [
+            'host' => $m['smtp_host'],
+            'port' => $m['smtp_port'] ?? 465,
+            'user' => $m['smtp_user'] ?? '',
+            'pass' => $m['smtp_pass'] ?? '',
+        ];
+        return smtp_send($to, $subj, $body, $hdr, $s);
     }
 
     // Fallback transport: same headers request.php always sent, plus the
@@ -59,13 +66,11 @@ function mail_send(string $to, string $subject, string $body): bool
  * every step's code is checked before the next command — half-sent mail is
  * worse than none, and a wrong password must not look like success.
  */
-function smtp_send(string $to, string $subjectEnc, string $body, string $headers): bool
+function smtp_send(string $to, string $subjectEnc, string $body, string $headers, array $s): bool
 {
-    $m   = config()['mail'];
-    $s   = $m['smtp'];
     $eno = 0; $estr = '';
     $fp = @stream_socket_client(
-        'ssl://' . $s['host'] . ':' . (int)($s['port'] ?? 465),
+        'ssl://' . $s['host'] . ':' . (int)$s['port'],
         $eno, $estr, 15
     );
     if (!$fp) {

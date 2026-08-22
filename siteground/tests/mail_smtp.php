@@ -18,12 +18,12 @@ if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
 }
 
 $m       = config()['mail'];
-$viaSmtp = !empty($m['smtp']['host']);
+$viaSmtp = !empty($m['smtp_host']);
 $subject = '族譜郵件測試 · Zupu Mail Test'
          . ($label !== '' ? " ($label)" : '')
          . ' — ' . date('Y-m-d H:i:s');
 $body = "Deliverability test for the Kong family zupu.\n"
-      . 'Transport: ' . ($viaSmtp ? 'authenticated SMTP (' . $m['smtp']['host'] . ')' : 'raw mail() fallback') . "\n"
+      . 'Transport: ' . ($viaSmtp ? 'authenticated SMTP (' . $m['smtp_host'] . ')' : 'raw mail() fallback') . "\n"
       . 'From: ' . mail_from() . "\n\n"
       . "Please report where this landed: INBOX / SPAM / MISSING.\n";
 

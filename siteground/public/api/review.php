@@ -26,6 +26,15 @@ if ($method === 'GET') {
         ? q("SELECT * FROM contributions WHERE status = 'pending' ORDER BY created_at DESC")->fetchAll()
         : q("SELECT * FROM contributions WHERE status <> 'pending' ORDER BY reviewed_at DESC LIMIT 50")->fetchAll();
 
+    // Name the reviewers in one pass rather than per row. The log says "who
+    // decided this" as well as "what changed", and with more than one person
+    // approving now, a bare uuid answers neither.
+    $names = [];
+    foreach (q('SELECT id, full_name, email FROM users')->fetchAll() as $u) {
+        $names[(string)$u['id']] = $u['full_name'] !== null && $u['full_name'] !== ''
+            ? (string)$u['full_name'] : (string)$u['email'];
+    }
+
     $out = [];
     foreach ($rows as $r) {
         $payload = json_decode((string)$r['payload'], true) ?: [];
@@ -35,6 +44,7 @@ if ($method === 'GET') {
             'createdAt' => $r['created_at'],
             'payload'   => $payload,
             'reviewedBy'=> $r['reviewed_by'],
+            'reviewedByName' => $r['reviewed_by'] !== null ? ($names[(string)$r['reviewed_by']] ?? null) : null,
             'reviewedAt'=> $r['reviewed_at'],
             'reason'    => $r['rejection_reason'],
         ];

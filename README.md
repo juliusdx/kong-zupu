@@ -78,12 +78,19 @@ keeper to merge. To accept live submissions, photos and logins:
    ```js
    window.APP_CONFIG = {
      SUPABASE_URL: "https://xxxx.supabase.co",
-     SUPABASE_ANON_KEY: "eyJ...",   // public anon key
+     SUPABASE_ANON_KEY: "sb_publishable_...",  // publishable key (NOT a JWT — see DEPLOY.md §3b)
      MODERATED: true
    };
    ```
 6. (To read live data instead of the seed file, point the tree/map at the `persons`/`places`
    tables — the JSON shape in `data/lineage.js` matches the schema exactly.)
+
+## Which backend
+
+`APP_CONFIG.BACKEND` selects it: `"supabase"` (live) or `"php"` (the SiteGround API in
+`siteground/`). `js/backend.js` is the adapter. Capabilities move across one at a time — the
+tree read and the contribution submit go through it today, everything else still calls Supabase
+directly whichever way the switch is set, so both can run side by side during a migration.
 
 ## Editing the family data by hand
 

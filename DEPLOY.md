@@ -7,29 +7,19 @@ contributions — the tree, map, and admin lineage-confirmation all work without
 
 ---
 
-## 1. Put it on GitHub (run these in your own macOS Terminal)
+## 1. GitHub — already set up
 
-> ⚠️ Git must be run from **your Terminal**, not from inside the assistant's sandbox.
-> The assistant created a partial `.git` folder that its sandbox can't clean up, so
-> start by removing it and re-initialising cleanly:
+> ⚠️ **Historical section.** This describes first-time setup, which was done long ago.
+> **Do not run `rm -rf .git`** — the repo is live at `github.com/juliusdx/kong-zupu` with
+> full history. It also named the wrong folder: the canonical working directory is
+> `China Lineage Trip **copy**/kong-zupu`; the sibling without "copy" holds only the
+> git-ignored scans.
 
-```bash
-cd "/Users/julius/Projects_2026/China Lineage Trip/kong-zupu"
-
-# 1. clean any half-made repo from the sandbox
-rm -rf .git
-
-# 2. fresh repo
-git init -b main
-git add -A
-git commit -m "Kong family zupu: tree, map, contribute, admin lineage confirmation"
-```
-
-Then create an **empty** repo on github.com (e.g. `kong-zupu`, no README), and:
+Day to day it is just:
 
 ```bash
-git remote add origin https://github.com/<your-username>/kong-zupu.git
-git push -u origin main
+cd "/Users/julius/Projects_2026/China Lineage Trip copy/kong-zupu"
+git add -A && git commit -m "..." && git push
 ```
 
 ### Enable GitHub Pages (auto-deploy via Actions)
@@ -52,9 +42,14 @@ To deploy manually any time: repo **Actions** tab → **Deploy to GitHub Pages**
 
 ## 2. Admin: confirming the uncertain ancestors
 
-Generations 13–18 were reconstructed from the master charts. A few nodes
-(gen 13 川, 16 朝, 17 龍) are still **placeholders** — the generation is certain but the
-exact individual isn't. They show a ⚑ flag on the tree.
+> **Out of date as of 2026-08-20.** The three placeholders this section was written for are
+> all resolved from the book: gen 13 is **榮川公 字以賢** (pt1 p.27), gen 16 **朝纓 字成祥**
+> (pt2 p.19) and gen 17 **龍躍** (pt2 p.27). `data/overrides.js` is still empty — the
+> confirmations were written straight into `data/lineage.js` instead. The mechanism below
+> still works if another ⚑ candidate set ever appears.
+
+Generations 13–18 were reconstructed from the master charts. Nodes whose individual was
+uncertain showed a ⚑ flag on the tree.
 
 To confirm one:
 1. Open the site with `?admin=1`, e.g.
@@ -118,6 +113,22 @@ A third option if you ever outgrow both: a free Postgres host (e.g. Neon) reusin
 same `schema.sql`, paired with any auth provider.
 
 ---
+
+## 3b. API keys — READ THIS BEFORE TOUCHING `APP_CONFIG` (changed 2026-08-20)
+
+The legacy JWT `anon` / `service_role` keys are **disabled**, and the **legacy HS256 JWT
+secret is revoked**. Any older key in an old note or script is dead and will return
+`PGRST301 "No suitable key was found to decode the JWT"`.
+
+- The client uses the **publishable** key `sb_publishable_2T9FR7RBLUlH43SkJrppUg_LGLiQBT-`,
+  in `index.html` under `APP_CONFIG.SUPABASE_ANON_KEY` (field name unchanged, value is not
+  a JWT any more). It is safe in the public repo.
+- Anything server-side needs a **secret** key (`sb_secret_…`) created in
+  **Project Settings → API Keys**. `tools/backup.sh` takes one; it is NOT service_role.
+- **Publishable and secret keys are not JWTs — send them on the `apikey` header only.**
+  On `Authorization: Bearer` the platform may try to parse them as a JWT and refuse. This
+  bit `js/contribute.js` and `tools/backup.sh`, both fixed.
+- Current signing key is **ECC (P-256)**.
 
 ## 4. Turn on sign-in (Supabase dashboard)
 
@@ -254,8 +265,12 @@ captions / cover-photo selection.
 
 When an admin approves or rejects a submission, the app calls the
 `notify-contributor` Supabase edge function to email the original submitter.
-The function is in `supabase/functions/notify-contributor/index.ts` and sends via
-[Resend](https://resend.com) (free tier: 100 emails/day — plenty for a family site).
+The function is in `supabase/functions/notify-contributor/index.ts`.
+
+> ⚠️ **This section describes the original Resend wiring and is stale.** §8 below states
+> that `notify-contributor` sends through a **Make.com webhook** (`MAKE_WEBHOOK_URL`, held
+> in Vault), and that is the live arrangement. Read the deployed function before trusting
+> the Resend steps here. Kept for the deploy mechanics, which are unchanged.
 
 ### One-time setup
 

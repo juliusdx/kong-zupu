@@ -10,9 +10,9 @@ app-building history. Everything below is current as of this handoff.
 
 - The app is **built and deployed** (GitHub Pages + Supabase). The only file you edit to
   add people is **`data/lineage.js`** (the `persons` array on `window.LINEAGE`).
-- The tree currently has **486 people** in `data/lineage.js` (direct spine + collateral cousins +
+- The tree currently has **519 people** in `data/lineage.js` (direct spine + collateral cousins +
   Sabah branch + Lilang branch + 7/8/9房), plus the living members held in Supabase.
-  0 broken links, 0 duplicates, 0 generation gaps. 449 are flagged `confidence:"low"` (⚠).
+  0 broken links, 0 duplicates, 0 generation gaps. 479 are flagged `confidence:"low"` (⚠).
 - Remaining work is **adding more named people from the book**, flagged low, with correct
   `father` links — then validate, then `git push` (auto-deploys).
 - Relatives can also verify/add through the live app (⚠ "To verify" filter + Contribute
@@ -130,21 +130,64 @@ label, and add a `note` if they conflict. The tree positions by depth, so gen ga
   Sabah generations (永/俊/耀/其/漢, the `k_*` ids) are already richly captured.
 - **pt2 pp.70–84** — Sabah generations swept for missing descendants and missing siblings.
 - **Shenzhen / Lilang Branch** — (ll_*) fully mapped from 朝陽.
-- **Sabah Branch Deep Connection** — Master tree Gen 14-18 connected: `a15` 日輝, `a16` **朝纓 字成祥**
-  (pt2 p.19 — the pt1 chart's "朝滔" is the same man in a different hand), `a17` **龍躍** (pt2 p.27, the
-  庠生 who taught at 李朗), with `a17b` **龍見** beside him as the collateral 叔祖 (pt2 p.20). 龍躍's ten
-  recorded sons include 起瀾公 (the direct line) and the numbered 七/八/九房 — see the ⚠ on `a17`, which
-  is one more than the「生下九大房」the book states.
+- **pt1 pp.17–19** — gens 1–4 done 2026-08-20. 始祖 江八郎, the two granduncles, and the five gen-3
+  brothers with their wives. Three corrections to data that was already live (see below).
+- **pt1 pp.26–29** — gens 12–15 done 2026-08-20. `a13` resolved, the four 川 brothers, 華川's line, and
+  the 日標 reconnection (below).
+- **Sabah Branch Deep Connection** — Master tree Gen 14-18: `a15` 日輝, `a16` **朝纓 字成祥** (pt2 p.19),
+  `a17` **龍躍** (pt2 p.27, the 庠生 who taught at 李朗), with `a17b` **龍見** beside him as the collateral
+  叔祖 (pt2 p.20). 龍躍's ten recorded sons include 起瀾公 (the direct line) and the numbered 七/八/九房 —
+  see the ⚠ on `a17`, which is one more than the「生下九大房」the book states.
+  ⚠ **CORRECTED 2026-08-20:** 朝纓's father is **日標** (`c_5c193f48`), NOT 日輝. pt1 p.29 gives 日輝's four
+  sons as 潮源/潮海/潮浩/潮湖 — the **潮** generation, water radical — and p.30 follows that line through
+  文和 to 世和/世錦/世宏, a Guangzhou branch that is not ours. The earlier claim that the chart's 朝滔 was
+  the same man as 朝纓 in another hand is **withdrawn**: they are separate brothers, both 日標's sons.
+  Confirmed by Julius, whose own 2026-08-16 work in the app had already recorded 日標 in Supabase.
 - **Generation numbering** — renumbered 2026-08-11 to the book's own 世 labels, which run gapless
   16 朝纓 → 17 龍躍 → 18 起瀾 → 19 紹泗 → 20 承續 → 21 大信 → 22 永 → 23 俊 → 24 其/有 → 25 漢.
   The old "1825 合譜 ±1 seam" was a misreading of p.66 and no longer exists.
 
+## Corrections applied 2026-08-20 (data that was already live and wrong)
+
+Read the scans, not `data/transcription.js` — its OCR garbles 世 numbers and radicals. Render from the
+source PDFs with PyMuPDF and crop/magnify; every finding below came from doing that.
+
+1. **`a03` was 念三郎; it is 十八郎** (personal name 鎬 per the p.1 chart). Three sources agree and none
+   dissent: the chart drops the descent line from 十八郎 to 百八郎/百三郎/四六郎; p.19 reads
+   「世祖十八郎。妣邱氏十六娘。所生三子」and names those same three; p.18 heads the five gen-3 brothers
+   with 八郎妣邱氏. 念三郎 is the **三叔祖** and is restored as `a03e`. Confirmed by the family first.
+   The father-links did not move — 十八郎 really is those three sons' father.
+2. **`a02b` 萬里 and `a02c` 萬載 had each other's lives.** 萬里 = 諡文忠 · 名臨 · 號古心 (the Song
+   chancellor, 追封益國公); 萬載 = 諡武肅侯 · 名億 · 號古山. Also 萬**載**, never 萬戴, and his second son
+   is 鈕 not 鉦. p.17 and the p.1 chart agree, and so does the historical record.
+3. **`a13` is no longer a placeholder.** p.27 states 「十三世祖榮川公字以賢」outright. He is 元珠公's third
+   son; p.26 lists all four (繼川/懷川/榮川/華川) and p.27 gives each his 字. All four are now in the file,
+   using the **live contribution ids** where a row already existed, so nobody renders twice.
+
+⚠ **`lineage.js` and Supabase had drifted.** 44 live `persons` rows override seed people by id, including
+Julius's 2026-08-16 work adding 日標 and nine 朝-generation sons. The seed file knew nothing about it. It
+now matches. **Check the live table before transcribing anything in gens 13–16.**
+
 ## What remains (priority order)
 
-1. **Deep-ancestry siblings, gens 1–12 — pt1 pp.13–46.** Add the brothers/wives/children
-   the direct chain skipped (e.g. 百八郎/百六郎, 六三郎=貴六, 千二郎=斌通, the 念X郎 gen-3 set,
-   the 元-generation brothers 元珊/元玉/元珍, etc.). Cross-check the pt1 charts.
+1. **Deep-ancestry siblings, the pt1 pages not yet read: pp.13–16, 20–25, 30–46.** pp.17–19 and 26–29
+   are done. Still to add from pages already read: 濯新's five sons (p.18 gives 長孟德/次迪德/三季德/
+   四明德/五德, p.16 gives a conflicting 孟德/秀德/迪德/明德 — the book itself flags the two accounts as
+   contradictory), 千二郎's son 成山公 (p.21), 東山公's wife 巫氏大娘 (p.22), 元珠公's wife 曾氏二娘
+   (p.25), 懷韻公 and his four 道-generation sons (pp.24–25), 道周公 (p.28), and 日輝's four 潮-generation
+   sons (p.29).
 2. **Unread pt2 pages 1–47** — sweep for any remaining named houses, isolated branches, or stray cousins.
+
+## Open questions for the family (not for code)
+
+- **`a12c` vs `a12`.** The live rows hang all four 川 brothers off `a12c` (元玉公). The book puts them
+  under 元珠公 (`a12`) — p.23 lists 積富公's four sons, p.25 marks 元珠 as 世祖 with 妣曾氏二娘, p.26 gives
+  him the four 川 sons. `lineage.js` says `a12`; the live row wins, so the site currently runs the direct
+  spine through 元玉公. One row per brother to fix, if Julius agrees.
+- **`c_fe5f3b91` 朝宗 is flagged `living: true`** at gen 16 — an 18th-century ancestor recorded as a living
+  member. Not a leak (it over-hides), but he shows up in the living-adults view.
+- **日明 (`a15_riming`) may not exist.** p.29's nine are 日輝、日煌、日焕、日燿、日煒、日炫、日標、日亮、日開
+  — no 日明. His only recorded role, fathering 朝陽, is now 日標's. Flagged in the file, not deleted.
 
 ---
 

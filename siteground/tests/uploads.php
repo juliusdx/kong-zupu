@@ -138,7 +138,117 @@ upload_approve($admin, $doomed['id'], false);
 check('refusing deletes the row',          q1('SELECT id FROM media WHERE id = ?', [$doomed['id']]), null);
 check('and the bytes with it',             is_file($dPath), false);
 
+// ---------------------------------------------------------------------------
+section('staging a photo for someone who does not exist yet');
+
+// The contribution form's case: a signed-in relative attaches a photo of the
+// person they are adding, before that person has an id.
+$staged = upload_photo($user, fixture('newbaby.png'), null, null, null, true);
+$sRow   = q1('SELECT * FROM media WHERE id = ?', [$staged['id']]);
+check('a staged photo has no subject',        $sRow['person_id'], null);
+check('  …nor a place',                       $sRow['place_id'], null);
+check('  …and arrives unapproved',            (int)$sRow['approved'], 0);
+check('  …member-tier while it waits',        $sRow['visibility'], 'member');
+check('  …stored under its own directory',    str_starts_with($sRow['path'], 'staged/'), true);
+
+// approved = 0 is what makes the staging window private. This is the assertion
+// that would have caught the original bug, where the wait happened in a PUBLIC
+// bucket and the photo was fetchable by anyone with the link the whole time.
+$sGate = ['visibility'=>$sRow['visibility'], 'approved'=>(int)$sRow['approved'], 'subject_is_minor'=>0];
+check('nobody signed out may see a staged photo',  Visibility::maySeePhoto($anon, $sGate), false);
+check('nor may a signed-in member',                Visibility::maySeePhoto($user, $sGate), false);
+check('only the reviewer who must look at it',     Visibility::maySeePhoto($admin, $sGate), true);
+
+check('staging refuses a subject, or a lost id would silently become one',
+      (function () use ($user) { try { upload_photo($user, fixture('x.png'), 'anc1', null, null, true); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+
+// ---------------------------------------------------------------------------
+section('claiming a staged photo');
+
+$claim = upload_attach($staged['id'], 'anc1');
+$cRow  = q1('SELECT * FROM media WHERE id = ?', [$staged['id']]);
+check('it now belongs to the person',      $cRow['person_id'], 'anc1');
+check('  …and is approved',                (int)$cRow['approved'], 1);
+check('  …taking the tier from the SUBJECT, not from the guess made at staging',
+      $cRow['visibility'], 'public');
+check('  …with no bytes moved: same path', $cRow['path'], $sRow['path']);
+
+$staged2 = upload_photo($user, fixture('cousin.png'), null, null, null, true);
+upload_attach($staged2['id'], 'mem1');
+check('a living relative makes it member-tier',
+      q1('SELECT visibility FROM media WHERE id = ?', [$staged2['id']])['visibility'], 'member');
+
+check('a photo cannot be claimed twice',
+      (function () use ($staged) { try { upload_attach($staged['id'], 'mem1'); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+
+// The person may have been created as a minor between staging and approval, so
+// the check has to happen here too — and refusing means deleting the bytes.
+$staged3 = upload_photo($user, fixture('child.png'), null, null, null, true);
+$s3Path  = $root . '/' . q1('SELECT path FROM media WHERE id = ?', [$staged3['id']])['path'];
+check('the staged file exists',            is_file($s3Path), true);
+check('attaching to a minor is refused',
+      (function () use ($staged3) { try { upload_attach($staged3['id'], 'kid1'); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+check('  …the row is gone',                q1('SELECT id FROM media WHERE id = ?', [$staged3['id']]), null);
+check('  …and so are the bytes: we do not keep a photo we declined to publish',
+      is_file($s3Path), false);
+
+// ---------------------------------------------------------------------------
+section('an embedded photo from a signed-out contributor');
+
+$png  = fixture('embed.png');
+$data = 'data:image/png;base64,' . base64_encode(file_get_contents($png['tmp_name']));
+$emb  = upload_from_data_url(null, $data, 'mem1');
+$eRow = q1('SELECT * FROM media WHERE id = ?', [$emb['id']]);
+check('it becomes a real file',        is_file($root . '/' . $eRow['path']), true);
+check('  …on the person',              $eRow['person_id'], 'mem1');
+check('  …member-tier, from the subject', $eRow['visibility'], 'member');
+check('  …and approved, since a reviewer just said so', (int)$eRow['approved'], 1);
+
+// The header is the client's word for it. The bytes are checked, same as an upload.
+check('a data URL that is not an image is refused',
+      (function () { try { upload_from_data_url(null, 'data:image/png;base64,' . base64_encode("<?php echo 'no';"), 'mem1'); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+check('and a minor is refused here too',
+      (function () use ($data) { try { upload_from_data_url(null, $data, 'kid1'); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+
+// ---------------------------------------------------------------------------
+section('the tree avatar');
+
+$aPhoto = tryUpload($user, fixture('a.png'), 'anc1');
+$bPhoto = tryUpload($user, fixture('b.png'), 'anc1');
+upload_set_cover($user, $aPhoto['id']);
+check('the chosen photo is the cover',  (int)q1('SELECT cover FROM media WHERE id = ?', [$aPhoto['id']])['cover'], 1);
+upload_set_cover($user, $bPhoto['id']);
+check('choosing another moves it',      (int)q1('SELECT cover FROM media WHERE id = ?', [$bPhoto['id']])['cover'], 1);
+check('  …and only one claims it',      (int)q1('SELECT cover FROM media WHERE id = ?', [$aPhoto['id']])['cover'], 0);
+check('a stranger cannot set it',
+      (function () use ($anon, $bPhoto) { try { upload_set_cover($anon, $bPhoto['id']); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+
+// ---------------------------------------------------------------------------
+section('removing a photo');
+
+$mine   = tryUpload($user, fixture('mine.png'), 'anc1');
+$minePath = $root . '/' . q1('SELECT path FROM media WHERE id = ?', [$mine['id']])['path'];
+$other  = new Viewer(userId:'u9', isAdmin:false, isApproved:true);
+check('someone else cannot delete it',
+      (function () use ($other, $mine) { try { upload_delete($other, $mine['id']); return 'allowed'; }
+        catch (UploadError $e) { return 'refused'; } })(), 'refused');
+check('  …and it is still there',       is_file($minePath), true);
+upload_delete($user, $mine['id']);
+check('the uploader may delete their own', q1('SELECT id FROM media WHERE id = ?', [$mine['id']]), null);
+check('  …bytes and row together',      is_file($minePath), false);
+
+$theirs = tryUpload($user, fixture('theirs.png'), 'anc1');
+upload_delete($admin, $theirs['id']);
+check('an admin may delete anyone\'s',  q1('SELECT id FROM media WHERE id = ?', [$theirs['id']]), null);
+
 echo "\n{$pass} passed, {$fail} failed\n";
 array_map('unlink', glob("$root/*/*/*") ?: []);
+array_map('unlink', glob("$root/staged/*") ?: []);
 @unlink($dbFile);
 exit($fail ? 1 : 0);

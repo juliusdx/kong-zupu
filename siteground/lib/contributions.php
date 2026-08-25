@@ -28,6 +28,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/repo.php';
+require_once __DIR__ . '/uploads.php';
 
 /**
  * A contribution that cannot be applied. Carries the status an endpoint should
@@ -100,12 +101,24 @@ function contribution_decide(Viewer $v, string $id, string $status, ?string $rea
     try {
         if ($status === 'approved') {
             $action = (string)($payload['action'] ?? '');
+            $subjectId = null;
             if ($action === 'add_child' || $action === 'add_spouse') {
-                $report['applied'][] = contrib_add_person($id, $payload, $action);
+                $applied = contrib_add_person($id, $payload, $action);
+                $subjectId = $applied['added'];
+                $report['applied'][] = $applied;
             } elseif ($action === 'edit') {
                 $report['applied'][] = contrib_edit_person($payload);
+                $subjectId = (string)($payload['relatedTo'] ?? '') ?: null;
             } elseif ($action === 'add_place') {
                 $report['applied'][] = contrib_add_place($id, $payload);
+            }
+            // The photo goes on last, once there is somebody to hang it on.
+            // Inside the transaction with everything else: a contribution that
+            // half-lands is the thing this whole function exists to prevent, and
+            // a photo attached to a person the rollback removed is exactly that.
+            if ($subjectId !== null && ($payload['photo'] ?? '') !== '') {
+                $photo = contrib_attach_photo($v, $subjectId, (string)$payload['photo']);
+                if ($photo !== null) $report['applied'][] = $photo;
             }
         }
         q('UPDATE contributions SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP,
@@ -118,6 +131,38 @@ function contribution_decide(Viewer $v, string $id, string $status, ?string $rea
     }
     access_log($v->userId, $status, 'contribution', $id);
     return $report;
+}
+
+/**
+ * Put a contributed photo on the person the contribution just created or edited.
+ *
+ * Two shapes arrive, because two kinds of contributor do:
+ *
+ *   media:<uuid>  a signed-in relative uploaded the file at submit time. It has
+ *                 been sitting with no subject and approved = 0, which already
+ *                 means admin-only, so nothing was reachable while it waited.
+ *                 Claiming it is a column update — no bytes move.
+ *   data:image/…  a signed-out relative embedded it in the payload, because an
+ *                 anonymous endpoint that writes files to our disk is a risk we
+ *                 declined. It becomes a real file here.
+ *
+ * On Supabase this step copied bytes between a private and a public bucket
+ * depending on the tier, and getting that dance wrong is how a member photo came
+ * to sit in the public one. Here the tier is a column and photo.php reads it per
+ * request, so there is no second copy to get out of step.
+ *
+ * Returns null rather than throwing when the marker is something else: an
+ * unrecognised photo reference should not sink an otherwise-good approval.
+ */
+function contrib_attach_photo(Viewer $v, string $personId, string $photo): ?array
+{
+    if (str_starts_with($photo, 'media:')) {
+        return upload_attach(substr($photo, 6), $personId);
+    }
+    if (str_starts_with($photo, 'data:')) {
+        return upload_from_data_url($v->userId, $photo, $personId);
+    }
+    return null;
 }
 
 /**

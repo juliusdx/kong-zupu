@@ -42,12 +42,29 @@ no URL that bypasses the check**, because the URL *is* the check.
 
     php tests/run.php           # 50 assertions: visibility, detail, contacts, photos, tokens
     php tests/contributions.php # 44 assertions: submit, approve, reject, re-parent
-    php tests/uploads.php       # 28 assertions: file types, subject gating, traversal
-    php tests/http_photo.php    # photo.php over real HTTP, including path traversal
+    php tests/uploads.php       # 62 assertions: file types, subject gating, traversal,
+                                #   staging, claiming, embedded photos, cover, delete
+    php tests/members.php       # 31 assertions: roster gating, approve, promote, the locked doors
+    php tests/http_photo.php    #  9 assertions: photo.php over real HTTP, incl. path traversal
+    php tests/http_auth.php     # 30 assertions: the magic-link round trip over real HTTP
 
-Both pass. `tests/run.php` includes the assertions that would have caught the
-original leak — a signed-out visitor must not be served a member photo, and a
-minor's photo is admin-only whatever the media row says.
+226 assertions, all passing. `tests/run.php` includes the ones that would have
+caught the original leak — a signed-out visitor must not be served a member
+photo, and a minor's photo is admin-only whatever the media row says.
+`http_auth.php` covers what a function call cannot: that the session survives as
+a cookie, that `me.php` answers with the identity the sign-in button renders, and
+that signing out ends it on the server rather than only in the page.
+
+To drive it in a browser — the front-end and this API on ONE origin, which is
+what the session cookie requires:
+
+    php tools/serve_local.php --init                    # throwaway db + config
+    php -S localhost:8910 -t .. tools/serve_local.php   # from siteground/
+    php tools/serve_local.php --link keeper@localhost   # prints a sign-in link
+
+It rewrites `BACKEND:"php"` into index.html as it serves, so the committed file
+still says `supabase` and no local experiment can be pushed by accident. Add
+`?backend=supabase` to check the other path on the same running server.
 
 ## The privacy model
 
@@ -96,6 +113,11 @@ day one.
 4. Compare the counts it prints against Supabase. A migration that quietly drops
    the gating is the worst outcome, so this is checked rather than assumed.
 5. Point the front-end at `/api/tree.php` (one request replaces three).
+   **`site_url` in config.php must be exactly the host relatives type.**
+   `verify.php` redirects there after setting the session, and a redirect that
+   crosses to a different spelling of the same server (`127.0.0.1` vs
+   `localhost`, bare vs `www.`) leaves the cookie behind: the link appears to
+   work, the page comes back signed out, and nothing logs an error.
 6. Run in parallel: both backends live, new one on a subdomain, until it's dull.
 7. Cut over DNS. Re-run the import once more on the day.
 
@@ -117,14 +139,77 @@ day one.
 - **Where the home directory is**, so `media_root` can be set somewhere that is
   definitely not under `public_html`.
 
+## Ported to the adapter so far
+
+Sign-in, the review queue, and the members panel now go through `js/backend.js`
+and work end to end on this backend — verified in a browser against a local PHP
+server, not only in tests.
+
+- **Auth.** `js/auth.js` has two drivers behind one `window.Auth`. The PHP one
+  builds its state from `/auth/me.php`, which now also returns the email, name
+  and user id that the sign-in button and write-attribution need. Google is
+  Supabase-only, so the UI asks `Auth.googleAvailable()` and hides the button
+  rather than offering something that cannot work. `verify.php` redirects back
+  with `?signin=ok|expired`; the page reads that marker at load, strips it from
+  the URL, and explains an expired link instead of failing silently.
+- **Review.** `review.php` now names the reviewer on each row, so the decision
+  history reads "Julius Kong" without a members lookup. The adapter translates
+  its camelCase into the shape the existing card renderer expects, and passes
+  `target` / `renameWarning` / `unprefilled` straight through — those are the
+  mistargeting guard and are not the adapter's to tidy away.
+- **Members.** New: `lib/members.php`, `public/api/members.php`,
+  `tests/members.php`. Two refusals live here rather than in the UI — no
+  self-demotion, and **no removing the last reviewer**, which the Supabase
+  version could not express (two admins demoting each other reach the same
+  locked door by a longer route).
+- **Photos.** Upload, approve, refuse, choose the tree avatar, delete — and both
+  ways a contribution can carry a photo. This is where the two designs differ
+  most, and where the migration actually pays:
+
+  | | Supabase | here |
+  |---|---|---|
+  | where the tier lives | which bucket the bytes are in | a column `photo.php` reads per request |
+  | changing the tier | copy between buckets, delete the old copy | `UPDATE media SET visibility` |
+  | a pending photo | sat in the **public** bucket, fetchable by link | `approved = 0`, which already means admin-only |
+  | serving one | mint a signed URL, hope nothing caches it | one URL, checked when the bytes are asked for |
+
+  So `attachContribPhoto`'s copy-between-buckets dance — the code that put a
+  member photo in the public bucket in the first place — has no counterpart
+  here. Approving a staged photo moves no bytes at all.
+
+  Two new shapes on the server. A **staged** upload (`staged=1`) has no subject
+  yet: it is the contribution form's case, where the person does not exist until
+  a reviewer approves them. `upload_attach()` claims it and takes the tier from
+  the real subject, not from the guess made at staging — and refuses a minor
+  *again* at that point, because the person may have been created as one, and
+  refusing means deleting the bytes. A **data: URL** in the payload is how a
+  signed-out relative sends a photo, since an anonymous endpoint that writes
+  files to our disk is a risk we declined; `upload_from_data_url()` turns it
+  into a real file at approval, validating the bytes with `getimagesize` rather
+  than believing the `data:image/png` header.
+
+  Note what the client no longer sends: **the tier**. The server reads it off
+  the subject, so a client asking for "public" on a living relative cannot have
+  it.
+
 ## Still to build
 
-- The admin panel's members and review screens.
-- The rest of the front-end swap. `js/backend.js` is the adapter and
-  `APP_CONFIG.BACKEND` the switch; the tree read and the contribution submit
-  go through it today. **There are 77 Supabase call sites in `js/`, not the 14
-  an earlier note estimated** — 68 `.from()`, 20 storage, 3 rpc, 6 auth — so
-  this is the largest remaining piece by some distance. Anything not yet ported
-  keeps using Supabase whichever way the switch is set, which is what lets both
-  backends run side by side.
-- Members and transcriptions have no PHP endpoint yet, so they stay on Supabase.
+- **The rest of the front-end swap.** 58 Supabase call sites remain outside the
+  adapter, down from 77 — but most are no longer *unported*. They are the
+  Supabase half of a capability that now has both halves, sitting behind an
+  `if (Backend.isPhp())` branch, which is precisely what lets the two run side
+  by side. What is genuinely still Supabase-only:
+  - **the proofreader** (`transcriptions`) and **the Sources tab** (the
+    `documents` bucket, 4 storage calls) — no PHP endpoint at all;
+  - **the visitor counter** (`counters` + the `bump_counter` rpc);
+  - **archiving and restoring people**, and the admin **privacy check**, which
+    compares gated rows against the public `lineage.js`;
+  - the **`notify-contributor` edge function**, which has no equivalent — PHP
+    would send that mail itself through `lib/mailer.php`.
+- **Transcriptions** have no PHP endpoint, so the proofreader stays on Supabase.
+- **The honest caveat about running side by side.** An unported READ still works
+  on either switch, because the publishable key reaches public data. An unported
+  *write* or *gated read* does not: it needs a Supabase session, and on this
+  backend the session is a PHP cookie. So each capability is wholly on one side
+  or the other, and the ones still listed here are Supabase-only while the
+  switch says `php`.

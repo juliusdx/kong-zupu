@@ -173,6 +173,18 @@
       try { const { error } = await Auth.google(); if (error) throw error; }
       catch (e) { $("#signin-msg").textContent = I18N.t("s_err") + e.message; }
     };
+    // Google is Supabase-only. Hide the button rather than let someone press a
+    // thing that cannot work — and hide the "or" with it, so the modal doesn't
+    // dangle a divider above nothing.
+    if (!Auth.googleAvailable()) {
+      $("#signin-google").style.display = "none";
+      const or = document.querySelector("#signin-modal .signin-or");
+      if (or) or.style.display = "none";
+    }
+    // The magic link comes back as a redirect carrying ?signin=ok|expired.
+    // Expired is the case worth speaking up about: the person clicked a real
+    // link, it was just stale, and silence would read as the link being broken.
+    if (Auth.notice() === "expired") { openModal(); $("#signin-msg").textContent = I18N.t("s_expired"); }
 
     Auth.onChange(st => {
       if (!st.live) {
@@ -212,18 +224,23 @@
       const sb = Auth.client();
       // members_admin is admin-only and carries name + email, so the log can name the
       // reviewer rather than showing a bare uuid. With several people approving now,
-      // "who decided this" matters as much as "what changed".
-      const [pendingRes, histRes, memRes] = await Promise.all([
-        sb.from("contributions").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-        sb.from("contributions").select("*").neq("status", "pending").order("reviewed_at", { ascending: false }).limit(50),
-        sb.from("members_admin").select("id, email, full_name")
+      // "who decided this" matters as much as "what changed". The PHP backend has no
+      // members endpoint yet, so review.php names the reviewer on the row instead and
+      // this second call is skipped.
+      const [pending, history, memRes] = await Promise.all([
+        Backend.listContributions(sb, "pending"),
+        Backend.listContributions(sb, "history"),
+        sb ? sb.from("members_admin").select("id, email, full_name") : Promise.resolve(null)
       ]);
-      if (pendingRes.error) throw pendingRes.error;
-      const pending = pendingRes.data || [];
-      const history = histRes.data || [];
       const reviewerById = {};
       (memRes && memRes.data || []).forEach(m => { reviewerById[m.id] = m.full_name || m.email || m.id; });
-      const reviewerName = uid => uid ? esc(reviewerById[uid] || uid.slice(0, 8) + "…") : "—";
+      // Prefer the name the row already carries (PHP); fall back to the directory
+      // (Supabase); show a shortened id only when neither backend could name them.
+      const reviewerName = (uid, row) => {
+        const named = (row && row.reviewer_name) || (uid && reviewerById[uid]);
+        if (named) return esc(named);
+        return uid ? esc(uid.slice(0, 8) + "…") : "—";
+      };
 
       let html = head;
       html += pending.length
@@ -300,7 +317,7 @@
               : `<span class="rh-badge rh-no">✗ rejected</span>`;
             const reason = c.rejection_reason ? esc(c.rejection_reason) : "—";
             return `<tr><td>${reviewed}</td><td class="rh-detail">${histDetail(p)}</td><td>${who}</td>` +
-                   `<td class="rh-by">${reviewerName(c.reviewed_by)}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
+                   `<td class="rh-by">${reviewerName(c.reviewed_by, c)}</td><td>${badge}</td><td class="rh-reason">${reason}</td></tr>`;
           }).join("") +
           `</tbody></table></div>`;
       }
@@ -393,10 +410,7 @@
     if (!st.isAdmin) { wrap.innerHTML = head + `<p class="muted">${T("r_adminonly")}</p>`; return; }
     wrap.innerHTML = head + `<p class="muted">${T("m_loading")}</p>`;
     try {
-      const sb = Auth.client();
-      const { data, error } = await sb.from("members_admin").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      const rows = data || [];
+      const rows = await Backend.listMembers(Auth.client());
       const pending = rows.filter(r => !r.approved);
       const approved = rows.filter(r => r.approved);
 
@@ -452,8 +466,7 @@
     const msg = $("#mem-msg");
     if (msg) msg.textContent = I18N.t("m_working");
     try {
-      const { error } = await Auth.client().rpc("set_member_admin", { target_id: id, make_admin: makeAdmin });
-      if (error) throw error;
+      await Backend.setMemberAdmin(Auth.client(), id, makeAdmin);
       await buildMembers();
     } catch (e) {
       if (msg) msg.textContent = I18N.t("m_error") + e.message;
@@ -464,8 +477,7 @@
     const msg = $("#mem-msg");
     if (msg) msg.textContent = I18N.t("m_working");
     try {
-      const { error } = await Auth.client().rpc("set_member_approved", { target_id: id, approve });
-      if (error) throw error;
+      await Backend.setMemberApproved(Auth.client(), id, approve);
       await buildMembers();          // re-read so the row moves between the two tables
     } catch (e) {
       if (msg) msg.textContent = I18N.t("m_error") + e.message;
@@ -483,10 +495,11 @@
   async function refreshMembersCount() {
     if (!Auth.state().isAdmin) { membersPending = 0; updateMembersBadge(); return; }
     try {
-      const { count, error } = await Auth.client()
-        .from("members_admin").select("id", { count: "exact", head: true }).eq("approved", false);
-      if (error) throw error;
-      membersPending = count || 0;
+      // Counted from the roster rather than a HEAD query: both backends can
+      // serve the list, only Supabase can serve an exact-count head request,
+      // and the roster is a family's worth of rows, not a table to page through.
+      const rows = await Backend.listMembers(Auth.client());
+      membersPending = rows.filter(r => !r.approved).length;
       updateMembersBadge();
     } catch (e) { console.warn("members count failed", e); }
   }
@@ -526,13 +539,27 @@
     const rows = Object.entries(p)
       .filter(([k, v]) => v && !HIDE.includes(k))
       .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
-    // A pending photo now waits in the private bucket, so the reviewer's preview needs a
-    // signed URL rather than a src. Render the slot, fill it in after mount.
-    const photoHtml = p.photo
-      ? (isPrivRef(p.photo)
+    // A pending photo is never reachable by a plain URL, so the reviewer's preview
+    // has to be built rather than linked. On PHP it is photo.php with the staged
+    // row's id — the reviewer is an admin and an unapproved photo is admin-only,
+    // so the ordinary gate already lets exactly the right person see it, and
+    // nothing needs signing. On Supabase it waits in the private bucket, so the
+    // slot is rendered empty and a signed URL is dropped in after mount.
+    const photoSrc = !p.photo ? null
+      : isMediaRef(p.photo) ? Backend.photoUrl(mediaIdOf(p.photo))   // null off the PHP backend
+      : isPrivRef(p.photo)  ? null                                    // filled in after mount
+      : p.photo;
+    // A marker belonging to the OTHER backend resolves to nothing. Render an
+    // empty slot rather than feeding a media id to the private-path lookup,
+    // which would ask storage for a file named "media:…" and log a failure that
+    // reads like a broken photo instead of a mismatched backend.
+    const needsSigning = isPrivRef(p.photo) && !isMediaRef(p.photo);
+    const photoHtml = !p.photo ? ""
+      : photoSrc
+        ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(photoSrc)}" alt=""></span></div>`
+        : needsSigning
           ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" data-privpath="${esc(privPathOf(p.photo))}" alt=""></span></div>`
-          : `<div class="row"><span class="k">photo</span><span><img class="cc-photo" src="${esc(p.photo)}" alt=""></span></div>`)
-      : "";
+          : `<div class="row"><span class="k">photo</span><span class="muted">(photo not available on this backend)</span></div>`;
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
       ${changesHtml}${rows}${photoHtml}
@@ -558,6 +585,18 @@
     }
     try {
       const sb = Auth.client(), st = Auth.state();
+      // On the PHP backend the whole decision — promoting the person, moving the
+      // branch, marking the contribution — happens inside one server transaction.
+      // Everything below this point is the client-side version of that, kept for
+      // Supabase, where a failure halfway leaves a half-applied change to unpick.
+      if (Backend.isPhp()) {
+        const el = document.querySelector(`#cc-reason-${id}`);
+        const why = (status === "rejected" && el) ? el.value.trim() : null;
+        await Backend.decideContribution(id, status, why || null);
+        await loadLiveData();
+        buildReview();
+        return;
+      }
       // On approve, promote new-person contributions onto the live tree.
       if (status === "approved" && payload &&
           (payload.action === "add_child" || payload.action === "add_spouse")) {
@@ -830,7 +869,11 @@
   }
   async function loadLiveData() {
     if (!Auth.LIVE) return;
-    const sb = Auth.client(); if (!sb) return;
+    // sb is null on the PHP backend. Do NOT bail here: the tree read below has
+    // already been ported and works without it. Each step that still needs a
+    // Supabase client guards itself, so porting one capability never silently
+    // switches off the ones further down.
+    const sb = Auth.client();
     try {
       // One call through the adapter. On Supabase this is still three reads; on
       // the PHP backend the filtering happens server-side and it is one request.
@@ -858,6 +901,7 @@
       // Guarded separately so the app still works before the Stage-2 migration is run
       // (missing table → ignore, keep basic info).
       try {
+        if (!sb) throw new Error("not ported");   // PHP: tree.php already merged detail
         const { data: det } = await sb.from("person_details").select("*");
         (det || []).forEach(d => {
           const p = LINEAGE.persons.find(x => x.id === d.person_id);
@@ -873,6 +917,7 @@
       // rows the viewer may see (admins, or the linked member's own), so anon gets nothing.
       try {
         LINEAGE.persons.forEach(p => { delete p.contact; });
+        if (!sb) throw new Error("not ported");   // PHP: contacts ride along in tree.php
         const { data: ct } = await sb.from("contacts").select("*");
         (ct || []).forEach(c => {
           const p = LINEAGE.persons.find(x => x.id === c.person_id);
@@ -882,13 +927,21 @@
       // Member-tier photos live in the private bucket and carry only a path. Mint
       // short-lived signed URLs so they display for signed-in family; anonymous
       // visitors never receive these rows (media RLS), so this stays empty for them.
-      const privRows = (md.data || []).filter(m => m.private_path);
-      if (privRows.length) {
-        try {
-          const { data: signed } = await sb.storage.from("photos-private")
-            .createSignedUrls(privRows.map(m => m.private_path), 3600);
-          (signed || []).forEach((s, i) => { if (s && s.signedUrl) privRows[i].url = s.signedUrl; });
-        } catch (e) { console.warn("signed photo urls failed", e); }
+      if (Backend.isPhp()) {
+        // repo_media returns metadata and an id — never a URL — so build the one
+        // URL that backend has. Public and member photos share it: photo.php IS
+        // the gate, checked again when the bytes are asked for, so there is
+        // nothing to sign and no address that works without the session.
+        (md.data || []).forEach(m => { m.url = Backend.photoUrl(m.id); });
+      } else {
+        const privRows = (md.data || []).filter(m => m.private_path);
+        if (privRows.length) {
+          try {
+            const { data: signed } = await sb.storage.from("photos-private")
+              .createSignedUrls(privRows.map(m => m.private_path), 3600);
+            (signed || []).forEach((s, i) => { if (s && s.signedUrl) privRows[i].url = s.signedUrl; });
+          } catch (e) { console.warn("signed photo urls failed", e); }
+        }
       }
       mediaByPerson = {}; mediaByPlace = {};
       (md.data || []).forEach(m => {
@@ -976,6 +1029,12 @@
   const PRIV_PREFIX = "private:";
   const isPrivRef = v => typeof v === "string" && v.startsWith(PRIV_PREFIX);
   const privPathOf = v => String(v).slice(PRIV_PREFIX.length);
+  // The PHP backend's equivalent marker. It names a media ROW rather than a file
+  // path, which is why approving one moves no bytes: the row simply gains a
+  // subject and an approved flag.
+  const MEDIA_PREFIX = "media:";
+  const isMediaRef = v => typeof v === "string" && v.startsWith(MEDIA_PREFIX);
+  const mediaIdOf = v => String(v).slice(MEDIA_PREFIX.length);
 
   // Upload a photo attached to either a person (member tier) or a place (public).
   async function uploadMedia(subject, file) {
@@ -986,6 +1045,14 @@
     file = await downscaleImage(file);
     const key = subject.placeId || subject.personId;
     const safe = file.name.replace(/[^\w.\-]/g, "_");
+    if (Backend.isPhp()) {
+      // One call, one store. There is no bucket to choose, because the tier is a
+      // column photo.php reads per request rather than a place the bytes live —
+      // and the server derives that tier from the subject, so it is not ours to
+      // send. The row lands unapproved, which already means admin-only.
+      await Backend.uploadPhoto(file, { personId: subject.personId, placeId: subject.placeId });
+      return;
+    }
     if (subject.placeId) {
       // place photos are public → public bucket, public URL (unchanged)
       const path = "places/" + key + "/" + Date.now() + "_" + safe;
@@ -1017,6 +1084,15 @@
   // than a URL, because there is no URL that works without a signature.
   async function uploadContributionPhoto(file) {
     const sb = Auth.client(), st = Auth.state();
+    if (Backend.isPhp()) {
+      if (!st.user) throw new Error("Sign in to upload a photo.");
+      // Staged: stored with no subject at all until a reviewer approves the
+      // contribution that creates the person. Returns "media:<id>" — the same
+      // idea as the private: marker, except the reference is to a row rather
+      // than a path, so claiming it later moves no bytes.
+      const up = await Backend.uploadPhoto(await downscaleImage(file), { staged: true });
+      return "media:" + up.id;
+    }
     if (!sb || !st.user) throw new Error("Sign in to upload a photo.");
     file = await downscaleImage(file);
     const safe = file.name.replace(/[^\w.\-]/g, "_");
@@ -1058,6 +1134,10 @@
   // otherwise-good approval, so failures warn rather than throw.
   async function attachContribPhoto(personId, photo, visibility) {
     if (!photo) return;
+    // On PHP this already happened, inside the same transaction that created the
+    // person — see contrib_attach_photo. Doing it again from here would either
+    // duplicate the row or fail on a photo that is no longer claimable.
+    if (Backend.isPhp()) return;
     const sb = Auth.client(), st = Auth.state();
     if (!sb || !st.user) return;
     const tier = visibility || "member";
@@ -1147,35 +1227,21 @@
   }
 
   async function approvePhoto(mediaId) {
-    const sb = Auth.client();
-    const { error } = await sb.from("media").update({ approved: true }).eq("id", mediaId);
-    if (error) { alert("Failed: " + error.message); return; }
+    try { await Backend.approvePhoto(Auth.client(), mediaId, true); }
+    catch (e) { alert("Failed: " + e.message); return; }
     await loadLiveData();
   }
   // Remove a photo: best-effort delete of the storage object (the owner may delete
   // it per RLS; an admin removing someone else's only deletes the row), then the
   // media row (uploader or admin, per the media_delete policy).
   async function deletePhoto(m) {
-    const sb = Auth.client();
-    try {
-      if (m.private_path) {
-        await sb.storage.from("photos-private").remove([m.private_path]);
-      } else {
-        const path = decodeURIComponent((String(m.url).split("/photos/")[1] || "").split("?")[0]);
-        if (path) await sb.storage.from("photos").remove([path]);
-      }
-    } catch (e) { console.warn("storage remove failed", e); }
-    const { error } = await sb.from("media").delete().eq("id", m.id);
-    if (error) throw error;
+    await Backend.deletePhoto(Auth.client(), m);
     await loadLiveData();
   }
   // Choose which approved photo is the tree avatar: clear siblings, set this one.
   async function setCover(mediaId, personId) {
-    const sb = Auth.client();
     try {
-      await sb.from("media").update({ cover: false }).eq("person_id", personId).neq("id", mediaId);
-      const { error } = await sb.from("media").update({ cover: true }).eq("id", mediaId);
-      if (error) throw error;
+      await Backend.setCover(Auth.client(), mediaId, personId);
       await loadLiveData();
       openPerson(personId);
     } catch (e) { alert(I18N.t("r_failed") + e.message); }

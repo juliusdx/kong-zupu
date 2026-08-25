@@ -213,6 +213,7 @@
       s_google: "Continue with Google", s_enter_email: "Enter your email first.",
       s_sending: "Sending…", s_sent: "✓ Check your inbox for the sign-in link. If nothing arrives, please look in your spam/junk folder.",
       s_redir: "Redirecting to Google…", s_err: "Error: ",
+      s_expired: "That sign-in link has expired or was already used. Enter your email for a fresh one.",
 
       a_msg: "⚑ Admin mode — click an ancestor marked ⚑ to confirm its identity.",
       a_download: "Download overrides.js",
@@ -467,6 +468,7 @@
       s_google: "使用 Google 登入", s_enter_email: "請先輸入電郵。",
       s_sending: "傳送中…", s_sent: "✓ 請查收電郵中的登入連結。若未收到，請檢查垃圾郵件資料夾。",
       s_redir: "轉往 Google…", s_err: "錯誤：",
+      s_expired: "登入連結已過期或已使用過。請重新輸入電郵索取新連結。",
 
       a_msg: "⚑ 管理模式 — 點選標示 ⚑ 的祖先以確認身分。",
       a_download: "下載 overrides.js",

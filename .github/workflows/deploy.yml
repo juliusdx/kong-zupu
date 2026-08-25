@@ -30,11 +30,27 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # The site is static (no build step) — upload the repo root as-is.
+      # The site is static (no build step), but the repo root is not the site.
+      # It also carries the SiteGround PHP backend, and Pages served that source
+      # from the family's own domain — harmless in itself, since the repo is
+      # public and the file holding credentials is gitignored, but it is not
+      # something the site needs, and .php served as text here would EXECUTE on
+      # a host whose document root sat at the repo root. Stage what the site
+      # actually loads instead.
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '_site' \
+            --exclude 'siteground' \
+            ./ _site/
+          echo "staged:"; ls -A _site
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: Deploy
         id: deployment

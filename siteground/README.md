@@ -4,8 +4,10 @@ A PHP/MySQL replacement for the Supabase backend, keeping the same privacy model
 and the same promise: **photos and sensitive information are not viewable without
 signing in.**
 
-Nothing here is deployed. It runs and is tested locally; the steps that need
-SiteGround access are listed at the bottom.
+**Deployed and running in parallel at https://zupu.accme.my since 2026-08-26.**
+The family's live site is still GitHub Pages + Supabase; this is the same archive
+on the new stack, carrying the same 275 people, so the two can be compared before
+anything is cut over. Nothing has moved for relatives yet.
 
 ## Why move at all
 
@@ -40,7 +42,7 @@ no URL that bypasses the check**, because the URL *is* the check.
 
 ## Tests
 
-    php tests/run.php           # 50 assertions: visibility, detail, contacts, photos, tokens
+    php tests/run.php           # 54 assertions: visibility, detail, contacts, photos, tokens
     php tests/contributions.php # 44 assertions: submit, approve, reject, re-parent
     php tests/uploads.php       # 62 assertions: file types, subject gating, traversal,
                                 #   staging, claiming, embedded photos, cover, delete
@@ -48,7 +50,7 @@ no URL that bypasses the check**, because the URL *is* the check.
     php tests/http_photo.php    #  9 assertions: photo.php over real HTTP, incl. path traversal
     php tests/http_auth.php     # 30 assertions: the magic-link round trip over real HTTP
 
-226 assertions, all passing. `tests/run.php` includes the ones that would have
+230 assertions, all passing. `tests/run.php` includes the ones that would have
 caught the original leak — a signed-out visitor must not be served a member
 photo, and a minor's photo is admin-only whatever the media row says.
 `http_auth.php` covers what a function call cannot: that the session survives as
@@ -106,28 +108,42 @@ day one.
 
 ## Order of operations
 
-1. `tools/backup.sh` — full backup first, always.
-2. Create the MySQL database, run `sql/schema.mysql.sql`.
-3. `tools/import_from_supabase.php --photos <backup>/storage` — re-runnable, so
-   rehearse it as often as you like while the live site keeps running.
-4. Compare the counts it prints against Supabase. A migration that quietly drops
-   the gating is the worst outcome, so this is checked rather than assumed.
-5. Point the front-end at `/api/tree.php` (one request replaces three).
+Steps 1–6 are **done** (2026-08-26); step 7 is the remaining decision.
+
+1. ~~`tools/backup.sh` — full backup first, always.~~
+2. ~~Create the MySQL database, run `sql/schema.mysql.sql`.~~ `tools/run_schema.php`
+   does it and prints a row count per table; 11 tables.
+3. ~~`tools/import_from_supabase.php`~~ — now takes **`--fetch-photos`**, which
+   reads each object from the bucket it actually lives in rather than from a
+   local backup that is only as fresh as the last one. Re-runnable, so rehearse
+   it as often as you like while the live site keeps serving.
+4. ~~Compare the counts it prints against Supabase.~~ Done and matched — see
+   **Migration rehearsal** below. A migration that quietly drops the gating is
+   the worst outcome, so this is checked rather than assumed.
+5. ~~Point the front-end at `/api/tree.php` (one request replaces three).~~
+   `tools/deploy_frontend.sh` puts the static site in the document root and
+   rewrites `BACKEND` to `"php"` as it copies, so `index.html` in git keeps
+   saying `"supabase"` for GitHub Pages.
    **`site_url` in config.php must be exactly the host relatives type.**
    `verify.php` redirects there after setting the session, and a redirect that
    crosses to a different spelling of the same server (`127.0.0.1` vs
    `localhost`, bare vs `www.`) leaves the cookie behind: the link appears to
    work, the page comes back signed out, and nothing logs an error.
-6. Run in parallel: both backends live, new one on a subdomain, until it's dull.
-7. Cut over DNS. Re-run the import once more on the day.
+6. ~~Run in parallel: both backends live, new one on a subdomain, until it's dull.~~
+   **This is where things stand now.** Let it be dull for a while.
+7. Cut over DNS. Re-run the import once more on the day, flip
+   `enforce_approval` to `true`, and decide what happens to the Supabase project.
 
-## What I still need from you
+## What was blocked, and how it resolved
 
-- **SSH or FTP details** — I cannot deploy or test on the real host without them.
-- **PHP and MySQL versions** on the plan. Written for PHP 8.1+; tested on 8.5.
-- **Is SSH available**, or FTP only? It changes how the import is run.
-## What I still need from you
-
+- ~~**SSH or FTP details**~~ — SSH, port 18765. The key is `~/.ssh/siteground_zupu`
+  (created 2026-08-26; the older `siteground_key` has a forgotten passphrase and
+  is dead). `~/.ssh/config` has a `Host zupu` entry, so it is just `ssh zupu`.
+- ~~**PHP and MySQL versions**~~ — PHP 8.2.33 + pdo_mysql, MySQL 8.4.6.
+- ~~**Where the home directory is**~~ — `media_root` is
+  `/home/customer/www/zupu.accme.my/media`, a sibling of `public_html`. Verified
+  unreachable: every direct path, `..` traversal and directory listing returns
+  404 while `photo.php` serves the same bytes correctly.
 - ~~**Is SMTP enabled** for the domain~~ — **answered 2026-08-22.** Mailbox
   `zupu@accme.my` exists; SPF/DKIM/DMARC all pass; authenticated SMTP works.
   Deliverability: Gmail inboxes us on first contact, Outlook/Live junks us
@@ -138,6 +154,71 @@ day one.
   `php tests/mail_smtp.php <address> [label]` from `~/zupu-mailtest/`.
 - **Where the home directory is**, so `media_root` can be set somewhere that is
   definitely not under `public_html`.
+
+## Migration rehearsal (2026-08-26)
+
+Every table matched Supabase, read back from MySQL rather than trusted from the
+importer's own output:
+
+| | Supabase | MySQL |
+|---|---|---|
+| persons | 275 | 275 |
+| contributions | 494 | 494 |
+| person_details | 48 | 48 |
+| users | 9 | 9 (2 admins) |
+| media | 6 | 6 |
+| contacts / places / transcriptions | 2 / 1 / 0 | 2 / 1 / 0 |
+
+132 living, 7 minors, 132 member-tier — the privacy flags survived — and 246
+Han-character names came through utf8mb4 clean.
+
+**The promise, verified against the live site as a stranger:** 0 minors, 0
+detail on living people (no birth years, bios, places or coordinates), 0 of the
+5 member photos served, no contacts in the payload. 122 living adults appear by
+name and tree position only, which is the exception the family chose. Signed in,
+the 3 approved member photos become fetchable (`private, no-store`) and the
+unapproved one still 404s.
+
+**Sign-in works end to end**, including mail: Julius requested a link through the
+live form from his own IP and used it 12 seconds later, with no `mail_failed`
+entries. The session layer was tested separately on a disposable `@zupu.invalid`
+account (a reserved TLD that cannot route mail), which was then deleted.
+
+Three bugs a cutover would otherwise have shipped silently, all found here:
+
+1. **No accounts imported.** The importer read them from `members_admin`, a view
+   gated `where public.is_admin()` — which resolves against a signed-in user's
+   token, so a secret key gets zero rows however valid it is. The run *reported
+   success*: 275 people, 494 contributions to review, and nobody able to sign in
+   to review them. It now reads `profiles` + the Auth admin API, and refuses
+   rather than reporting a cheerful zero.
+2. **Ancestors' photos vanished.** `repo_media` LEFT JOINs the subject and gates
+   on it, but a photo of a deceased ancestor points at an id only the 519-person
+   seed in `data/lineage.js` knows — so every comparison was NULL and the row
+   fell out for everyone but an admin, while `photo.php` served the same file
+   happily to anyone with the id. Found by comparing against what the live
+   Supabase site actually does, not by reading the code.
+3. **A rejected key crashed instead of complaining.** `ignore_errors` made a 401
+   arrive as content, and a PostgREST error object decodes to an array just like
+   a row list does, so the error was merged in as data and died several frames
+   later on `Column 'id' cannot be null`.
+
+## Local harness
+
+`tools/serve_local.php` runs the front-end and this API on **one origin**, which
+the session cookie requires — serving them on different ports makes every request
+look signed out and the bug you then chase is not in the code.
+
+    php tools/serve_local.php --init                    # throwaway db + config
+    php -S localhost:8910 -t .. tools/serve_local.php   # from siteground/
+    php tools/serve_local.php --link keeper@localhost   # prints a sign-in link
+
+Add `?backend=supabase` to check the other path on the same running server. Its
+throwaway data lives in the system temp dir — an earlier version kept it under
+`tools/`, inside the directory the server hands out, so a staged photo was
+fetchable at its own URL and the harness demonstrated the opposite of the
+property it exists to demonstrate. It also refuses `/siteground/` outright, since
+serving the repo root would otherwise hand out `config.php`.
 
 ## Ported to the adapter so far
 
@@ -207,6 +288,19 @@ server, not only in tests.
   - the **`notify-contributor` edge function**, which has no equivalent — PHP
     would send that mail itself through `lib/mailer.php`.
 - **Transcriptions** have no PHP endpoint, so the proofreader stays on Supabase.
+- **`enforce_approval` is `false`** on the deployed config, which is the
+  documented deploy-day setting — an unapproved member still sees living
+  relatives' detail (46 people with birth years/bios, measured), and every such
+  case is logged as `would_refuse`. Note `auth_login` **creates an account for
+  anyone who completes a link**, so today anyone with the URL and any email
+  address gets member-tier detail. Approve whoever the log turns up, then flip
+  it to `true` before relatives get the address.
+- **Cutover itself**: DNS, the final import re-run, and what happens to the
+  Supabase project — retiring it is what actually frees the free-tier slot that
+  started this. Note `DEPLOY.md` §3 records the cap as **2 active projects per
+  account across all organisations**, so a second free org does *not* buy a slot;
+  pausing a project, or a different Google account, is what does. Verify against
+  Supabase's current terms before relying on either.
 - **The honest caveat about running side by side.** An unported READ still works
   on either switch, because the publishable key reaches public data. An unported
   *write* or *gated read* does not: it needs a Supabase session, and on this

@@ -87,10 +87,19 @@ keeper to merge. To accept live submissions, photos and logins:
 
 ## Which backend
 
-`APP_CONFIG.BACKEND` selects it: `"supabase"` (live) or `"php"` (the SiteGround API in
-`siteground/`). `js/backend.js` is the adapter. Capabilities move across one at a time — the
-tree read and the contribution submit go through it today, everything else still calls Supabase
-directly whichever way the switch is set, so both can run side by side during a migration.
+`APP_CONFIG.BACKEND` selects it: `"supabase"` (what the family uses) or `"php"` (the
+SiteGround API in `siteground/`). `js/backend.js` is the adapter.
+
+Both are live, in parallel, since 2026-08-26:
+
+| | |
+|---|---|
+| https://juliusdx.github.io/kong-zupu/ | GitHub Pages + Supabase — **the family's site** |
+| https://zupu.accme.my | PHP/MySQL on SiteGround — the same archive, for comparison |
+
+Sign-in, the tree, contributions, review, members and photos all work on the PHP
+side; the proofreader, Sources tab and visitor counter are still Supabase-only.
+Nothing has been cut over. See `siteground/README.md` for what remains.
 
 ## Editing the family data by hand
 

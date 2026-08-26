@@ -76,6 +76,13 @@ is connected later, the same click can write to the database instead of a file.
 
 ## 3. Backend: Supabase vs Firebase
 
+> **Update 2026-08-26.** A third option now exists and is built: the family's own
+> SiteGround hosting. A complete PHP/MySQL copy of the archive runs at
+> **https://zupu.accme.my**, in parallel with the live Supabase site, and needs no
+> Supabase project at all. See `siteground/README.md`. The section below is the
+> original Supabase-vs-Firebase reasoning and still describes the free-tier cap
+> accurately.
+
 You hit Supabase's free-tier cap. Important correction: that cap is **2 active projects
 per account, counted across *all* your organisations** — so making a *new org* on the
 same Google login does **not** give you more. Your real options:

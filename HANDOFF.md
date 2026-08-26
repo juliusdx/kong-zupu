@@ -10,6 +10,11 @@ app-building history. Everything below is current as of this handoff.
 
 - The app is **built and deployed** (GitHub Pages + Supabase). The only file you edit to
   add people is **`data/lineage.js`** (the `persons` array on `window.LINEAGE`).
+- A second copy runs in parallel on SiteGround at **https://zupu.accme.my** (PHP/MySQL)
+  since 2026-08-26. It reads the same `data/lineage.js`, so transcription work needs
+  nothing different — but note it holds its own copy of the live `persons` rows, so after
+  a batch lands, `siteground/tools/import_from_supabase.php` should be re-run to keep the
+  two in step. Nothing has been cut over; see `siteground/README.md`.
 - The tree currently has **519 people** in `data/lineage.js` (direct spine + collateral cousins +
   Sabah branch + Lilang branch + 7/8/9房), plus the living members held in Supabase.
   0 broken links, 0 duplicates, 0 generation gaps. 479 are flagged `confidence:"low"` (⚠).

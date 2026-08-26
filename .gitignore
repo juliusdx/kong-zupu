@@ -34,4 +34,4 @@ Kong_Family_book*
 
 # SiteGround backend: holds the database password and mail credentials.
 # This repo is PUBLIC.
-siteground/config.php
+siteground/config.php*

@@ -85,10 +85,23 @@ function repo_places(Viewer $v): array
 function repo_media(Viewer $v): array
 {
     [$gate] = Visibility::rowGate($v, 'p');
+    // p.id IS NULL means the subject is not in this table — which is normal, not
+    // broken. The tree is the 519-person seed in data/lineage.js merged with the
+    // rows here, so a photo of a deceased ancestor points at an id that only the
+    // seed knows. The LEFT JOIN then makes every subject comparison NULL, the
+    // gate is neither true nor false, and the row silently vanished for everyone
+    // but an admin. photo.php never had the bug — it COALESCEs the missing
+    // subject — so the file was served on request while never appearing in the
+    // tree, which is the worst of both.
+    //
+    // Falling through to the media row's own tier is safe because the seed
+    // cannot contain anyone living: check_privacy.js fails the build if it does.
+    // The clauses below still apply, so a member-tier photo still needs a
+    // session and an unapproved one is still admin-only.
     $sql = "SELECT m.id, m.person_id, m.place_id, m.caption, m.cover, m.approved, m.visibility
               FROM media m
               LEFT JOIN persons p ON p.id = m.person_id
-             WHERE (m.person_id IS NULL OR {$gate})";
+             WHERE (m.person_id IS NULL OR p.id IS NULL OR {$gate})";
     if (!$v->isAdmin) {
         $sql .= " AND m.approved = 1 AND m.visibility IN ('public','member')";
         if (!$v->isSignedIn()) $sql .= " AND m.visibility = 'public'";

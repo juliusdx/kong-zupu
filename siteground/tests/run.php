@@ -45,6 +45,10 @@ $ins('media', ['id'=>'11111111-1111-1111-1111-111111111111','person_id'=>'anc1',
 $ins('media', ['id'=>'22222222-2222-2222-2222-222222222222','person_id'=>'mem1','path'=>'a/mem.jpg','visibility'=>'member','approved'=>1]);
 $ins('media', ['id'=>'33333333-3333-3333-3333-333333333333','person_id'=>'kid1','path'=>'a/kid.jpg','visibility'=>'member','approved'=>1]);
 $ins('media', ['id'=>'44444444-4444-4444-4444-444444444444','person_id'=>'anc1','path'=>'a/pend.jpg','visibility'=>'public','approved'=>0]);
+// Photos of somebody who exists ONLY in the seed file (data/lineage.js). There
+// is deliberately no persons row for 'seed_only' — that is the whole point.
+$ins('media', ['id'=>'55555555-5555-5555-5555-555555555555','person_id'=>'seed_only','path'=>'a/seed.jpg','visibility'=>'public','approved'=>1]);
+$ins('media', ['id'=>'66666666-6666-6666-6666-666666666666','person_id'=>'seed_only','path'=>'a/seedm.jpg','visibility'=>'member','approved'=>1]);
 
 $anon     = Viewer::anonymous();
 $member   = new Viewer(userId: 'u1', isAdmin: false, isApproved: false, personId: null);
@@ -148,6 +152,26 @@ echo "\nRATE LIMIT\n";
 for ($i = 0; $i < 6; $i++) { @auth_issue_token('flood@example.com', '10.0.0.9'); }
 check('a flooded address is throttled',           auth_rate_ok('flood@example.com', '10.0.0.9'), false);
 check('an untouched address is not',              auth_rate_ok('fresh@example.com', '10.0.0.10'), true);
+
+echo "\nPHOTOS OF SEED-ONLY ANCESTORS\n";
+// The tree is the 519-person seed in data/lineage.js merged with the rows in
+// this table, so a photo of a deceased ancestor points at an id no persons row
+// has. A LEFT JOIN makes every subject test NULL, and the row used to disappear
+// for everyone but an admin — while photo.php served the same file happily,
+// because it COALESCEs the missing subject. The live Supabase site shows these
+// photos; hiding them here was a regression, and an invisible-but-downloadable
+// photo is the worst of both worlds.
+$seedIds = $ids(repo_media($anon));
+check('a public photo of a seed ancestor reaches anon',
+      in_array('55555555-5555-5555-5555-555555555555', $seedIds, true), true);
+check('  …and the member-tier one beside it does NOT',
+      in_array('66666666-6666-6666-6666-666666666666', $seedIds, true), false);
+check('a signed-in member does get that member-tier one',
+      in_array('66666666-6666-6666-6666-666666666666', $ids(repo_media($member)), true), true);
+// The fallback must not become a way to publish anything by pointing it at a
+// person who does not exist: tier and approval still decide.
+check('an unapproved photo is still admin-only, subject or no subject',
+      in_array('44444444-4444-4444-4444-444444444444', $seedIds, true), false);
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 @unlink($dbFile);

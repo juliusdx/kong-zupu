@@ -27,7 +27,11 @@ if ($SB_URL === '' || $SB_KEY === '') {
     exit(1);
 }
 $photoSrc = null;
-foreach ($argv as $i => $a) if ($a === '--photos') $photoSrc = rtrim($argv[$i + 1] ?? '', '/');
+$fetch    = false;
+foreach ($argv as $i => $a) {
+    if ($a === '--photos')       $photoSrc = rtrim($argv[$i + 1] ?? '', '/');
+    if ($a === '--fetch-photos') $fetch    = true;
+}
 
 function sb_get(string $table, string $select = '*'): array
 {
@@ -121,6 +125,35 @@ function sb_auth_emails(): array
     return $out;
 }
 
+/**
+ * Pull one object out of Supabase Storage.
+ *
+ * The alternative was a local backup passed with --photos, which is only ever
+ * as fresh as the last backup — ours held four files against six media rows,
+ * and the two it lacked were the two most recently added. Reading the bucket
+ * directly means the photos match the rows they belong to, and that the whole
+ * import stays re-runnable on cutover day, which is the point of it.
+ *
+ * A secret key reads private buckets straight, with no signed URL to mint.
+ */
+function sb_object(string $bucket, string $path): ?string
+{
+    global $SB_URL, $SB_KEY;
+    $url = "{$SB_URL}/storage/v1/object/{$bucket}/" . implode('/', array_map('rawurlencode', explode('/', $path)));
+    $ctx = stream_context_create(['http' => ['method' => 'GET',
+        'header' => "apikey: {$SB_KEY}\r\nAuthorization: Bearer {$SB_KEY}\r\n", 'ignore_errors' => true]]);
+    $raw = @file_get_contents($url, false, $ctx);
+    $status = 0;
+    foreach ($http_response_header ?? [] as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) $status = (int)$m[1];
+    }
+    if ($raw === false || $status !== 200 || $raw === '') {
+        fwrite(STDERR, "  ! could not fetch {$bucket}/{$path} (HTTP {$status})\n");
+        return null;
+    }
+    return $raw;
+}
+
 function put(string $table, array $rows, array $cols): int
 {
     if (!$rows) return 0;
@@ -201,6 +234,7 @@ echo 'users          ', put('users', $users,
 // media: url + private_path collapse into one path, relative to media_root.
 $media = sb_get('media');
 $mediaRows = [];
+$copied = 0; $missing = 0;
 foreach ($media as $m) {
     $path = $m['private_path'] ?: null;
     $bucket = 'photos-private';
@@ -211,18 +245,37 @@ foreach ($media as $m) {
     }
     if (!$path) { fwrite(STDERR, "  ! media {$m['id']} has no file, skipped\n"); continue; }
 
-    if ($photoSrc !== null) {
-        $src = $photoSrc . '/' . $bucket . '/' . $path;
+    if ($photoSrc !== null || $fetch) {
         $dst = rtrim(config()['media_root'], '/') . '/' . $path;
-        if (is_file($src)) {
+        $src = $photoSrc !== null ? $photoSrc . '/' . $bucket . '/' . $path : null;
+        if ($src !== null && is_file($src)) {
             @mkdir(dirname($dst), 0750, true);
             copy($src, $dst);
+            @chmod($dst, 0600);
+            $copied++;
+        } elseif ($fetch) {
+            // Either no backup was given, or it predates this photo.
+            $bytes = sb_object($bucket, $path);
+            if ($bytes !== null) {
+                @mkdir(dirname($dst), 0750, true);
+                file_put_contents($dst, $bytes);
+                @chmod($dst, 0600);
+                $copied++;
+            } else {
+                $missing++;
+            }
         } else {
             fwrite(STDERR, "  ! file not in backup: {$bucket}/{$path}\n");
+            $missing++;
         }
     }
     $m['path'] = $path;
     $mediaRows[] = $m;
+}
+if ($photoSrc !== null || $fetch) {
+    // Say it plainly: a media row whose bytes never arrived is a photo that
+    // 404s for everyone, and it should not hide inside a success message.
+    printf("photo files    %d copied, %d missing\n", $copied, $missing);
 }
 echo 'media          ', put('media', $mediaRows,
     ['id','person_id','place_id','path','caption','visibility','approved','cover','uploaded_by','created_at']), "\n";

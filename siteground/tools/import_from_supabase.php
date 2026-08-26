@@ -78,6 +78,49 @@ function sb_get(string $table, string $select = '*'): array
     return $rows;
 }
 
+/**
+ * id => email for every account, from the Auth admin API.
+ *
+ * auth.users is not reachable through PostgREST, and the view that used to
+ * stand in for it is gated on a signed-in admin. This endpoint takes the secret
+ * key directly. The key is sent on `apikey` — these keys are not JWTs, and the
+ * platform may reject one it tries to parse as such on Authorization — but some
+ * deployments still want it there, so both are tried before giving up.
+ */
+function sb_auth_emails(): array
+{
+    global $SB_URL, $SB_KEY;
+    $out  = [];
+    $page = 1;
+    do {
+        $found = false;
+        foreach (["apikey: {$SB_KEY}\r\n", "apikey: {$SB_KEY}\r\nAuthorization: Bearer {$SB_KEY}\r\n"] as $hdr) {
+            $ctx = stream_context_create(['http' => ['method' => 'GET', 'header' => $hdr, 'ignore_errors' => true]]);
+            $raw = @file_get_contents("{$SB_URL}/auth/v1/admin/users?page={$page}&per_page=200", false, $ctx);
+            $status = 0;
+            foreach ($http_response_header ?? [] as $h) {
+                if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) $status = (int)$m[1];
+            }
+            if ($raw === false || $status !== 200) continue;
+            $d = json_decode($raw, true);
+            $users = $d['users'] ?? null;
+            if (!is_array($users)) continue;
+            foreach ($users as $u) {
+                if (!empty($u['id']) && !empty($u['email'])) $out[$u['id']] = $u['email'];
+            }
+            $found = true;
+            $more  = count($users) === 200;
+            break;
+        }
+        if (!$found) {
+            fwrite(STDERR, "could not read /auth/v1/admin/users — the key may not have admin rights\n");
+            return $out;
+        }
+        $page++;
+    } while (!empty($more));
+    return $out;
+}
+
 function put(string $table, array $rows, array $cols): int
 {
     if (!$rows) return 0;
@@ -120,14 +163,38 @@ echo 'contributions  ', put('contributions', sb_get('contributions'),
 echo 'transcriptions ', put('transcriptions', sb_get('transcriptions'),
     ['doc_id','page','text','updated_by','updated_at']), "\n";
 
-// profiles → users. Email lives in auth.users on Supabase, which the REST API
-// does not expose, so it comes from the members_admin view the app already uses.
-$members = sb_get('members_admin');
-$users = array_map(fn($m) => [
-    'id' => $m['id'], 'email' => strtolower((string)$m['email']), 'full_name' => $m['full_name'],
-    'person_id' => $m['person_id'], 'is_admin' => $m['is_admin'], 'approved' => $m['approved'],
-    'created_at' => $m['created_at'],
-], array_filter($members, fn($m) => !empty($m['email'])));
+// profiles → users.
+//
+// This used to read the members_admin view, and silently imported NOTHING. That
+// view is defined `where public.is_admin()`, which resolves against auth.uid() —
+// a signed-in user's token. A secret key has no user context, so is_admin() is
+// false and the view returns zero rows every time, however valid the key. The
+// import "succeeded" with no accounts and therefore no admins, which is a site
+// nobody can log in to and review.
+//
+// So: flags come from `profiles` (a real table; a secret key bypasses RLS), and
+// the addresses come from the Auth admin API, because auth.users is not exposed
+// through PostgREST at all.
+$profiles = sb_get('profiles', 'id,full_name,person_id,is_admin,approved,created_at');
+$emails   = sb_auth_emails();
+$users = [];
+foreach ($profiles as $p) {
+    $email = $emails[$p['id']] ?? null;
+    if ($email === null) { fwrite(STDERR, "  ! profile {$p['id']} has no address, skipped\n"); continue; }
+    $users[] = [
+        'id' => $p['id'], 'email' => strtolower($email), 'full_name' => $p['full_name'],
+        'person_id' => $p['person_id'], 'is_admin' => $p['is_admin'], 'approved' => $p['approved'],
+        'created_at' => $p['created_at'],
+    ];
+}
+// An import that lands no accounts is not a successful import — it is a site
+// with no way in. Refuse rather than report a cheerful zero.
+if ($profiles && !$users) {
+    fwrite(STDERR, "\nRefusing: " . count($profiles) . " profiles but not one address was\n"
+                 . "resolved, so nobody could sign in. Check the key can reach\n"
+                 . "/auth/v1/admin/users on this project.\n");
+    exit(1);
+}
 echo 'users          ', put('users', $users,
     ['id','email','full_name','person_id','is_admin','approved','created_at']), "\n";
 

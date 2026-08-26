@@ -43,8 +43,35 @@ function sb_get(string $table, string $select = '*'): array
             'Range: ' . $from . '-' . ($from + 999) . "\r\n", 'ignore_errors' => true]]);
         $raw = file_get_contents("{$SB_URL}/rest/v1/{$table}?select={$select}", false, $ctx);
         if ($raw === false) { fwrite(STDERR, "read failed: {$table}\n"); exit(1); }
+
+        // Check the STATUS before the body. ignore_errors means a 401 arrives
+        // here as content, not as a failure, and PostgREST reports errors as a
+        // JSON OBJECT — which json_decode turns into an array just like a list
+        // of rows does. is_array() alone therefore accepted an auth failure as
+        // data: the error object was merged into $rows, each "row" was a bare
+        // string, and the import died deep inside an INSERT with "Column 'id'
+        // cannot be null" instead of saying the key was refused.
+        $status = 0;
+        foreach ($http_response_header ?? [] as $h) {
+            if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) $status = (int)$m[1];
+        }
         $page = json_decode($raw, true);
-        if (!is_array($page)) { fwrite(STDERR, "bad response for {$table}: " . substr($raw, 0, 200) . "\n"); exit(1); }
+        if ($status !== 200 && $status !== 206) {
+            $msg = is_array($page) ? ($page['message'] ?? $page['hint'] ?? '') : '';
+            fwrite(STDERR, "Supabase refused the read of '{$table}' — HTTP {$status}"
+                         . ($msg !== '' ? ": {$msg}" : '') . "\n");
+            if ($status === 401 || $status === 403) {
+                fwrite(STDERR, "  the SUPABASE_KEY is not accepted. It must be a SECRET key\n"
+                             . "  (sb_secret_...), sent on the apikey header, and not revoked.\n");
+            }
+            exit(1);
+        }
+        // A list of rows is a LIST. Anything else — an object, a scalar — is not
+        // data, whatever the status said.
+        if (!is_array($page) || !array_is_list($page)) {
+            fwrite(STDERR, "bad response for {$table}: " . substr($raw, 0, 200) . "\n");
+            exit(1);
+        }
         $rows = array_merge($rows, $page);
         $from += 1000;
     } while (count($page) === 1000);

@@ -101,6 +101,16 @@ Sign-in, the tree, contributions, review, members and photos all work on the PHP
 side; the proofreader, Sources tab and visitor counter are still Supabase-only.
 Nothing has been cut over. See `siteground/README.md` for what remains.
 
+**Supabase is the only writable backend.** Relatives use the Pages site, and every
+contribution lands there; the SiteGround copy is a one-way snapshot that a re-run of
+`siteground/tools/import_from_supabase.php` refreshes. Writing to both would split the
+archive with no way to merge it back, so **the `zupu.accme.my` URL is not for relatives
+yet**.
+
+**Why a cutover is being considered at all:** `github.io` is blocked in mainland China,
+so relatives there cannot reach the family's site. That — not the free-tier slot — is
+the reason to move. See `siteground/README.md` § "The slot this does not free".
+
 ## Editing the family data by hand
 
 `data/lineage.js` holds `persons`, `places`, and the `generationPoem`. Each person:

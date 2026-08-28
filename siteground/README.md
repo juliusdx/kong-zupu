@@ -6,8 +6,10 @@ signing in.**
 
 **Deployed and running in parallel at https://zupu.accme.my since 2026-08-26.**
 The family's live site is still GitHub Pages + Supabase; this is the same archive
-on the new stack, carrying the same 275 people, so the two can be compared before
-anything is cut over. Nothing has moved for relatives yet.
+on the new stack, imported with 275 people, so the two can be compared before
+anything is cut over. Nothing has moved for relatives yet. **That import is now a
+stale snapshot** — Supabase has taken contributions since, and step 6 below has
+the current numbers and the one-writable-backend rule.
 
 ## Why move at all
 
@@ -101,6 +103,15 @@ not-yet-approved member still sees detail, and every such case is written to
 `access_log` as `would_refuse`. Approve everyone the log turns up, then set it to
 `true`.
 
+**Done — the deployed config has been `true` since 2026-08-27.** The grace was
+never load-bearing: `would_refuse` fired exactly twice, from one account (the
+rehearsal one), and all 9 users were already `approved = 1` by the time it was
+flipped, so the switch restricted nobody who existed. What it closes is the
+*next* signup — `auth_login` still creates an account for anyone who completes a
+link, and that account now lands unapproved and sees no living relative's detail
+until someone approves it. Verified after the flip: a signed-out stranger gets
+256 people, none carrying a detail field, no minors.
+
 What that switch does **not** do: it never lets a signed-out visitor see member
 content, and never reveals a minor. Those are absolute in both modes. It only
 softens the approval step — the one that would otherwise lock relatives out on
@@ -131,8 +142,33 @@ Steps 1–6 are **done** (2026-08-26); step 7 is the remaining decision.
    work, the page comes back signed out, and nothing logs an error.
 6. ~~Run in parallel: both backends live, new one on a subdomain, until it's dull.~~
    **This is where things stand now.** Let it be dull for a while.
-7. Cut over DNS. Re-run the import once more on the day, flip
-   `enforce_approval` to `true`, and decide what happens to the Supabase project.
+
+   **It did not stay dull, and the copies have diverged.** As of 2026-08-28
+   Supabase holds **279 persons / 505 contributions**; MySQL still holds the
+   import snapshot, **275 / 494**. Relatives added 4 people and 11 contributions
+   on the 26th. Every one of those writes went to Supabase — **nothing has ever
+   been written to MySQL** — which is the only reason this is recoverable.
+
+   That is the rule this arrangement lives or dies by: **exactly one writable
+   backend at a time.** `import_from_supabase.php` runs one way and uses
+   `REPLACE INTO`, so it overwrites MySQL rows by primary key and carries
+   nothing back. Rows created only on the MySQL side are not deleted by a
+   re-import, but they never reach Supabase either, and no merge tool exists.
+   A contribution submitted on `zupu.accme.my` while the family is still using
+   the Pages site is therefore stranded. **Do not give relatives this URL
+   until the cutover**, and re-run the import before any cutover so the
+   snapshot is current.
+7. Cut over DNS. Re-run the import once more on the day, ~~flip
+   `enforce_approval` to `true`~~ (done 2026-08-27, ahead of the cutover), and
+   decide what happens to the Supabase project.
+
+   **When you do decide: pause it, do not delete it.** Paused projects do not
+   count toward the free-tier cap — `DEPLOY.md` §3 says so, and the other
+   account demonstrates it, running 3 projects on a plan that allows 2 active
+   because one is paused. Pausing frees the slot, keeps the data, and stays
+   reversible. Note also that the slot it frees is on
+   **the zupu account's org**, which is *not* the account that holds
+   `compliance-app` — see "The slot this does not free" below.
 
 ## What was blocked, and how it resolved
 
@@ -288,19 +324,37 @@ server, not only in tests.
   - the **`notify-contributor` edge function**, which has no equivalent — PHP
     would send that mail itself through `lib/mailer.php`.
 - **Transcriptions** have no PHP endpoint, so the proofreader stays on Supabase.
-- **`enforce_approval` is `false`** on the deployed config, which is the
-  documented deploy-day setting — an unapproved member still sees living
-  relatives' detail (46 people with birth years/bios, measured), and every such
-  case is logged as `would_refuse`. Note `auth_login` **creates an account for
-  anyone who completes a link**, so today anyone with the URL and any email
-  address gets member-tier detail. Approve whoever the log turns up, then flip
-  it to `true` before relatives get the address.
+- ~~**`enforce_approval` is `false`**~~ — **flipped to `true` 2026-08-27**, see
+  "Deploy day" above. `auth_login` still creates an account for anyone who
+  completes a link; that account is now unapproved and sees no living relative's
+  detail until approved, which is what makes the open sign-up survivable.
 - **Cutover itself**: DNS, the final import re-run, and what happens to the
-  Supabase project — retiring it is what actually frees the free-tier slot that
-  started this. Note `DEPLOY.md` §3 records the cap as **2 active projects per
-  account across all organisations**, so a second free org does *not* buy a slot;
-  pausing a project, or a different Google account, is what does. Verify against
-  Supabase's current terms before relying on either.
+  Supabase project. Note `DEPLOY.md` §3 records the cap as **2 active projects
+  per account across all organisations**, so a second free org does *not* buy a
+  slot; pausing a project, or a different Google account, is what does. Verify
+  against Supabase's current terms before relying on either.
+
+  **The slot this does not free.** Retiring the zupu was described here as
+  freeing "the free-tier slot that started this". That is wrong, and it was
+  wrong in a way worth spelling out, because it made a risky migration look
+  urgent. Checked 2026-08-27:
+
+  | account | org | projects |
+  |---|---|---|
+  | the zupu account | `xerzbrhyjiewlosyctoy` (free) | **kong-family-zupu**, Gemuk attendance — 2 active, at cap |
+  | the other login | PKA Org (free) | **compliance-app (paused)**, kira, pka-timesheet-sin1 — 2 active, at cap |
+
+  They are **two different Supabase accounts**, each listing only its own org.
+  So retiring the zupu drops the zupu account to one active project and
+  frees a slot *there*. `compliance-app` is on the other account and stays
+  paused regardless. Making that slot reach it needs a cross-account project
+  transfer (both accounts joined to one org first). The direct lever is instead
+  to free a slot inside PKA Org — and `pka-timesheet-sin1` is live and
+  **non-negotiable**, so `kira` is the only candidate there.
+
+  The practical consequence: **the slot is not a reason to rush the cutover.**
+  The reason to cut over is that `github.io` is blocked in mainland China and
+  relatives there cannot reach the family's site at all.
 - **The honest caveat about running side by side.** An unported READ still works
   on either switch, because the publishable key reaches public data. An unported
   *write* or *gated read* does not: it needs a Supabase session, and on this

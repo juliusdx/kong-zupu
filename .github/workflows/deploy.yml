@@ -47,6 +47,23 @@ jobs:
             ./ _site/
           echo "staged:"; ls -A _site
 
+      # Point the old address at the new one. The family moved to
+      # https://zupu.accme.my on 2026-08-30 because github.io is blocked in
+      # mainland China and relatives there could not reach the site at all.
+      #
+      # Only what Pages PUBLISHES is replaced: index.html stays the app in git,
+      # because tools/deploy_frontend.sh copies that same file to SiteGround as
+      # the real site. Deleting this step restores the old site exactly.
+      #
+      # The rest of _site is left in place on purpose, so existing deep links to
+      # the transcription pages and page scans keep resolving.
+      - name: Point the old address at the new one
+        run: |
+          cp pages-moved.html _site/index.html
+          rm -f _site/pages-moved.html
+          echo "published redirect in place of the app:"
+          grep -o '<title>.*</title>' _site/index.html
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

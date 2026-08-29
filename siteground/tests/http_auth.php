@@ -60,8 +60,17 @@ function token_of(string $url): string
 }
 
 $root = realpath(__DIR__ . '/..');
+/**
+ * Where the endpoints live. In the repo that is `public/`; on the deployed
+ * server the same directory is the document root and is called `public_html`.
+ * Without this the suite pointed php -S at a directory that does not exist
+ * there, the server refused to start, and every assertion failed with a status
+ * of 0 — which reads as a broken backend rather than a test that cannot run.
+ */
+$docroot = is_dir($root . '/public') ? $root . '/public' : $root . '/public_html';
+
 $cmd  = 'ZUPU_CONFIG_FILE=' . escapeshellarg($tmp . '/config.php')
-      . ' php -S 127.0.0.1:' . $PORT . ' -t ' . escapeshellarg($root . '/public') . ' > /dev/null 2>&1 & echo $!';
+      . ' php -S 127.0.0.1:' . $PORT . ' -t ' . escapeshellarg($docroot) . ' > /dev/null 2>&1 & echo $!';
 $pid  = (int)shell_exec($cmd);
 usleep(700000);
 

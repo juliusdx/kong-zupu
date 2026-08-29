@@ -36,8 +36,17 @@ $pdo->exec("INSERT INTO media (id,person_id,path,visibility,approved) VALUES
     ('33333333-3333-3333-3333-333333333333','anc1','../secret.txt','public',1)");
 
 $root = realpath(__DIR__ . '/..');
+/**
+ * Where the endpoints live. In the repo that is `public/`; on the deployed
+ * server the same directory is the document root and is called `public_html`.
+ * Without this the suite pointed php -S at a directory that does not exist
+ * there, the server refused to start, and every assertion failed with a status
+ * of 0 — which reads as a broken backend rather than a test that cannot run.
+ */
+$docroot = is_dir($root . '/public') ? $root . '/public' : $root . '/public_html';
+
 $env  = 'ZUPU_CONFIG_FILE=' . escapeshellarg($tmp . '/config.php');
-$cmd  = $env . ' php -S 127.0.0.1:8901 -t ' . escapeshellarg($root . '/public') . ' > /dev/null 2>&1 & echo $!';
+$cmd  = $env . ' php -S 127.0.0.1:8901 -t ' . escapeshellarg($docroot) . ' > /dev/null 2>&1 & echo $!';
 $pid  = (int)shell_exec($cmd);
 usleep(600000);
 

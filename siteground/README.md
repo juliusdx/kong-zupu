@@ -4,12 +4,12 @@ A PHP/MySQL replacement for the Supabase backend, keeping the same privacy model
 and the same promise: **photos and sensitive information are not viewable without
 signing in.**
 
-**Deployed and running in parallel at https://zupu.accme.my since 2026-08-26.**
-The family's live site is still GitHub Pages + Supabase; this is the same archive
-on the new stack, imported with 275 people, so the two can be compared before
-anything is cut over. Nothing has moved for relatives yet. **That import is now a
-stale snapshot** — Supabase has taken contributions since, and step 6 below has
-the current numbers and the one-writable-backend rule.
+**THE FAMILY'S SITE, at https://zupu.accme.my since 2026-08-30** (deployed and run
+in parallel from 2026-08-26).
+Relatives use this. The old GitHub Pages address now explains the move and
+redirects here, so there is exactly one writable copy of the archive — see step 7.
+The Supabase project still holds everything and must not be paused or deleted
+until this has been dull for a while.
 
 ## Why move at all
 
@@ -143,8 +143,7 @@ Steps 1–6 are **done** (2026-08-26); step 7 is the remaining decision.
    crosses to a different spelling of the same server (`127.0.0.1` vs
    `localhost`, bare vs `www.`) leaves the cookie behind: the link appears to
    work, the page comes back signed out, and nothing logs an error.
-6. ~~Run in parallel: both backends live, new one on a subdomain, until it's dull.~~
-   **This is where things stand now.** Let it be dull for a while.
+6. ~~Run in parallel: both backends live, new one on a subdomain, until it's dull.~~ Done.
 
    **It did not stay dull, and the copies have diverged.** As of 2026-08-28
    Supabase holds **279 persons / 505 contributions**; MySQL still holds the
@@ -161,9 +160,24 @@ Steps 1–6 are **done** (2026-08-26); step 7 is the remaining decision.
    the Pages site is therefore stranded. **Do not give relatives this URL
    until the cutover**, and re-run the import before any cutover so the
    snapshot is current.
-7. Cut over DNS. Re-run the import once more on the day, ~~flip
-   `enforce_approval` to `true`~~ (done 2026-08-27, ahead of the cutover), and
-   decide what happens to the Supabase project.
+7. ~~Cut over.~~ **Done 2026-08-30.** No DNS change was needed — `zupu.accme.my`
+   already resolved to SiteGround and the deployed front-end already said
+   `BACKEND: "php"`. What "cutover" actually meant here was stopping the OLD
+   address serving a second writable copy: the Pages workflow now publishes
+   `pages-moved.html` in place of `index.html`, so github.io explains the move
+   and redirects. `index.html` stays the app in git because
+   `deploy_frontend.sh` copies that same file; deleting the workflow step puts
+   the old site back exactly.
+
+   Order mattered: **writes were stopped first, then the import checked** — the
+   other way round strands anything submitted in between. As it happened the
+   two sides were already identical (322 / 522, nothing since 2026-08-29 12:17
+   UTC), so no final import was needed. `enforce_approval` was already `true`
+   from 2026-08-27.
+
+   **Still to do:** re-run `--prune` in a day or two to catch anything sent
+   from a browser tab still holding the old app, then pause (never delete) the
+   Supabase project once this has been dull for a while.
 
    **When you do decide: pause it, do not delete it.** Paused projects do not
    count toward the free-tier cap — `DEPLOY.md` §3 says so, and the other

@@ -87,29 +87,36 @@ keeper to merge. To accept live submissions, photos and logins:
 
 ## Which backend
 
-`APP_CONFIG.BACKEND` selects it: `"supabase"` (what the family uses) or `"php"` (the
-SiteGround API in `siteground/`). `js/backend.js` is the adapter.
+`APP_CONFIG.BACKEND` selects it: `"php"` (what the family uses, the SiteGround API in
+`siteground/`) or `"supabase"`. `js/backend.js` is the adapter. Note `index.html` in git
+still says `"supabase"`: `siteground/tools/deploy_frontend.sh` rewrites it to `"php"` as it
+copies, so the committed file cannot accidentally point the live site at the wrong backend.
 
-Both are live, in parallel, since 2026-08-26:
+They ran in parallel from 2026-08-26 until the cutover:
 
 | | |
 |---|---|
-| https://juliusdx.github.io/kong-zupu/ | GitHub Pages + Supabase — **the family's site** |
-| https://zupu.accme.my | PHP/MySQL on SiteGround — the same archive, for comparison |
+| https://zupu.accme.my | PHP/MySQL on SiteGround — **the family's site since 2026-08-30** |
+| https://juliusdx.github.io/kong-zupu/ | redirects to the above; no longer runs the app |
 
-Sign-in, the tree, contributions, review, members and photos all work on the PHP
-side; the proofreader, Sources tab and visitor counter are still Supabase-only.
-Nothing has been cut over. See `siteground/README.md` for what remains.
+Sign-in, the tree, contributions, review, members, photos and contributor
+notifications all run on the PHP side. Still Supabase-only, and therefore
+currently unavailable: the proofreader, the visitor counter, archive/restore, the
+admin privacy check, and the Sources tab's **scan PDF download** — the Sources
+*Read* view still works, since the transcription pages and page scans are static
+files. See `siteground/README.md` for what remains.
 
-**Supabase is the only writable backend.** Relatives use the Pages site, and every
-contribution lands there; the SiteGround copy is a one-way snapshot that a re-run of
-`siteground/tools/import_from_supabase.php` refreshes. Writing to both would split the
-archive with no way to merge it back, so **the `zupu.accme.my` URL is not for relatives
-yet**.
+**Cut over 2026-08-30.** `github.io` is blocked in mainland China, so relatives there
+could not reach the site at all; `zupu.accme.my` opens normally there, which is the whole
+reason for the move. The old address now serves `pages-moved.html` instead of the app, so
+there is still exactly **one writable backend** — writing to both would split the archive
+with no way to merge it back. Existing deep links to the transcription pages and page scans
+still resolve on the old host.
 
-**Why a cutover is being considered at all:** `github.io` is blocked in mainland China,
-so relatives there cannot reach the family's site. That — not the free-tier slot — is
-the reason to move. See `siteground/README.md` § "The slot this does not free".
+**The Supabase project is still the source of truth on paper** until it is paused: nothing
+should write to it now, but do not pause or delete it until the new site has been dull for
+a while. `siteground/tools/import_from_supabase.php --prune` remains the way to pick up
+anything that arrived from a browser tab still holding the old app.
 
 ## Editing the family data by hand
 

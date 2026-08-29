@@ -29,6 +29,7 @@ no URL that bypasses the check**, because the URL *is* the check.
     lib/contributions.php every write the tree receives; submit and decide
     lib/uploads.php      receiving a photo; the counterpart to photo.php
     lib/auth.php         magic-link sign-in
+    lib/notify.php       telling a contributor what happened to their submission
     lib/bootstrap.php    config, hardened session, viewer identity
     lib/db.php           PDO, real prepared statements
     public/photo.php     the gate and the file, one code path
@@ -51,8 +52,10 @@ no URL that bypasses the check**, because the URL *is* the check.
     php tests/members.php       # 31 assertions: roster gating, approve, promote, the locked doors
     php tests/http_photo.php    #  9 assertions: photo.php over real HTTP, incl. path traversal
     php tests/http_auth.php     # 30 assertions: the magic-link round trip over real HTTP
+    php tests/notify.php        # 28 assertions: who the contributor note reaches, what it
+                                #   says, and that a submission cannot inject html into it
 
-230 assertions, all passing. `tests/run.php` includes the ones that would have
+258 assertions, all passing. `tests/run.php` includes the ones that would have
 caught the original leak — a signed-out visitor must not be served a member
 photo, and a minor's photo is admin-only whatever the media row says.
 `http_auth.php` covers what a function call cannot: that the session survives as
@@ -321,8 +324,18 @@ server, not only in tests.
   - **the visitor counter** (`counters` + the `bump_counter` rpc);
   - **archiving and restoring people**, and the admin **privacy check**, which
     compares gated rows against the public `lineage.js`;
-  - the **`notify-contributor` edge function**, which has no equivalent — PHP
-    would send that mail itself through `lib/mailer.php`.
+  - ~~the **`notify-contributor` edge function**~~ — **ported 2026-08-29.**
+    `lib/notify.php` composes the same bilingual note and `public/api/review.php`
+    sends it through `lib/mailer.php`, so it goes out from zupu@accme.my over
+    the same authenticated SMTP as the sign-in links, with no Make webhook and
+    no third party in the path. The build is separated from the send so the
+    message is testable without a mail server, which is the split
+    `public/auth/request.php` already used. Two deliberate differences from the
+    edge function: the submitter's *name* now comes from their account even
+    when they typed an address in the form (it previously greeted a signed-in
+    relative as "Family member"), and a failed send is logged as
+    `notify_failed` rather than surfaced, because a reviewer who approved
+    something correctly must not be told it failed.
 - **Transcriptions** have no PHP endpoint, so the proofreader stays on Supabase.
 - ~~**`enforce_approval` is `false`**~~ — **flipped to `true` 2026-08-27**, see
   "Deploy day" above. `auth_login` still creates an account for anyone who

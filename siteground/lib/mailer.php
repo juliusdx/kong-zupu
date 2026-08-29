@@ -33,13 +33,18 @@ function mail_from(): string
  * Send one message. Returns whether the transport accepted it — the caller
  * decides what to tell the user (the sign-in endpoint deliberately answers
  * the same either way, so the form cannot be used to probe anything).
+ *
+ * $html switches the content type only. The sign-in mail stays plain text —
+ * a link a person is about to trust reads better without markup around it —
+ * while the contribution notice is a bilingual layout with a diff table in it,
+ * which plain text cannot carry.
  */
-function mail_send(string $to, string $subject, string $body): bool
+function mail_send(string $to, string $subject, string $body, bool $html = false): bool
 {
     $m   = config()['mail'];
     $hdr = 'From: ' . mail_encode_header((string)($m['from_name'] ?? '')) . ' <' . mail_from() . '>' . "\r\n"
          . 'MIME-Version: 1.0' . "\r\n"
-         . 'Content-Type: text/plain; charset=UTF-8' . "\r\n";
+         . 'Content-Type: text/' . ($html ? 'html' : 'plain') . '; charset=UTF-8' . "\r\n";
     $subj = mail_encode_header($subject);
 
     if (!empty($m['smtp_host'])) {

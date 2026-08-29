@@ -14,6 +14,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../../lib/contributions.php';
+require_once __DIR__ . '/../../lib/notify.php';
 
 $v = viewer();
 if (!$v->isAdmin) { access_log($v->userId, 'refused', 'review', null); json_error('Reviewers only.', 403); }
@@ -73,7 +74,27 @@ if ($method === 'POST') {
     $status = (string)($body['status'] ?? '');
     if ($id === '') json_error('Which contribution?');
     try {
-        json_out(contribution_decide($v, $id, $status, $body['reason'] ?? null));
+        // Build the note BEFORE deciding: an approval can rewrite the payload's
+        // subject, and a rejection reason belongs to this decision, but the
+        // contributor's address and what they submitted are what they are now.
+        $reason = $body['reason'] ?? null;
+        $note   = notify_contributor_build($id, $status, $reason);
+
+        $report = contribution_decide($v, $id, $status, $reason);
+
+        // The decision is the durable thing; the email is a courtesy. It is
+        // sent after the transaction has committed and its failure is logged
+        // rather than raised — a reviewer who approved something correctly must
+        // not be told it failed because a mail server was slow.
+        if ($note !== null) {
+            $sent = mail_send($note['to'], $note['subject'], $note['html'], true);
+            access_log($v->userId, $sent ? 'notified' : 'notify_failed', 'contribution', $id);
+            $report['notified'] = $sent;
+        } else {
+            access_log($v->userId, 'notify_noaddress', 'contribution', $id);
+            $report['notified'] = null;   // null: nobody to write to, not a failure
+        }
+        json_out($report);
     } catch (ContribError $e) {
         // The decision runs in a transaction, so a refusal here has already
         // rolled back: the contribution is still pending and the tree is

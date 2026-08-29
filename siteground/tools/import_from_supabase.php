@@ -6,8 +6,16 @@
  *
  *   ZUPU_CONFIG_FILE=/path/to/config.php \
  *   SUPABASE_URL=https://<ref>.supabase.co \
- *   SUPABASE_KEY=<service-role key> \
- *   php tools/import_from_supabase.php [--photos /path/to/backup/storage]
+ *   SUPABASE_KEY=<secret key> \
+ *   php tools/import_from_supabase.php [flags]
+ *
+ *     --photos DIR     copy files from a tools/backup.sh storage folder
+ *     --fetch-photos   read each object from its bucket instead (fresher)
+ *     --prune          delete rows Supabase no longer has (see below)
+ *     --dry-run        do all of it, report it, then roll back
+ *
+ * Cutover day is: --dry-run --prune --fetch-photos first, read the prune list,
+ * then the same command without --dry-run.
  *
  * The service-role key is needed because this must read the GATED rows too —
  * that is the whole point. It is read from the environment and never stored.
@@ -16,6 +24,22 @@
  * tools/backup.sh. Files are copied into config['media_root'] and the media
  * rows rewritten to a single `path` column, because on this side there is no
  * public bucket and no URL — photo.php checks, then serves.
+ *
+ * --prune makes this a MIRROR rather than an accumulation, and cutover day
+ * needs it. REPLACE INTO updates and inserts but never deletes, so anything
+ * removed on Supabase after an earlier run simply stays here: on 2026-08-29 a
+ * photo deleted from the live site was still present in MySQL, and a plain
+ * re-import would have republished it. Deleting something is a decision
+ * somebody made, often on a relative's behalf, and a migration that silently
+ * reverses it is worse than one that fails.
+ *
+ * Prune deletes rows whose primary key is absent from what Supabase just
+ * returned, reports every deletion by id, and removes the underlying file for
+ * a pruned photo. It runs inside the same transaction as the import, so a
+ * foreign-key violation aborts the whole run rather than leaving a half-mirror.
+ * If a table comes back empty while MySQL holds rows it refuses instead of
+ * emptying the table, on the same reasoning as the accounts check below: a
+ * zero that arrives by accident must not be obeyed.
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -28,9 +52,13 @@ if ($SB_URL === '' || $SB_KEY === '') {
 }
 $photoSrc = null;
 $fetch    = false;
+$prune    = false;
+$dryRun   = false;
 foreach ($argv as $i => $a) {
     if ($a === '--photos')       $photoSrc = rtrim($argv[$i + 1] ?? '', '/');
     if ($a === '--fetch-photos') $fetch    = true;
+    if ($a === '--prune')        $prune    = true;
+    if ($a === '--dry-run')      $dryRun   = true;
 }
 
 function sb_get(string $table, string $select = '*'): array
@@ -175,6 +203,34 @@ function put(string $table, array $rows, array $cols): int
     return $n;
 }
 
+/**
+ * Delete rows this import did not bring across.
+ *
+ * $keep is the set of primary keys Supabase just returned. Anything else in
+ * the table predates a deletion made upstream and has to go, or the new site
+ * shows content the old one no longer does.
+ *
+ * The empty-$keep case is deliberately a refusal, not a DELETE: an empty table
+ * is indistinguishable here from a request that failed and decoded to nothing,
+ * and one of those two readings destroys the archive.
+ */
+function prune(string $table, string $pkCol, array $keep, bool $enabled): array
+{
+    if (!$enabled) return [];
+    $have = array_column(q("SELECT {$pkCol} FROM {$table}")->fetchAll(), $pkCol);
+    $gone = array_values(array_diff($have, $keep));
+    if (!$gone) return [];
+    if (!$keep) {
+        fwrite(STDERR, "\nRefusing to prune {$table}: Supabase returned no rows at all while\n"
+                     . "MySQL holds " . count($have) . ". That is far more likely to be a failed\n"
+                     . "read than a deliberately emptied table.\n");
+        exit(1);
+    }
+    $st = db()->prepare("DELETE FROM {$table} WHERE {$pkCol} = ?");
+    foreach ($gone as $id) $st->execute([$id]);
+    return $gone;
+}
+
 db()->beginTransaction();
 
 $persons = sb_get('persons');
@@ -185,15 +241,20 @@ echo 'persons        ', put('persons', $persons, [
     'confidence','source','archived','archived_at','archived_by','archived_reason','created_at',
 ]), "\n";
 
-echo 'person_details ', put('person_details', sb_get('person_details'),
+$personDetails = sb_get('person_details');
+echo 'person_details ', put('person_details', $personDetails,
     ['person_id','birth_year','death_year','lifespan','religion','occupation','bio','updated_at']), "\n";
-echo 'contacts       ', put('contacts', sb_get('contacts'),
+$contacts = sb_get('contacts');
+echo 'contacts       ', put('contacts', $contacts,
     ['person_id','email','phone','wechat','address','updated_at']), "\n";
-echo 'places         ', put('places', sb_get('places'),
+$places = sb_get('places');
+echo 'places         ', put('places', $places,
     ['id','type','name','name_en','lat','lng','approximate','note','visibility','created_at']), "\n";
-echo 'contributions  ', put('contributions', sb_get('contributions'),
+$contributions = sb_get('contributions');
+echo 'contributions  ', put('contributions', $contributions,
     ['id','payload','status','submitted_by','reviewed_by','created_at','reviewed_at','rejection_reason']), "\n";
-echo 'transcriptions ', put('transcriptions', sb_get('transcriptions'),
+$transcriptions = sb_get('transcriptions');
+echo 'transcriptions ', put('transcriptions', $transcriptions,
     ['doc_id','page','text','updated_by','updated_at']), "\n";
 
 // profiles → users.
@@ -280,10 +341,50 @@ if ($photoSrc !== null || $fetch) {
 echo 'media          ', put('media', $mediaRows,
     ['id','person_id','place_id','path','caption','visibility','approved','cover','uploaded_by','created_at']), "\n";
 
-db()->commit();
+// Anything upstream deleted. Children before parents, so a row never outlives
+// the person it points at; the transaction means a foreign key we got wrong
+// aborts the run instead of leaving the tables half-mirrored.
+if ($prune) {
+    echo "\nprune\n";
+    $mediaPaths = [];
+    foreach (q('SELECT id, path FROM media')->fetchAll() as $r) $mediaPaths[$r['id']] = $r['path'];
+
+    $pruned = [
+        'person_details' => prune('person_details', 'person_id', array_column($personDetails, 'person_id'), true),
+        'contacts'       => prune('contacts', 'person_id', array_column($contacts, 'person_id'), true),
+        'media'          => prune('media', 'id', array_column($mediaRows, 'id'), true),
+        'contributions'  => prune('contributions', 'id', array_column($contributions, 'id'), true),
+        'persons'        => prune('persons', 'id', array_column($persons, 'id'), true),
+        'places'         => prune('places', 'id', array_column($places, 'id'), true),
+        'users'          => prune('users', 'id', array_column($users, 'id'), true),
+    ];
+
+    $total = 0;
+    foreach ($pruned as $table => $ids) {
+        $total += count($ids);
+        foreach ($ids as $id) echo "  - {$table} {$id}\n";
+    }
+    if (!$total) echo "  nothing to remove — the two sides already agree\n";
+
+    // A pruned photo's bytes go too. Leaving the file behind is not a leak on
+    // its own, since photo.php will not serve what has no row, but a deletion
+    // that leaves the thing on disk is not a deletion.
+    foreach ($pruned['media'] as $id) {
+        $p = $mediaPaths[$id] ?? null;
+        if ($p === null) continue;
+        $f = rtrim(config()['media_root'], '/') . '/' . $p;
+        if (!is_file($f)) continue;
+        if ($dryRun)                 echo "  - file {$p} (would delete)\n";
+        elseif (@unlink($f))         echo "  - file {$p}\n";
+        else                         fwrite(STDERR, "  ! could not delete file {$p}\n");
+    }
+}
 
 // A migration that quietly drops the gating would be the worst possible outcome,
-// so say out loud what came across.
+// so say out loud what came across. This runs INSIDE the transaction, before
+// the commit-or-rollback below, so a dry run reports the numbers the import
+// would produce rather than the ones it started from — a verification block
+// that describes the old state is worse than none, because it looks like proof.
 $n = fn(string $sql) => (int)q1($sql)['c'];
 echo "\nverification\n";
 printf("  %-34s %d\n", 'people total',            $n('SELECT COUNT(*) c FROM persons'));
@@ -291,4 +392,17 @@ printf("  %-34s %d\n", 'gated (living or minor)', $n('SELECT COUNT(*) c FROM per
 printf("  %-34s %d\n", 'minors (admin-only)',     $n('SELECT COUNT(*) c FROM persons WHERE is_minor = 1'));
 printf("  %-34s %d\n", 'member-tier photos',      $n("SELECT COUNT(*) c FROM media WHERE visibility <> 'public'"));
 printf("  %-34s %d\n", 'admins',                  $n('SELECT COUNT(*) c FROM users WHERE is_admin = 1'));
+
+// A dry run reads everything, does every write, reports exactly what a real run
+// would do — and then throws it away. The point is to see the prune list before
+// agreeing to it, on cutover day, against the real data rather than a rehearsal
+// copy. Note the photo files fetched by --fetch-photos are NOT rolled back;
+// they are only ever added, never replaced with something worse.
+if ($dryRun) {
+    db()->rollBack();
+    echo "\nDRY RUN — everything above was rolled back, nothing was written.\n";
+} else {
+    db()->commit();
+}
+
 echo "\nCompare those against the Supabase numbers before pointing anyone at the new site.\n";

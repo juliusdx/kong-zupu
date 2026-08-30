@@ -370,12 +370,17 @@
       const publicIds = new Set(((sandbox.LINEAGE || {}).persons || []).map(p => p.id));
       if (!publicIds.size) { box.textContent = T("pc_failed") + "lineage.js"; return; }
 
-      const sb = Auth.client(); if (!sb) { box.textContent = T("pc_offline"); return; }
-      const { data, error } = await sb.from("persons")
-        .select("id, name, living, is_minor, visibility")
-        .or("living.eq.true,is_minor.eq.true");
-      if (error) throw error;
-      const gated = data || [];
+      let gated;
+      if (Backend.isPhp()) {
+        gated = await Backend.gatedPeople();
+      } else {
+        const sb = Auth.client(); if (!sb) { box.textContent = T("pc_offline"); return; }
+        const { data, error } = await sb.from("persons")
+          .select("id, name, living, is_minor, visibility")
+          .or("living.eq.true,is_minor.eq.true");
+        if (error) throw error;
+        gated = data || [];
+      }
       if (!gated.length) { box.textContent = T("pc_nokey"); return; }
 
       const bad = gated.filter(p => publicIds.has(p.id));

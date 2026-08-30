@@ -291,6 +291,16 @@ window.Backend = (function () {
       return r.count;
     },
 
+    /**
+     * Everyone the database gates, so the caller can check none of them appear
+     * in the world-readable data/lineage.js. Admins only — that list is the
+     * private half of the comparison.
+     */
+    async gatedPeople() {
+      if (!isPhp()) throw new Error("gatedPeople: Supabase path stays in app.js");
+      return (await api("/api/privacy.php")).gated || [];
+    },
+
     /** Who the server thinks we are. */
     async me() {
       if (!isPhp()) throw new Error("me(): use Auth.state() on Supabase");

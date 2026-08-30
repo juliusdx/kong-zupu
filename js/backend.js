@@ -301,6 +301,15 @@ window.Backend = (function () {
       return (await api("/api/privacy.php")).gated || [];
     },
 
+    /**
+     * A source PDF's URL. Like photoUrl, there is exactly one and it is the
+     * gate — doc.php checks the session before it reads a byte, so there is no
+     * signed URL to mint and nothing that keeps working after signing out.
+     */
+    docUrl(key) {
+      return isPhp() ? `${BASE}/doc.php?key=${encodeURIComponent(key)}` : null;
+    },
+
     /** Who the server thinks we are. */
     async me() {
       if (!isPhp()) throw new Error("me(): use Auth.state() on Supabase");

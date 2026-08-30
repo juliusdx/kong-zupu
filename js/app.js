@@ -2399,6 +2399,11 @@
       let url;
       if (useLocal) {
         url = s.localUrl;
+      } else if (Backend.isPhp()) {
+        // One URL, checked when the bytes are asked for. No listing call to
+        // tolerate a mismatched name either — the manifest key IS the filename,
+        // because the importer writes it out of the bucket under that name.
+        url = Backend.docUrl(s.key);
       } else {
         // Resolve against what's actually in the bucket so the exact upload name
         // doesn't have to match (tolerates Kong_Family_book_pt1.pdf vs the manifest key).

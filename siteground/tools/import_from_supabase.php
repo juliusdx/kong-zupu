@@ -11,6 +11,7 @@
  *
  *     --photos DIR     copy files from a tools/backup.sh storage folder
  *     --fetch-photos   read each object from its bucket instead (fresher)
+ *     --fetch-docs     copy the source PDFs into config['docs_root']
  *     --prune          delete rows Supabase no longer has (see below)
  *     --dry-run        do all of it, report it, then roll back
  *
@@ -54,11 +55,13 @@ $photoSrc = null;
 $fetch    = false;
 $prune    = false;
 $dryRun   = false;
+$fetchDocs = false;
 foreach ($argv as $i => $a) {
     if ($a === '--photos')       $photoSrc = rtrim($argv[$i + 1] ?? '', '/');
     if ($a === '--fetch-photos') $fetch    = true;
     if ($a === '--prune')        $prune    = true;
     if ($a === '--dry-run')      $dryRun   = true;
+    if ($a === '--fetch-docs')   $fetchDocs = true;
 }
 
 function sb_get(string $table, string $select = '*'): array
@@ -180,6 +183,33 @@ function sb_object(string $bucket, string $path): ?string
         return null;
     }
     return $raw;
+}
+
+/**
+ * What is in a bucket. The storage API lists a prefix at a time and returns
+ * objects and folders together; these buckets are flat, so one call is enough.
+ */
+function sb_list(string $bucket): array
+{
+    global $SB_URL, $SB_KEY;
+    $ctx = stream_context_create(['http' => ['method' => 'POST',
+        'header'  => "apikey: {$SB_KEY}\r\nAuthorization: Bearer {$SB_KEY}\r\nContent-Type: application/json\r\n",
+        'content' => json_encode(['prefix' => '', 'limit' => 1000]),
+        'ignore_errors' => true]]);
+    $raw = @file_get_contents("{$SB_URL}/storage/v1/object/list/{$bucket}", false, $ctx);
+    $status = 0;
+    foreach ($http_response_header ?? [] as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) $status = (int)$m[1];
+    }
+    if ($raw === false || $status !== 200) {
+        fwrite(STDERR, "  ! could not list bucket {$bucket} (HTTP {$status})\n");
+        return [];
+    }
+    $out = [];
+    foreach (json_decode($raw, true) ?: [] as $o) {
+        if (!empty($o['name']) && !empty($o['id'])) $out[] = (string)$o['name'];  // id null = folder
+    }
+    return $out;
 }
 
 function put(string $table, array $rows, array $cols): int
@@ -378,6 +408,30 @@ if ($prune) {
         elseif (@unlink($f))         echo "  - file {$p}\n";
         else                         fwrite(STDERR, "  ! could not delete file {$p}\n");
     }
+}
+
+// The source PDFs behind the Sources tab. They are files with no table, so
+// there is nothing to reconcile — they either arrived or they did not, and the
+// count says which. Taken from the bucket rather than from local copies of the
+// scans, because the two are not the same: the story PDF in the bucket is
+// 10.8 MB while the local file of that name is 1.2 MB, so "the copy on my
+// laptop" would have quietly published a different document.
+if ($fetchDocs) {
+    $docsRoot = rtrim((string)(config()['docs_root'] ?? ''), '/');
+    if ($docsRoot === '') {
+        fwrite(STDERR, "set docs_root in config.php before --fetch-docs\n");
+        exit(1);
+    }
+    @mkdir($docsRoot, 0750, true);
+    $got = 0; $lost = 0;
+    foreach (sb_list('documents') as $name) {
+        $bytes = sb_object('documents', $name);
+        if ($bytes === null) { $lost++; continue; }
+        file_put_contents($docsRoot . '/' . basename($name), $bytes);
+        @chmod($docsRoot . '/' . basename($name), 0600);
+        $got++;
+    }
+    printf("documents     %d copied, %d missing\n", $got, $lost);
 }
 
 // A migration that quietly drops the gating would be the worst possible outcome,

@@ -47,6 +47,7 @@ if (PHP_SAPI === 'cli') {
         file_put_contents($cfgF, '<?php return ' . var_export([
             'db'               => ['driver' => 'sqlite', 'path' => $local . '/zupu.db'],
             'media_root'       => $local . '/media',
+            'docs_root'        => $local . '/docs',
             'site_url'         => 'http://localhost:' . $port,
             'secure_cookies'   => false,          // no TLS on the built-in server
             'enforce_approval' => false,
@@ -109,7 +110,7 @@ if (str_starts_with($path, '/siteground/')) {
     return true;
 }
 
-if (preg_match('#^/(api|auth)/#', $path) || $path === '/photo.php') {
+if (preg_match('#^/(api|auth)/#', $path) || $path === '/photo.php' || $path === '/doc.php') {
     $f = $api . $path;
     if (is_file($f)) { $_SERVER['SCRIPT_FILENAME'] = $f; require $f; return true; }
     http_response_code(404); echo 'no such endpoint'; return true;

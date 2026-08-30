@@ -65,9 +65,18 @@ function check(string $what, $got, $want) {
         $ok ? '' : '(got ' . var_export($got, true) . ', want ' . var_export($want, true) . ')');
 }
 $ids = fn(array $rows) => array_map(fn($r) => $r['id'], $rows);
+/**
+ * Ids whose CONTENT came back, ignoring archive tombstones. An archived person
+ * is announced to everyone as a bare {id, archived} so the client can remove
+ * their twin from the public seed — see repo_persons() — but nothing about them
+ * is disclosed, so they are not "seen" in the sense these checks mean.
+ */
+$visible = fn(array $rows) => array_map(fn($r) => $r['id'],
+    array_filter($rows, fn($r) => empty($r['archived'])));
+$tomb = fn(array $rows) => array_values(array_filter($rows, fn($r) => !empty($r['archived'])));
 
 echo "\nPEOPLE\n";
-check('anon sees the ancestor AND the living adult', $ids(repo_persons($anon)),   ['anc1','mem1']);
+check('anon sees the ancestor AND the living adult', $visible(repo_persons($anon)),   ['anc1','mem1']);
 check('anon still never sees the minor',          in_array('kid1', $ids(repo_persons($anon)), true), false);
 
 // The living adult reaches a signed-out visitor by NAME and TREE POSITION only.
@@ -79,12 +88,28 @@ check('anon gets their tree position',            $anonMem['gen'],             2
 foreach (['birth_year','bio','birth_place','residence_place','burial_place','lat','lng','relation'] as $blocked) {
     check("anon gets no {$blocked} for a living adult", $anonMem[$blocked] ?? null, null);
 }
-check('member also sees the living relative',     $ids(repo_persons($member)),   ['anc1','mem1']);
+check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','mem1']);
 check('member never sees the minor',              in_array('kid1', $ids(repo_persons($member)), true), false);
 check('approved member still never sees a minor', in_array('kid1', $ids(repo_persons($approved)), true), false);
 check('admin sees the minor',                     in_array('kid1', $ids(repo_persons($admin)), true), true);
-check('anon never sees an archived person',       in_array('arc1', $ids(repo_persons($anon)), true), false);
+check('anon learns nothing about an archived person', in_array('arc1', $visible(repo_persons($anon)), true), false);
 check('admin sees the archived person',           in_array('arc1', $ids(repo_persons($admin)), true), true);
+
+// An archived person must still be ANNOUNCED, or their twin in the public
+// 519-person seed stays in the tree and the removal silently undoes itself.
+// This is the bug a reviewer hit after the cutover: duplicates she had already
+// archived came back. What may NOT travel with the announcement is anything
+// about them.
+$t = $tomb(repo_persons($anon));
+check('an archived person is still announced to anon', count($t), 1);
+check('  …by id, so the seed twin can be dropped', $t[0]['id'] ?? null, 'arc1');
+check('  …carrying nothing but the flag', array_keys($t[0]), ['id', 'archived']);
+check('  …and no name',                   isset($t[0]['name']), false);
+check('a member gets the same announcement',
+      array_map(fn($r) => $r['id'], $tomb(repo_persons($member))), ['arc1']);
+check("an admin's own rows already carry the flag, so no tombstone is added",
+      count($tomb(repo_persons($admin))), 1);   // the real row, not a stub
+check('  …and it is the full row, not a stub', isset($tomb(repo_persons($admin))[0]['name']), true);
 
 echo "\nDETAIL (birth year, bio)\n";
 $memRow = fn(array $rows) => array_values(array_filter($rows, fn($r) => $r['id'] === 'mem1'))[0] ?? null;
@@ -121,7 +146,7 @@ echo "\nDEPLOY-DAY SWITCH\n";
 $GLOBALS['ZUPU_CONFIG']['enforce_approval'] = false;
 check('permissive: unapproved member gets detail', $memRow(repo_persons($member))['birth_year'] ?? null, '1980');
 check('permissive still hides minors from members', in_array('kid1', $ids(repo_persons($member)), true), false);
-check('permissive does not widen what anon sees',  $ids(repo_persons($anon)), ['anc1','mem1']);
+check('permissive does not widen what anon sees',  $visible(repo_persons($anon)), ['anc1','mem1']);
 check('permissive still hides minors from anon',  in_array('kid1', $ids(repo_persons($anon)), true), false);
 check('the grace was logged',
     (int)q1("SELECT COUNT(*) c FROM access_log WHERE verdict = 'would_refuse'")['c'] > 0, true);

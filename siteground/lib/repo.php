@@ -7,10 +7,17 @@
 declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
-/** Columns safe for anyone who may see the row at all. No birth year, no bio. */
+/**
+ * Columns safe for anyone who may see the row at all. No birth year, no bio.
+ *
+ * `archived` is in here because the client needs it, not as decoration: the
+ * tree is this table merged onto a 519-person public seed, and a live row that
+ * says archived is what removes its seed twin — see dropRow() in js/app.js.
+ * Without the column every row arrives looking un-archived and the twin stays.
+ */
 const PERSON_BASIC = 'id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
                       gender, father_id, spouse_of, relation, living, confidence, visibility,
-                      birth_place, residence_place, burial_place, lat, lng';
+                      birth_place, residence_place, burial_place, lat, lng, archived';
 
 /**
  * What a SIGNED-OUT visitor may see of a living adult: their name and where they
@@ -21,7 +28,7 @@ const PERSON_BASIC = 'id, gen, name, pinyin, ritual_name, formal_name, hao, milk
 const PERSON_SEARCH = "id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
                        gender, father_id, spouse_of, NULL AS relation, living, confidence, visibility,
                        NULL AS birth_place, NULL AS residence_place, NULL AS burial_place,
-                       NULL AS lat, NULL AS lng";
+                       NULL AS lat, NULL AS lng, 0 AS archived";
 
 function repo_persons(Viewer $v): array
 {
@@ -43,6 +50,28 @@ function repo_persons(Viewer $v): array
                 AND is_minor = 0 AND archived = 0"
         )->fetchAll());
         usort($rows, fn($a, $b) => [$a['gen'], $a['name']] <=> [$b['gen'], $b['name']]);
+    }
+
+    // An archived person still has to be ANNOUNCED, or the tree grows a ghost.
+    //
+    // The row gate drops archived rows for everyone but an admin, which is right
+    // for their CONTENT and wrong for their EXISTENCE: the tree is this table
+    // merged onto the public 519-person seed in data/lineage.js, and archiving is
+    // how a reviewer removes somebody who is in that seed. Filter the row out
+    // completely and the client never hears about the removal, so the seed twin
+    // comes back — 11 of the first 14 people archived have a twin, which is how
+    // this was found: a reviewer reported duplicates she had already fixed
+    // reappearing after the cutover.
+    //
+    // A tombstone carries the id and the flag and nothing else. The id is
+    // already world-readable in the seed, while the name, dates and everything
+    // else stay behind the gate — so this says strictly less than Supabase did,
+    // where an archived public row came back whole. Minors are excluded: they may
+    // never appear in the seed, so no twin can exist to remove.
+    if (!$v->isAdmin) {
+        $rows = array_merge($rows, q(
+            'SELECT id, 1 AS archived FROM persons WHERE archived = 1 AND is_minor = 0'
+        )->fetchAll());
     }
 
     // Detail is a second decision, not part of the row gate: a signed-in member

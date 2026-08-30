@@ -29,14 +29,45 @@ function config(): array
  * SameSite=Lax means another site cannot ride the family's session; Secure means
  * it is never sent in the clear. session_regenerate_id(true) happens at LOGIN
  * (auth/verify.php), not here, so a pre-set id cannot be fixated.
+ *
+ * HOW LONG IT LASTS is a decision, and the defaults made the wrong one. A
+ * lifetime of 0 is a browser-session cookie — gone when the window closes — and
+ * PHP's gc_maxlifetime here is 1440 seconds, so the server forgot anyone idle
+ * for 24 minutes. On Supabase a signed-in relative stayed signed in for weeks,
+ * so the cutover silently turned "you are signed in" into "you were signed in
+ * for the next twenty minutes". The first report was an admin saying she no
+ * longer had permission to approve reviews: she had it, she was signed out, and
+ * a signed-out admin and an unauthorised one look identical from the outside.
+ *
+ * This is a family archive that people visit occasionally, not a bank. Thirty
+ * days, renewed on each visit.
+ *
+ * The save path matters as much as the lifetime. PHP's default here is /tmp,
+ * shared with the other applications on this hosting account — any one of them
+ * running session GC with a shorter lifetime deletes OUR sessions too, and
+ * their code sits beside our session files. Ours live in a directory of their
+ * own, outside every web root, created 0700.
  */
 function session_start_hardened(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;
-    $cfg = config();
+    $cfg  = config();
+    $days = (int)($cfg['session_days'] ?? 30);
+    $ttl  = $days * 86400;
+
+    $path = (string)($cfg['session_path'] ?? '');
+    if ($path !== '') {
+        if (!is_dir($path)) @mkdir($path, 0700, true);
+        if (is_dir($path) && is_writable($path)) session_save_path($path);
+    }
+
+    // Both halves, or the shorter one wins: the cookie is how long the browser
+    // offers the id back, gc_maxlifetime is how long the server still knows it.
+    ini_set('session.gc_maxlifetime', (string)$ttl);
+
     session_name('zupu_session');
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $ttl,
         'path'     => '/',
         'domain'   => '',
         'secure'   => (bool)($cfg['secure_cookies'] ?? true),
@@ -44,6 +75,20 @@ function session_start_hardened(): void
         'samesite' => 'Lax',
     ]);
     session_start();
+
+    // Slide the window forward on each visit, so somebody who uses the site
+    // every few weeks is never signed out mid-use. Only for an established
+    // session: re-sending it for an anonymous visitor would set a cookie on
+    // people who have never signed in.
+    if (!empty($_SESSION['uid'])) {
+        setcookie(session_name(), session_id(), [
+            'expires'  => time() + $ttl,
+            'path'     => '/',
+            'secure'   => (bool)($cfg['secure_cookies'] ?? true),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
 }
 
 /** Who is asking? Re-read from the database so a revoked admin loses it at once. */

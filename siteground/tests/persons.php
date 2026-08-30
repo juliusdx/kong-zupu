@@ -141,6 +141,66 @@ check('but is told they are archived', in_array('live1', array_map(fn($r) => $r[
 check('the tombstone carries nothing else', array_keys($tombs[0]), ['id', 'archived']);
 check('a minor is never even announced', in_array('kid1', $anonIds, true), false);
 
+// ---------------------------------------------------------------------------
+section('merging a duplicate into the person it duplicates');
+
+q("INSERT INTO persons (id,name,gen,visibility) VALUES
+   ('keep1','大信',21,'public'), ('dup1','大信 (dup)',21,'public'),
+   ('kid_a','A Child',22,'public'), ('wife_a','A Wife',21,'public')");
+q("UPDATE persons SET father_id='dup1' WHERE id='kid_a'");
+q("UPDATE persons SET spouse_of='dup1' WHERE id='wife_a'");
+q("INSERT INTO media (id,person_id,path,visibility,approved,cover) VALUES
+   ('m-dup','dup1','dup/a.jpg','public',1,1)");
+q("INSERT INTO person_details (person_id,bio) VALUES ('dup1','the duplicate bio')");
+q("INSERT INTO contacts (person_id,email) VALUES ('dup1','dup@example.com')");
+
+$m = person_merge($admin, 'keep1', 'dup1');
+check('the child is re-parented onto the survivor', $row('kid_a')['father_id'], 'keep1');
+check('the spouse follows too',                     $row('wife_a')['spouse_of'], 'keep1');
+check('  …and it says how many moved',              $m['moved']['children'], 1);
+check('the photo moves across',
+      q1("SELECT person_id FROM media WHERE id='m-dup'")['person_id'], 'keep1');
+check('  …but arrives uncovered, so there is one avatar',
+      (int)q1("SELECT cover FROM media WHERE id='m-dup'")['cover'], 0);
+check('the private detail moves',
+      q1("SELECT person_id FROM person_details WHERE bio='the duplicate bio'")['person_id'], 'keep1');
+check('the contact moves',
+      q1("SELECT person_id FROM contacts WHERE email='dup@example.com'")['person_id'], 'keep1');
+check('the duplicate is archived, not deleted', (int)$row('dup1')['archived'], 1);
+check('  …saying what it was merged into',
+      str_contains((string)$row('dup1')['archived_reason'], 'keep1'), true);
+check('  …and it still exists to be restored', $row('dup1')['name'], '大信 (dup)');
+
+section('a survivor who already has detail keeps their own');
+q("INSERT INTO persons (id,name,gen,visibility) VALUES ('keep2','有二',21,'public'), ('dup2','有二 (dup)',21,'public')");
+q("INSERT INTO person_details (person_id,bio) VALUES ('keep2','the survivor own bio'), ('dup2','the loser bio')");
+q("INSERT INTO contacts (person_id,email) VALUES ('keep2','keep@example.com'), ('dup2','loser@example.com')");
+person_merge($admin, 'keep2', 'dup2');
+check("the survivor's own bio is not overwritten",
+      q1("SELECT bio FROM person_details WHERE person_id='keep2'")['bio'], 'the survivor own bio');
+check("  …and the duplicate's is not destroyed either",
+      q1("SELECT bio FROM person_details WHERE person_id='dup2'")['bio'], 'the loser bio');
+check("the survivor's own contact survives",
+      q1("SELECT email FROM contacts WHERE person_id='keep2'")['email'], 'keep@example.com');
+
+section('merging refuses the nonsensical');
+check('a member may not merge',
+      refused(fn() => person_merge($member, 'keep1', 'kid_a')), 'refused 403');
+check('merging somebody into themselves is refused',
+      refused(fn() => person_merge($admin, 'keep1', 'keep1')), 'refused 400');
+check('a missing id is refused', refused(fn() => person_merge($admin, 'keep1', '')), 'refused 400');
+
+section('a seed-only duplicate, and seed-only children');
+$m = person_merge($admin, 'keep1', 'seed_dup', [
+    'dupSeed' => ['name' => '大信 seed', 'gen' => 21],
+    'relink'  => [['id' => 'seed_kid', 'field' => 'father_id',
+                   'seed' => ['name' => 'Seed Child', 'gen' => 22]]],
+]);
+check('the seed-only duplicate was created then archived', (int)$row('seed_dup')['archived'], 1);
+check('the seed-only child now exists',        $row('seed_kid')['name'], 'Seed Child');
+check('  …pointing at the survivor',           $row('seed_kid')['father_id'], 'keep1');
+check('  …and is public, never living',        (int)$row('seed_kid')['living'], 0);
+
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);
 exit($fail ? 1 : 0);

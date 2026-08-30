@@ -160,6 +160,92 @@ function person_restore(Viewer $v, string $id): array
 }
 
 /**
+ * Fold one person into another: the same person entered twice.
+ *
+ * Everything hanging off the duplicate is re-pointed at the survivor and the
+ * duplicate is then archived, never deleted — the usual next discovery after a
+ * merge is that it was wrong, and restoring brings the record back.
+ *
+ * WHY THIS IS ONE CALL. The browser version walked the tree issuing a request
+ * per child, per spouse, and per table, so a merge that failed in the middle
+ * left children re-parented onto a survivor that had not inherited the photos
+ * and a duplicate that was never archived — with no record of how far it got.
+ * Here it is one transaction: it happens or it does not.
+ *
+ * $relink is how seed-only relatives get moved. A child of the duplicate very
+ * often has no row of their own, so the client sends the ones it can see in the
+ * merged tree along with their seed snapshots. The blanket UPDATEs below then
+ * catch anyone the client did not know about, which makes this a superset of
+ * what it was asked to do rather than a subset.
+ */
+function person_merge(Viewer $v, string $keepId, string $dupId, array $opts = []): array
+{
+    person_require_reviewer($v, 'person_merge', $dupId);
+    if ($keepId === '' || $dupId === '') throw new PersonError('Merge needs two people.');
+    if ($keepId === $dupId)              throw new PersonError('That is the same person.');
+
+    $relink = is_array($opts['relink'] ?? null) ? $opts['relink'] : [];
+    $moved  = ['children' => 0, 'spouses' => 0, 'media' => 0, 'details' => 0, 'contacts' => 0];
+
+    db()->beginTransaction();
+    try {
+        person_materialise($keepId, is_array($opts['keepSeed'] ?? null) ? $opts['keepSeed'] : []);
+        person_materialise($dupId,  is_array($opts['dupSeed']  ?? null) ? $opts['dupSeed']  : []);
+
+        // Relatives the client can see but the database cannot: brought into
+        // existence and re-pointed explicitly. Relying on the blanket UPDATE
+        // below would not do it — that matches rows whose pointer ALREADY names
+        // the duplicate, and a seed snapshot need not carry one.
+        foreach ($relink as $r) {
+            if (!is_array($r)) continue;
+            $rid   = (string)($r['id'] ?? '');
+            $field = (string)($r['field'] ?? '');
+            if ($rid === '' || !in_array($field, ['father_id', 'spouse_of'], true)) continue;
+            person_materialise($rid, is_array($r['seed'] ?? null) ? $r['seed'] : []);
+            q("UPDATE persons SET {$field} = ? WHERE id = ?", [$keepId, $rid]);
+            $moved[$field === 'father_id' ? 'children' : 'spouses']++;
+        }
+
+        // And anyone the client did not know about, which makes this a superset
+        // of what it was asked to do rather than a subset.
+        $st = q('UPDATE persons SET father_id = ? WHERE father_id = ?', [$keepId, $dupId]);
+        $moved['children'] += $st->rowCount();
+        $st = q('UPDATE persons SET spouse_of = ? WHERE spouse_of = ?', [$keepId, $dupId]);
+        $moved['spouses'] += $st->rowCount();
+
+        // Photos move freely — several per person is normal. The cover flag does
+        // not: two cover photos on the survivor is a tree avatar that changes
+        // depending on row order, so the incoming ones arrive uncovered.
+        $st = q('UPDATE media SET person_id = ?, cover = 0 WHERE person_id = ?', [$keepId, $dupId]);
+        $moved['media'] = $st->rowCount();
+
+        // These two key on person_id, so the survivor can hold only one of each.
+        // If they already have one it wins, and the duplicate's stays attached to
+        // the duplicate — archived alongside it and recoverable if the merge is
+        // undone. Overwriting would destroy the survivor's own detail to make
+        // room for a copy we are less sure about.
+        foreach ([['person_details', 'details'], ['contacts', 'contacts']] as [$table, $key]) {
+            if (q1("SELECT person_id FROM {$table} WHERE person_id = ?", [$keepId])) continue;
+            $st = q("UPDATE {$table} SET person_id = ? WHERE person_id = ?", [$keepId, $dupId]);
+            $moved[$key] = $st->rowCount();
+        }
+
+        $keepName = (string)(q1('SELECT name FROM persons WHERE id = ?', [$keepId])['name'] ?? $keepId);
+        q('UPDATE persons SET archived = 1, archived_at = CURRENT_TIMESTAMP, archived_by = ?,
+             archived_reason = ? WHERE id = ?',
+          [$v->userId, "merged into {$keepId} ({$keepName})", $dupId]);
+
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+
+    access_log($v->userId, 'merged', 'person', "{$dupId} -> {$keepId}");
+    return ['keep' => $keepId, 'merged' => $dupId, 'moved' => $moved];
+}
+
+/**
  * The archived list, with who removed each person and when.
  *
  * The same accountability the review log has: an entry that vanished from the

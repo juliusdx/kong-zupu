@@ -1514,10 +1514,25 @@
   // at the survivor, then the duplicate is archived (never deleted — if the merge
   // was wrong, restoring it brings the record back).
   async function applyMerge(keep, dupId) {
-    const sb = Auth.client(); if (!sb) throw new Error("not connected");
     const dup = personById(dupId);
     if (!dup) throw new Error("pick someone first");
     if (keep.id === dupId) throw new Error("same person");
+    if (Backend.isPhp()) {
+      // The children and spouses as the merged tree shows them — most have no
+      // row of their own, so the server is told who they are rather than asked
+      // to find them. It also sweeps for any it was not told about.
+      const relink = [
+        ...LINEAGE.persons.filter(x => x.father === dupId && !x.spouseOf)
+            .map(k => ({ id: k.id, field: "father_id", seed: seedPersonRow(k) })),
+        ...LINEAGE.persons.filter(x => x.spouseOf === dupId)
+            .map(sp => ({ id: sp.id, field: "spouse_of", seed: seedPersonRow(sp) }))
+      ];
+      await Backend.mergePerson(keep.id, dupId, {
+        keepSeed: seedPersonRow(keep), dupSeed: seedPersonRow(dup), relink
+      });
+      return;
+    }
+    const sb = Auth.client(); if (!sb) throw new Error("not connected");
     for (const k of LINEAGE.persons.filter(x => x.father === dupId && !x.spouseOf))
       await writePerson(k.id, { father_id: keep.id });
     for (const sp of LINEAGE.persons.filter(x => x.spouseOf === dupId))

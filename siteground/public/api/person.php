@@ -6,6 +6,7 @@
  *   POST {id, fields, seed}             apply an edit
  *   POST {id, action:"archive", reason} take them out of the tree
  *   POST {id, action:"restore"}         put them back
+ *   POST {action:"merge", keepId, dupId, relink[]}  fold one into the other
  *
  * `seed` is the person as the PUBLIC file data/lineage.js has them, sent when
  * the tree shows somebody who has no row yet. lib/persons.php takes only
@@ -35,6 +36,9 @@ try {
         json_out(person_archive($v, $id, $reason, $seed));
     }
     if ($action === 'restore') json_out(person_restore($v, $id));
+    if ($action === 'merge') {
+        json_out(person_merge($v, (string)($body['keepId'] ?? ''), (string)($body['dupId'] ?? ''), $body));
+    }
     if ($action === 'edit') {
         $fields = is_array($body['fields'] ?? null) ? $body['fields'] : [];
         json_out(person_write($v, $id, $fields, $seed));

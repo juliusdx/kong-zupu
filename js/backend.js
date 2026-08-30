@@ -261,6 +261,21 @@ window.Backend = (function () {
       });
     },
 
+    /**
+     * Fold one person into another. One call, one transaction — the browser
+     * version issued a request per child, per spouse and per table, so a merge
+     * that failed midway left the tree half-rearranged with no record of how far
+     * it got. `relink` carries the relatives that exist only in the public seed,
+     * since the server cannot re-point rows it has never heard of.
+     */
+    async mergePerson(keepId, dupId, { keepSeed, dupSeed, relink } = {}) {
+      if (!isPhp()) throw new Error("mergePerson: Supabase path stays in app.js");
+      return await api("/api/person.php", {
+        method: "POST",
+        body: JSON.stringify({ action: "merge", keepId, dupId, keepSeed, dupSeed, relink })
+      });
+    },
+
     /** The archived list, already named by whoever archived each person. */
     async listArchived() {
       if (!isPhp()) throw new Error("listArchived: Supabase path stays in app.js");

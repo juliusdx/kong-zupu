@@ -227,6 +227,46 @@ window.Backend = (function () {
       return isPhp() ? `${BASE}/photo.php?id=${encodeURIComponent(mediaId)}` : null;
     },
 
+    /**
+     * A reviewer's direct edit to a person — no queue, no proposer.
+     *
+     * `seed` is the person as the PUBLIC data/lineage.js has them, sent because
+     * most people in the tree have no database row until somebody edits them.
+     * The server takes only descriptive columns from it and asserts the privacy
+     * ones, so what is sent here cannot decide who is visible.
+     */
+    async writePerson(id, fields, seed) {
+      if (!isPhp()) throw new Error("writePerson: Supabase path stays in app.js");
+      return await api("/api/person.php", {
+        method: "POST", body: JSON.stringify({ id, action: "edit", fields, seed })
+      });
+    },
+
+    /**
+     * Take somebody out of the tree. Its own action rather than a field edit:
+     * archiving carries who and when and why, and the server writes those
+     * itself so they cannot be forged by whoever calls this.
+     */
+    async archivePerson(id, reason, seed) {
+      if (!isPhp()) throw new Error("archivePerson: Supabase path stays in app.js");
+      return await api("/api/person.php", {
+        method: "POST", body: JSON.stringify({ id, action: "archive", reason, seed })
+      });
+    },
+
+    async restorePerson(id) {
+      if (!isPhp()) throw new Error("restorePerson: Supabase path stays in app.js");
+      return await api("/api/person.php", {
+        method: "POST", body: JSON.stringify({ id, action: "restore" })
+      });
+    },
+
+    /** The archived list, already named by whoever archived each person. */
+    async listArchived() {
+      if (!isPhp()) throw new Error("listArchived: Supabase path stays in app.js");
+      return (await api("/api/person.php?archived=1")).archived || [];
+    },
+
     /** Who the server thinks we are. */
     async me() {
       if (!isPhp()) throw new Error("me(): use Auth.state() on Supabase");

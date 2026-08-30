@@ -1324,6 +1324,12 @@
 
   // Update-or-insert one person's fields. Returns nothing; throws on failure.
   async function writePerson(id, fields) {
+    // On PHP the update-or-insert happens server-side, in one transaction, and
+    // the privacy columns are asserted there rather than trusted from here.
+    if (Backend.isPhp()) {
+      const p = personById(id);
+      return await Backend.writePerson(id, fields, p ? seedPersonRow(p) : undefined);
+    }
     const sb = Auth.client(); if (!sb) throw new Error("not connected");
     const { data, error } = await sb.from("persons").update(fields).eq("id", id).select();
     if (error) throw error;
@@ -1524,6 +1530,9 @@
   }
 
   async function applyArchive(p, reason) {
+    // Its own endpoint on PHP: the server stamps who and when, so those cannot
+    // be sent from here — and archived_* are deliberately not editable fields.
+    if (Backend.isPhp()) return await Backend.archivePerson(p.id, reason || null, seedPersonRow(p));
     const me = Auth.state();
     await writePerson(p.id, {
       archived: true,
@@ -1535,7 +1544,8 @@
 
   async function restorePerson(id) {
     try {
-      await writePerson(id, { archived: false, archived_at: null, archived_by: null, archived_reason: null });
+      if (Backend.isPhp()) await Backend.restorePerson(id);
+      else await writePerson(id, { archived: false, archived_at: null, archived_by: null, archived_reason: null });
       await loadLiveData();
       await buildArchivedList();
     } catch (e) { alert(I18N.t("at_failed") + (e.message || e)); }
@@ -1546,14 +1556,26 @@
   async function buildArchivedList() {
     const host = $("#archived-list"); if (!host) return;
     const sb = Auth.client();
-    if (!sb) { host.innerHTML = ""; return; }
-    const [{ data }, mem] = await Promise.all([
-      sb.from("persons").select("*").eq("archived", true),
-      sb.from("members_admin").select("id, email, full_name")
-    ]);
-    const byId = {};
-    (mem && mem.data || []).forEach(m => { byId[m.id] = m.full_name || m.email || m.id; });
-    const rows = data || [];
+    if (!sb && !Backend.isPhp()) { host.innerHTML = ""; return; }
+    let rows, byId = {};
+    if (Backend.isPhp()) {
+      // review.php-style: the server already resolved who archived each person,
+      // so there is no second lookup and no members_admin view to depend on.
+      const archived = await Backend.listArchived();
+      archived.forEach(r => { if (r.archivedBy) byId[r.archivedBy] = r.archivedByName; });
+      rows = archived.map(r => ({
+        id: r.id, name: r.name, pinyin: r.pinyin, gen: r.gen,
+        archived_at: r.archivedAt, archived_by: r.archivedBy,
+        archived_reason: r.archivedReason
+      }));
+    } else {
+      const [{ data }, mem] = await Promise.all([
+        sb.from("persons").select("*").eq("archived", true),
+        sb.from("members_admin").select("id, email, full_name")
+      ]);
+      (mem && mem.data || []).forEach(m => { byId[m.id] = m.full_name || m.email || m.id; });
+      rows = data || [];
+    }
     host.innerHTML = rows.length
       ? rows.map(r => {
           // Who removed this, and when — the same accountability the review log has.
@@ -1579,6 +1601,16 @@
   async function markVerified(id) {
     const p = personById(id); if (!p) return;
     const me = Auth.state();
+    if (me.isAdmin && Backend.isPhp()) {
+      // Same update-or-insert, decided by the server: most people the ⚠ list
+      // offers exist only in the seed, so this is the common case, not the edge.
+      try {
+        await Backend.writePerson(id, { confidence: "high" }, seedPersonRow(p));
+        await loadLiveData();
+        openPerson(id);
+      } catch (e) { alert(I18N.t("d_verify_fail") + (e.message || e)); }
+      return;
+    }
     if (me.isAdmin && Auth.LIVE && Auth.client()) {
       const sb = Auth.client();
       try {
@@ -1848,7 +1880,10 @@
       submittedAt: new Date().toISOString(), status: "pending"
     };
     try {
-      if (Auth.LIVE && Auth.client()) {
+      if (Backend.isPhp()) {
+        // Already ported: the same queue every other contribution goes through.
+        await Backend.submitContribution(payload);
+      } else if (Auth.LIVE && Auth.client()) {
         const sb = Auth.client(), st = Auth.state();
         const ins = { payload, status: "pending" };
         if (st.user) ins.submitted_by = st.user.id;

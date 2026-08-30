@@ -310,6 +310,16 @@ window.Backend = (function () {
       return isPhp() ? `${BASE}/doc.php?key=${encodeURIComponent(key)}` : null;
     },
 
+    /** Approved corrections to a document's page transcriptions. */
+    async transcriptions(sb, docId) {
+      if (isPhp()) {
+        return (await api("/api/transcriptions.php?doc=" + encodeURIComponent(docId)))
+          .transcriptions.map(t => ({ page: t.page, text: t.text }));
+      }
+      const { data } = await sb.from("transcriptions").select("page,text").eq("doc_id", docId);
+      return data || [];
+    },
+
     /** Who the server thinks we are. */
     async me() {
       if (!isPhp()) throw new Error("me(): use Auth.state() on Supabase");

@@ -234,6 +234,42 @@ $c3 = q1('SELECT * FROM contacts WHERE person_id = ?', [$newId]);
 check('a later correction adds the new field', $c3['wechat'] ?? null, 'wx-handle');
 check('  …without blanking the phone',        $c3['phone'] ?? null, '012-3456789');
 
+// ---------------------------------------------------------------------------
+section('a proofread page');
+
+$cidT = submit(['action'=>'fix_transcription','doc_id'=>'book_pt1','page'=>27,
+                'text'=>'十三世祖榮川公字以賢']);
+contribution_decide($admin, $cidT, 'approved');
+$t = q1("SELECT * FROM transcriptions WHERE doc_id='book_pt1' AND page=27");
+check('the correction is stored',   $t['text'] ?? null, '十三世祖榮川公字以賢');
+check('  …against the right page',  (int)($t['page'] ?? 0), 27);
+check('  …crediting the reviewer',  $t['updated_by'] ?? null, 'u1');
+
+// A second correction to the same page supersedes rather than accumulating.
+$cidT2 = submit(['action'=>'fix_transcription','doc_id'=>'book_pt1','page'=>27,'text'=>'十三世祖榮川公字以賢。']);
+contribution_decide($admin, $cidT2, 'approved');
+check('a later correction replaces the earlier one',
+      (int)q1("SELECT COUNT(*) c FROM transcriptions WHERE doc_id='book_pt1' AND page=27")['c'], 1);
+check('  …with the newer text',
+      q1("SELECT text FROM transcriptions WHERE doc_id='book_pt1' AND page=27")['text'], '十三世祖榮川公字以賢。');
+
+// Refused at the door rather than at approval: a correction that names no page
+// is not a thing a reviewer should ever be shown and asked to judge.
+$refused = 'allowed';
+try { submit(['action'=>'fix_transcription','doc_id'=>'book_pt1','text'=>'no page given']); }
+catch (ContribError $e) { $refused = 'refused'; }
+check('a correction naming no page never enters the queue', $refused, 'refused');
+$refused2 = 'allowed';
+try { submit(['action'=>'nonsense','relatedTo'=>'a01']); }
+catch (ContribError $e) { $refused2 = 'refused'; }
+check('and an unknown action still is too', $refused2, 'refused');
+
+// Rejecting one must write nothing at all.
+$cidT4 = submit(['action'=>'fix_transcription','doc_id'=>'book_pt2','page'=>9,'text'=>'wrong reading']);
+contribution_decide($admin, $cidT4, 'rejected');
+check('a rejected correction is not stored',
+      q1("SELECT text FROM transcriptions WHERE doc_id='book_pt2' AND page=9"), null);
+
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);
 exit($fail ? 1 : 0);

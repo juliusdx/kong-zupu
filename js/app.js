@@ -2502,7 +2502,7 @@
     try {
       const sb = Auth.client();
       if (sb) {
-        const { data } = await sb.from("transcriptions").select("page,text").eq("doc_id", s.id);
+        const data = await Backend.transcriptions(sb, s.id);
         (data || []).forEach(r => { pfLive[r.page] = r.text; });
       }
     } catch (e) { console.warn("transcription load failed", e); }
@@ -2595,8 +2595,12 @@
       submittedAt: new Date().toISOString(), status: "pending"
     };
     try {
-      const { error } = await sb.from("contributions").insert({ payload, status: "pending" });
-      if (error) throw error;
+      if (Backend.isPhp()) {
+        await Backend.submitContribution(payload);
+      } else {
+        const { error } = await sb.from("contributions").insert({ payload, status: "pending" });
+        if (error) throw error;
+      }
       pfBaseline = text;                       // sent; don't re-warn for the same text
       $("#pf-msg").textContent = T("pf_sent"); $("#pf-msg").className = "pf-msg ok";
     } catch (e) {

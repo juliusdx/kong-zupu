@@ -65,11 +65,19 @@ const CLEARABLE = [
 function contribution_submit(array $payload, ?string $userId): string
 {
     $action = (string)($payload['action'] ?? '');
-    if (!in_array($action, ['add_child', 'add_spouse', 'edit', 'add_place'], true)) {
+    if (!in_array($action, ['add_child', 'add_spouse', 'edit', 'add_place',
+                            'update_place', 'fix_transcription'], true)) {
         throw new ContribError('Unknown contribution type.');
     }
-    if ($action !== 'add_place' && ($payload['relatedTo'] ?? '') === '') {
+    // The two that are not about a person: a location pin names a place, and a
+    // proofread page names a document, so neither can carry `relatedTo`.
+    if (!in_array($action, ['add_place', 'update_place', 'fix_transcription'], true)
+        && ($payload['relatedTo'] ?? '') === '') {
         throw new ContribError('A contribution must say who it relates to.');
+    }
+    if ($action === 'fix_transcription'
+        && ((string)($payload['doc_id'] ?? '') === '' || (int)($payload['page'] ?? 0) <= 0)) {
+        throw new ContribError('A correction must say which page it corrects.');
     }
     // Store the payload as sent. Interpreting it is the reviewer's step, not
     // this one — and the raw submission is the evidence if a decision is wrong.
@@ -111,6 +119,8 @@ function contribution_decide(Viewer $v, string $id, string $status, ?string $rea
                 $subjectId = (string)($payload['relatedTo'] ?? '') ?: null;
             } elseif ($action === 'add_place') {
                 $report['applied'][] = contrib_add_place($id, $payload);
+            } elseif ($action === 'fix_transcription') {
+                $report['applied'][] = contrib_write_transcription($v, $payload);
             }
             // Contact details, if the form carried any. They are the most
             // private tier there is — self and admins only — so they are
@@ -434,6 +444,32 @@ function contrib_cascade_gen(string $rootId, int $delta): int
  * Anything already there wins per-field only where the new value is empty, so a
  * correction can update a phone number without blanking the address.
  */
+/**
+ * A proofread page, once a reviewer has agreed with it.
+ *
+ * Keyed on document and page, so a later correction supersedes an earlier one
+ * rather than accumulating. The seed transcription in data/transcription.js is
+ * never edited — that file is the machine's best effort at the handwriting, and
+ * this table is what people have since put right on top of it.
+ */
+function contrib_write_transcription(Viewer $v, array $payload): array
+{
+    $doc  = (string)($payload['doc_id'] ?? '');
+    $page = (int)($payload['page'] ?? 0);
+    $text = (string)($payload['text'] ?? '');
+    if ($doc === '' || $page <= 0) throw new ContribError('That correction names no page.');
+
+    $exists = q1('SELECT doc_id FROM transcriptions WHERE doc_id = ? AND page = ?', [$doc, $page]);
+    if ($exists) {
+        q('UPDATE transcriptions SET text = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE doc_id = ? AND page = ?', [$text, $v->userId, $doc, $page]);
+    } else {
+        q('INSERT INTO transcriptions (doc_id, page, text, updated_by) VALUES (?,?,?,?)',
+          [$doc, $page, $text, $v->userId]);
+    }
+    return ['transcription' => $doc . ' p' . $page, 'chars' => mb_strlen($text)];
+}
+
 function contrib_write_contact(string $personId, array $payload): void
 {
     $map = ['phone' => 'personPhone', 'wechat' => 'personWechat', 'email' => 'personEmail'];

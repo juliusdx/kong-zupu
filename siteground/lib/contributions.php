@@ -112,6 +112,13 @@ function contribution_decide(Viewer $v, string $id, string $status, ?string $rea
             } elseif ($action === 'add_place') {
                 $report['applied'][] = contrib_add_place($id, $payload);
             }
+            // Contact details, if the form carried any. They are the most
+            // private tier there is — self and admins only — so they are
+            // written here rather than merged into the person row, where the
+            // ordinary member gate would have been the only thing between a
+            // phone number and every signed-in relative.
+            if ($subjectId !== null) contrib_write_contact($subjectId, $payload);
+
             // The photo goes on last, once there is somebody to hang it on.
             // Inside the transaction with everything else: a contribution that
             // half-lands is the thing this whole function exists to prevent, and
@@ -419,6 +426,35 @@ function contrib_cascade_gen(string $rootId, int $delta): int
 
 /** Insert-or-update the gated detail row. Split out because forgetting it is
  *  the mistake that made ten identical corrections look like they had failed. */
+/**
+ * Save the contact fields a contribution carried, if it carried any.
+ *
+ * Its own table, keyed on the person, because contacts are the one tier that is
+ * not about who is signed in but about who the row is: self, or an admin.
+ * Anything already there wins per-field only where the new value is empty, so a
+ * correction can update a phone number without blanking the address.
+ */
+function contrib_write_contact(string $personId, array $payload): void
+{
+    $map = ['phone' => 'personPhone', 'wechat' => 'personWechat', 'email' => 'personEmail'];
+    $set = [];
+    foreach ($map as $col => $key) {
+        $val = trim((string)($payload[$key] ?? ''));
+        if ($val !== '') $set[$col] = $val;
+    }
+    if (!$set) return;
+
+    if (q1('SELECT person_id FROM contacts WHERE person_id = ?', [$personId])) {
+        $cols = implode(', ', array_map(fn($c) => "{$c} = ?", array_keys($set)));
+        q("UPDATE contacts SET {$cols} WHERE person_id = ?", [...array_values($set), $personId]);
+    } else {
+        $set['person_id'] = $personId;
+        $cols = implode(',', array_keys($set));
+        $qs   = implode(',', array_fill(0, count($set), '?'));
+        q("INSERT INTO contacts ({$cols}) VALUES ({$qs})", array_values($set));
+    }
+}
+
 function contrib_write_detail(string $personId, array $detail): void
 {
     $existing = q1('SELECT person_id FROM person_details WHERE person_id = ?', [$personId]);

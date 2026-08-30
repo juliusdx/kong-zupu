@@ -207,6 +207,33 @@ $again = 'allowed';
 try { contribution_decide($admin, $cid15, 'approved'); } catch (Throwable $e) { $again = 'refused'; }
 check('a decided contribution cannot be decided twice', $again, 'refused');
 
+// ---------------------------------------------------------------------------
+section('contact details a contribution carried');
+
+$cidC = submit(['action'=>'add_child','relatedTo'=>'a03','name'=>'有電話的',
+                'personPhone'=>'012-3456789','personEmail'=>'reachme@example.com']);
+$rep  = contribution_decide($admin, $cidC, 'approved');
+$newId = $rep['applied'][0]['added'];
+$c = q1('SELECT * FROM contacts WHERE person_id = ?', [$newId]);
+check('the phone is saved',  $c['phone'] ?? null, '012-3456789');
+check('the email is saved',  $c['email'] ?? null, 'reachme@example.com');
+check('what was not given stays empty', $c['wechat'] ?? null, null);
+check('and it is NOT on the person row, where members could read it',
+      array_key_exists('phone', personRow($newId) ?? []), false);
+
+$cidC2 = submit(['action'=>'add_child','relatedTo'=>'a03','name'=>'沒有電話的']);
+$rep2  = contribution_decide($admin, $cidC2, 'approved');
+check('a contribution with no contact fields makes no row',
+      q1('SELECT person_id FROM contacts WHERE person_id = ?', [$rep2['applied'][0]['added']]), null);
+
+// A correction that supplies only one field must not blank the others.
+$cidC3 = submit(['action'=>'edit','relatedTo'=>$newId,'name'=>'有電話的',
+                 'personWechat'=>'wx-handle','changes'=>[['field'=>'personWechat','from'=>'','to'=>'wx-handle']]]);
+contribution_decide($admin, $cidC3, 'approved');
+$c3 = q1('SELECT * FROM contacts WHERE person_id = ?', [$newId]);
+check('a later correction adds the new field', $c3['wechat'] ?? null, 'wx-handle');
+check('  …without blanking the phone',        $c3['phone'] ?? null, '012-3456789');
+
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);
 exit($fail ? 1 : 0);

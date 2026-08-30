@@ -282,6 +282,15 @@ window.Backend = (function () {
       return (await api("/api/person.php?archived=1")).archived || [];
     },
 
+    /** The header's visit count. Anonymous by design — see api/counter.php. */
+    async visitCount(bump) {
+      if (!isPhp()) throw new Error("visitCount: Supabase path stays in app.js");
+      const r = bump
+        ? await api("/api/counter.php", { method: "POST", body: JSON.stringify({ bump: 1 }) })
+        : await api("/api/counter.php");
+      return r.count;
+    },
+
     /** Who the server thinks we are. */
     async me() {
       if (!isPhp()) throw new Error("me(): use Auth.state() on Supabase");

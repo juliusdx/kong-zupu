@@ -979,10 +979,18 @@
   }
   async function loadVisitorCount() {
     if (!Auth.LIVE) return;
+    let fresh = false;
+    try { fresh = !sessionStorage.getItem("zupu_visited"); } catch (_) { /* private mode */ }
+    if (Backend.isPhp()) {
+      try {
+        visitCount = await Backend.visitCount(fresh);
+        if (fresh) { try { sessionStorage.setItem("zupu_visited", "1"); } catch (_) { /* ignore */ } }
+        renderVisitCount();
+      } catch (e) { console.warn("visit count failed", e); }
+      return;
+    }
     const sb = Auth.client(); if (!sb) return;
     try {
-      let fresh = false;
-      try { fresh = !sessionStorage.getItem("zupu_visited"); } catch (_) { /* private mode */ }
       if (fresh) {
         const { data, error } = await sb.rpc("bump_counter", { k: "site_visits" });
         if (!error && data != null) {

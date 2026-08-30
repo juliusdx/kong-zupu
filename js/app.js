@@ -2516,10 +2516,19 @@
     try {
       await ensurePdfJs();
       const sb = Auth.client();
-      const key = (await resolveDocKey(sb, { id: s.id + "_scan", key: s.scanKey })) || s.scanKey;
-      const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
-      if (error || !data || !data.signedUrl) throw error || new Error("no url");
-      pfPdf = await window.pdfjsLib.getDocument(data.signedUrl).promise;
+      let url;
+      if (Backend.isPhp()) {
+        // The same gate the Sources tab goes through: one URL, checked when the
+        // bytes are asked for. pdf.js fetches it with the session cookie, which
+        // is why doc.php answers a signed-in reader and nobody else.
+        url = Backend.docUrl(s.scanKey);
+      } else {
+        const key = (await resolveDocKey(sb, { id: s.id + "_scan", key: s.scanKey })) || s.scanKey;
+        const { data, error } = await sb.storage.from("documents").createSignedUrl(key, 3600);
+        if (error || !data || !data.signedUrl) throw error || new Error("no url");
+        url = data.signedUrl;
+      }
+      pfPdf = await window.pdfjsLib.getDocument(url).promise;
       pfTotal = pfPdf.numPages || pfTotal;
       pfUpdateNav();
       await pfRender();

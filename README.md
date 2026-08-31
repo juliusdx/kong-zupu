@@ -112,6 +112,10 @@ there is still exactly **one writable backend** — writing to both would split 
 with no way to merge it back. Existing deep links to the transcription pages and page scans
 still resolve on the old host.
 
+**The Supabase project is PAUSED (2026-08-31)** — paused, never deleted, so it remains a
+cold backup that can be resumed. The site was verified running with it paused: every
+endpoint answering, no console errors, and no requests to supabase.co at all.
+
 **Supabase is frozen and MySQL has moved on.** Checked 2026-08-31: Supabase has received
 nothing since 2026-08-29 12:17, so no stale browser tab ever wrote to it and there is
 nothing stranded there. MySQL meanwhile holds a contribution submitted through the new

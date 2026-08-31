@@ -32,11 +32,17 @@ no URL that bypasses the check**, because the URL *is* the check.
     lib/notify.php       telling a contributor what happened to their submission
     lib/bootstrap.php    config, hardened session, viewer identity
     lib/db.php           PDO, real prepared statements
+    lib/persons.php      direct edits: verify, archive, restore, merge
     public/photo.php     the gate and the file, one code path
+    public/doc.php       the same gate for the source PDFs
     public/api/tree.php  the tree, filtered to the caller
     public/api/contribute.php  submit a contribution (open, signed out)
     public/api/review.php      the queue, and approve/reject (admins)
     public/api/upload.php      receive a photo, and approve or refuse one
+    public/api/person.php      edit / verify / archive / restore / merge
+    public/api/counter.php     the visit count
+    public/api/privacy.php     the gated list, for the admin check
+    public/api/transcriptions.php  approved page corrections
     public/auth/*.php    request / verify / logout / me
     sql/schema.mysql.sql the target schema
     sql/schema.sqlite.sql the same schema for tests
@@ -45,8 +51,9 @@ no URL that bypasses the check**, because the URL *is* the check.
 
 ## Tests
 
-    php tests/run.php           # 54 assertions: visibility, detail, contacts, photos, tokens
-    php tests/contributions.php # 44 assertions: submit, approve, reject, re-parent
+    php tests/run.php           # 61 assertions: visibility, detail, contacts, photos, tokens
+    php tests/contributions.php # 59 assertions: submit, approve, reject, re-parent,
+                                #   contacts, and proofread pages
     php tests/uploads.php       # 62 assertions: file types, subject gating, traversal,
                                 #   staging, claiming, embedded photos, cover, delete
     php tests/members.php       # 31 assertions: roster gating, approve, promote, the locked doors
@@ -54,8 +61,10 @@ no URL that bypasses the check**, because the URL *is* the check.
     php tests/http_auth.php     # 30 assertions: the magic-link round trip over real HTTP
     php tests/notify.php        # 28 assertions: who the contributor note reaches, what it
                                 #   says, and that a submission cannot inject html into it
+    php tests/persons.php       # 63 assertions: verify, archive, restore, merge, and what
+                                #   the server refuses to take from a client-sent seed
 
-258 assertions, all passing. `tests/run.php` includes the ones that would have
+343 assertions, all passing. `tests/run.php` includes the ones that would have
 caught the original leak — a signed-out visitor must not be served a member
 photo, and a minor's photo is admin-only whatever the media row says.
 `http_auth.php` covers what a function call cannot: that the session survives as
@@ -328,33 +337,49 @@ server, not only in tests.
 
 ## Still to build
 
-- **The rest of the front-end swap.** 58 Supabase call sites remain outside the
-  adapter, down from 77 — but most are no longer *unported*. They are the
-  Supabase half of a capability that now has both halves, sitting behind an
-  `if (Backend.isPhp())` branch, which is precisely what lets the two run side
-  by side. What is genuinely still Supabase-only:
-  - **the proofreader** (`transcriptions`) and **the Sources tab** (the
-    `documents` bucket, 4 storage calls) — no PHP endpoint at all;
-  - **the visitor counter** (`counters` + the `bump_counter` rpc);
-  - **archiving and restoring people**, and the admin **privacy check**, which
-    compares gated rows against the public `lineage.js`;
-  - ~~the **`notify-contributor` edge function**~~ — **ported 2026-08-29.**
-    `lib/notify.php` composes the same bilingual note and `public/api/review.php`
-    sends it through `lib/mailer.php`, so it goes out from zupu@accme.my over
-    the same authenticated SMTP as the sign-in links, with no Make webhook and
-    no third party in the path. The build is separated from the send so the
-    message is testable without a mail server, which is the split
-    `public/auth/request.php` already used. Two deliberate differences from the
-    edge function: the submitter's *name* now comes from their account even
-    when they typed an address in the form (it previously greeted a signed-in
-    relative as "Family member"), and a failed send is logged as
-    `notify_failed` rather than surfaced, because a reviewer who approved
-    something correctly must not be told it failed.
-- **Transcriptions** have no PHP endpoint, so the proofreader stays on Supabase.
-- ~~**`enforce_approval` is `false`**~~ — **flipped to `true` 2026-08-27**, see
-  "Deploy day" above. `auth_login` still creates an account for anyone who
-  completes a link; that account is now unapproved and sees no living relative's
-  detail until approved, which is what makes the open sign-up survivable.
+**Nothing is Supabase-only any more** (2026-08-30). 51 `sb.` call sites remain in
+js/app.js, and they are the Supabase HALF of capabilities that now have both —
+each behind an `if (Backend.isPhp())` branch. Three functions are reached only on
+that side: `signPendingPhotos` (a signed-URL concept with no counterpart here —
+photo.php has one URL and it is the gate), `attachContribContact` (the server
+writes contacts itself now), and `resolveDocKey` (there is no name to resolve —
+the importer writes each document under its manifest key).
+
+What closing the gaps turned up is worth recording, because the list above had
+been wrong about its own size. Also unported, and unmentioned: `writePerson`,
+`markVerified`, `applyMerge` and `suggestLocation`. That is the entire ⚠
+verification workflow — 477 entries the book left uncertain — and the entire
+de-duplication workflow. It surfaced as a reviewer reporting that she had lost
+permission to approve reviews and that duplicates she had fixed were back; she
+had lost neither, and both were this.
+
+- **`api/person.php`** + `lib/persons.php` — verify, edit, archive, restore, the
+  archived list, and **merge**. Merge is one transaction rather than the
+  browser's request-per-child loop, and it decides two collisions explicitly: the
+  survivor's own private detail and contacts win over the duplicate's (whose stay
+  attached to the archived duplicate, recoverable), and an incoming photo arrives
+  with its cover flag cleared so there is one tree avatar.
+- **`doc.php`** — the source PDFs, gated exactly as `photo.php` gates images,
+  because the `documents` bucket was scoped to `authenticated` and that is
+  carried over rather than reconsidered. Fetched from the bucket by
+  `--fetch-docs`, NOT from local copies: three of the four match byte for byte
+  but the story PDF in the bucket is 10.8 MB against 1.2 MB locally, so the
+  copies to hand were a different document.
+- **`api/counter.php`**, **`api/privacy.php`**, **`api/transcriptions.php`**, and
+  contacts + `fix_transcription` inside `contribution_decide`.
+- `contribution_submit`'s allowlist rejected `fix_transcription` AND
+  `update_place`, so the proofreader and location pins failed at the door rather
+  than at approval — both were broken at both ends.
+
+**THE SEED PROBLEM, which shapes `lib/persons.php`.** The tree is this table
+merged onto data/lineage.js, a 519-person public file, so most people have no row
+at all and archiving or verifying one has to create it first. The browser sends a
+snapshot of the seed person; the server takes only descriptive columns and
+**asserts `living=0, is_minor=0, visibility=public`**. That is not a guess —
+`tools/check_privacy.js` fails the build if anyone living or a minor is in that
+file — and asserting it means a forged snapshot cannot smuggle a living relative
+into public view.
+
 - **Cutover itself**: DNS, the final import re-run, and what happens to the
   Supabase project. Note `DEPLOY.md` §3 records the cap as **2 active projects
   per account across all organisations**, so a second free org does *not* buy a

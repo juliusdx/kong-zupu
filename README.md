@@ -99,12 +99,11 @@ They ran in parallel from 2026-08-26 until the cutover:
 | https://zupu.accme.my | PHP/MySQL on SiteGround — **the family's site since 2026-08-30** |
 | https://juliusdx.github.io/kong-zupu/ | redirects to the above; no longer runs the app |
 
-Sign-in, the tree, contributions, review, members, photos and contributor
-notifications all run on the PHP side. Still Supabase-only, and therefore
-currently unavailable: the proofreader, the visitor counter, archive/restore, the
-admin privacy check, and the Sources tab's **scan PDF download** — the Sources
-*Read* view still works, since the transcription pages and page scans are static
-files. See `siteground/README.md` for what remains.
+**Everything runs on the PHP side as of 2026-08-30** — sign-in, the tree,
+contributions, review, members, photos, contributor notifications, the ⚠
+verification flow, archive/restore/merge, the visitor counter, the admin privacy
+check, the proofreader, and the source PDFs. Nothing is Supabase-only any more.
+See `siteground/README.md` for how each was carried over.
 
 **Cut over 2026-08-30.** `github.io` is blocked in mainland China, so relatives there
 could not reach the site at all; `zupu.accme.my` opens normally there, which is the whole

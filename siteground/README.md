@@ -184,9 +184,15 @@ Steps 1–6 are **done** (2026-08-26); step 7 is the remaining decision.
    UTC), so no final import was needed. `enforce_approval` was already `true`
    from 2026-08-27.
 
-   **Still to do:** re-run `--prune` in a day or two to catch anything sent
-   from a browser tab still holding the old app, then pause (never delete) the
-   Supabase project once this has been dull for a while.
+   **The `--prune` re-run turned out to be the wrong thing, and is now
+   refused.** It was planned to catch anything sent from a browser tab still
+   holding the old app. Nothing was: checked 2026-08-31, Supabase has received
+   nothing since 2026-08-29 12:17. But MySQL had by then taken a contribution
+   through the new site, and prune deletes what the source lacks — so the
+   "safe cleanup" would have destroyed a relative's submission. The direction
+   the tool assumes reversed at the cutover, and it now detects that and
+   refuses. **Still to do: pause (never delete) the Supabase project**, once
+   this has been dull for a while.
 
    **When you do decide: pause it, do not delete it.** Paused projects do not
    count toward the free-tier cap — `DEPLOY.md` §3 says so, and the other

@@ -15,8 +15,12 @@
  *     --prune          delete rows Supabase no longer has (see below)
  *     --dry-run        do all of it, report it, then roll back
  *
- * Cutover day is: --dry-run --prune --fetch-photos first, read the prune list,
+ * Cutover day was: --dry-run --prune --fetch-photos first, read the prune list,
  * then the same command without --dry-run.
+ *
+ * AFTER THE CUTOVER, --prune IS THE WRONG TOOL and refuses to run. Relatives
+ * write to MySQL now, so a row here that Supabase lacks is the newest thing in
+ * the archive, not the stalest — see the guard in prune().
  *
  * The service-role key is needed because this must read the GATED rows too —
  * that is the whole point. It is read from the environment and never stored.
@@ -244,12 +248,39 @@ function put(string $table, array $rows, array $cols): int
  * is indistinguishable here from a request that failed and decoded to nothing,
  * and one of those two readings destroys the archive.
  */
-function prune(string $table, string $pkCol, array $keep, bool $enabled): array
+function prune(string $table, string $pkCol, array $keep, bool $enabled, ?string $newestSource = null): array
 {
     if (!$enabled) return [];
     $have = array_column(q("SELECT {$pkCol} FROM {$table}")->fetchAll(), $pkCol);
     $gone = array_values(array_diff($have, $keep));
     if (!$gone) return [];
+
+    // THE DIRECTION THIS TOOL ASSUMES. Prune exists because Supabase was the
+    // only writable side and MySQL was its mirror, so a row here that is not
+    // there had been deleted upstream. After the cutover that is backwards:
+    // MySQL is where relatives write now, and a row here that is not there is
+    // usually the newest thing in the archive rather than the stalest.
+    //
+    // The two cases are distinguishable. An upstream deletion leaves behind an
+    // OLD row; a local write leaves a NEW one. So if anything we are about to
+    // delete postdates the newest row the source has, this is no longer a
+    // mirror and pruning it would destroy somebody's contribution.
+    if ($newestSource !== null) {
+        $in  = implode(',', array_fill(0, count($gone), '?'));
+        $too = q("SELECT {$pkCol}, created_at FROM {$table}
+                   WHERE {$pkCol} IN ({$in}) AND created_at > ? ORDER BY created_at DESC",
+                 [...$gone, $newestSource])->fetchAll();
+        if ($too) {
+            fwrite(STDERR, "\nRefusing to prune {$table}: " . count($too) . " row(s) here are NEWER\n"
+                         . "than anything Supabase has (newest there: {$newestSource}).\n"
+                         . "  e.g. {$too[0][$pkCol]} created {$too[0]['created_at']}\n\n"
+                         . "That means this database is no longer a mirror — it is the one being\n"
+                         . "written to. Pruning would delete work that only exists here.\n"
+                         . "Re-run without --prune.\n");
+            exit(1);
+        }
+    }
+
     if (!$keep) {
         fwrite(STDERR, "\nRefusing to prune {$table}: Supabase returned no rows at all while\n"
                      . "MySQL holds " . count($have) . ". That is far more likely to be a failed\n"
@@ -259,6 +290,19 @@ function prune(string $table, string $pkCol, array $keep, bool $enabled): array
     $st = db()->prepare("DELETE FROM {$table} WHERE {$pkCol} = ?");
     foreach ($gone as $id) $st->execute([$id]);
     return $gone;
+}
+
+/** The newest created_at in a set of source rows, or null if they carry none. */
+function newest_of(array $rows): ?string
+{
+    $max = null;
+    foreach ($rows as $r) {
+        $t = $r['created_at'] ?? null;
+        if ($t === null) continue;
+        $t = str_replace('T', ' ', substr((string)$t, 0, 19));
+        if ($max === null || $t > $max) $max = $t;
+    }
+    return $max;
 }
 
 db()->beginTransaction();
@@ -382,9 +426,9 @@ if ($prune) {
     $pruned = [
         'person_details' => prune('person_details', 'person_id', array_column($personDetails, 'person_id'), true),
         'contacts'       => prune('contacts', 'person_id', array_column($contacts, 'person_id'), true),
-        'media'          => prune('media', 'id', array_column($mediaRows, 'id'), true),
-        'contributions'  => prune('contributions', 'id', array_column($contributions, 'id'), true),
-        'persons'        => prune('persons', 'id', array_column($persons, 'id'), true),
+        'media'          => prune('media', 'id', array_column($mediaRows, 'id'), true, newest_of($media)),
+        'contributions'  => prune('contributions', 'id', array_column($contributions, 'id'), true, newest_of($contributions)),
+        'persons'        => prune('persons', 'id', array_column($persons, 'id'), true, newest_of($persons)),
         'places'         => prune('places', 'id', array_column($places, 'id'), true),
         'users'          => prune('users', 'id', array_column($users, 'id'), true),
     ];

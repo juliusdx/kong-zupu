@@ -112,10 +112,13 @@ there is still exactly **one writable backend** — writing to both would split 
 with no way to merge it back. Existing deep links to the transcription pages and page scans
 still resolve on the old host.
 
-**The Supabase project is still the source of truth on paper** until it is paused: nothing
-should write to it now, but do not pause or delete it until the new site has been dull for
-a while. `siteground/tools/import_from_supabase.php --prune` remains the way to pick up
-anything that arrived from a browser tab still holding the old app.
+**Supabase is frozen and MySQL has moved on.** Checked 2026-08-31: Supabase has received
+nothing since 2026-08-29 12:17, so no stale browser tab ever wrote to it and there is
+nothing stranded there. MySQL meanwhile holds a contribution submitted through the new
+site. **Do not re-run the importer with `--prune`** — it deletes what Supabase lacks, and
+what Supabase lacks is now the newest work in the archive. The tool refuses this itself,
+but the reason is worth knowing rather than discovering. Keep the project paused-but-alive
+as a cold backup until this has been dull for a while.
 
 ## Editing the family data by hand
 

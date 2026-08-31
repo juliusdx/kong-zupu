@@ -3,7 +3,10 @@
  * The reviewer's queue, and the decision.
  *
  *   GET  ?status=pending|decided   list contributions
- *   POST {id, status, reason}      approve or reject one
+ *   POST {id, status, reason, seeds}  approve or reject one
+ *
+ * `seeds` maps a person id to that person as the PUBLIC data/lineage.js has
+ * them, for targets with no database row yet. See contrib_edit_person().
  *
  * A GET on a pending item carries `renameWarning` when approving it would
  * replace the target's name with an unrelated one. That is the shape of a
@@ -80,7 +83,12 @@ if ($method === 'POST') {
         $reason = $body['reason'] ?? null;
         $note   = notify_contributor_build($id, $status, $reason);
 
-        $report = contribution_decide($v, $id, $status, $reason);
+        // `seeds` is how a correction to somebody who exists only in the public
+        // data/lineage.js gets applied: the reviewer's browser has the merged
+        // tree, the server has only the 322 rows, and most corrections are to
+        // one of the other 197.
+        $seeds  = is_array($body['seeds'] ?? null) ? $body['seeds'] : [];
+        $report = contribution_decide($v, $id, $status, $reason, $seeds);
 
         // The decision is the durable thing; the email is a courtesy. It is
         // sent after the transaction has committed and its failure is logged

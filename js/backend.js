@@ -128,9 +128,9 @@ window.Backend = (function () {
     /** Approve or reject. On PHP the whole decision is one transaction, so a
      *  refusal leaves the tree untouched and the contribution still pending —
      *  the caller does not need to unpick a half-applied change. */
-    async decideContribution(id, status, reason) {
+    async decideContribution(id, status, reason, seeds) {
       if (!isPhp()) throw new Error("decideContribution: Supabase path stays in app.js for now");
-      return await api("/api/review.php", { method: "POST", body: JSON.stringify({ id, status, reason }) });
+      return await api("/api/review.php", { method: "POST", body: JSON.stringify({ id, status, reason, seeds }) });
     },
 
     /**

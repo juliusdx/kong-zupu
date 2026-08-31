@@ -597,7 +597,20 @@
       if (Backend.isPhp()) {
         const el = document.querySelector(`#cc-reason-${id}`);
         const why = (status === "rejected" && el) ? el.value.trim() : null;
-        await Backend.decideContribution(id, status, why || null);
+        // Most of the tree exists only in the public data/lineage.js — 519 people
+        // there against the rows that arrived through the app — so a correction
+        // to an ancestor nobody has edited before has nothing on the server to
+        // update. Send the targets as this browser has them; the server creates
+        // the row from that and asserts the privacy columns rather than trusting
+        // them. Without this, approving most corrections answered "Unknown
+        // person for this correction".
+        const seeds = {};
+        for (const pid of [payload && payload.relatedTo, payload && payload.moveTo]) {
+          if (!pid || seeds[pid]) continue;
+          const person = personById(pid);
+          if (person) seeds[pid] = seedPersonRow(person);
+        }
+        await Backend.decideContribution(id, status, why || null, seeds);
         await loadLiveData();
         buildReview();
         return;

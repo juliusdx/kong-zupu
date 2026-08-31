@@ -270,6 +270,50 @@ contribution_decide($admin, $cidT4, 'rejected');
 check('a rejected correction is not stored',
       q1("SELECT text FROM transcriptions WHERE doc_id='book_pt2' AND page=9"), null);
 
+// ---------------------------------------------------------------------------
+section('correcting somebody who exists only in the public seed');
+
+// This is the majority case and it used to be refused outright: the tree is
+// data/lineage.js merged with the rows, so most ancestors have no row at all.
+// A reviewer hit "Unknown person for this correction" on the first real
+// correction she tried after the cutover.
+$seedOnly = ['name' => '起潛', 'gen' => 18, 'pinyin' => 'Qiqian', 'gender' => 'm'];
+
+$cidS = submit(['action'=>'edit','relatedTo'=>'ll_18_q2','name'=>'起潛','pinyin'=>'Qi Qian',
+                'changes'=>[['field'=>'pinyin','from'=>'Qiqian','to'=>'Qi Qian']]]);
+$refusedNoSeed = 'allowed';
+try { contribution_decide($admin, $cidS, 'approved'); }
+catch (ContribError $e) { $refusedNoSeed = 'refused ' . $e->status; }
+check('without a seed it still refuses, rather than inventing a person',
+      $refusedNoSeed, 'refused 404');
+check('  …and leaves the contribution pending',
+      q1('SELECT status FROM contributions WHERE id = ?', [$cidS])['status'], 'pending');
+
+contribution_decide($admin, $cidS, 'approved', null, ['ll_18_q2' => $seedOnly]);
+$sr = personRow('ll_18_q2');
+check('with the seed the row is created', $sr !== null, true);
+check('  …carrying the seed name',        $sr['name'], '起潛');
+check('  …and the tree position',         (int)$sr['gen'], 18);
+check('  …with the correction applied',   $sr['pinyin'], 'Qi Qian');
+check('  …and the contribution approved',
+      q1('SELECT status FROM contributions WHERE id = ?', [$cidS])['status'], 'approved');
+
+// The seed is client-supplied, so the privacy columns are asserted here too.
+$cidS2 = submit(['action'=>'edit','relatedTo'=>'seed_forge','name'=>'X']);
+contribution_decide($admin, $cidS2, 'approved',
+    null, ['seed_forge' => ['name'=>'X','gen'=>20,'living'=>1,'is_minor'=>1,'visibility'=>'public']]);
+$fr = personRow('seed_forge');
+check('a forged seed in a decision cannot publish a living person', (int)$fr['living'], 0);
+check('  …nor a minor',                                            (int)$fr['is_minor'], 0);
+
+// And an edit that legitimately marks somebody living still works, because the
+// correction is applied after the row is created.
+$cidS3 = submit(['action'=>'edit','relatedTo'=>'seed_living','name'=>'A Living One','living'=>'true']);
+contribution_decide($admin, $cidS3, 'approved', null, ['seed_living' => ['name'=>'A Living One','gen'=>27]]);
+$lr = personRow('seed_living');
+check('a correction may still mark somebody living', (int)$lr['living'], 1);
+check('  …which moves them behind the member gate', $lr['visibility'], 'member');
+
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);
 exit($fail ? 1 : 0);

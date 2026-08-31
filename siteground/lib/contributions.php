@@ -28,6 +28,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/repo.php';
+require_once __DIR__ . '/persons.php';   // person_materialise: most of the tree has no row
 require_once __DIR__ . '/uploads.php';
 
 /**
@@ -93,7 +94,7 @@ function contribution_submit(array $payload, ?string $userId): string
  * Approve or reject. Returns a short report of what it did, so the caller can
  * show the reviewer the consequence rather than a bare "ok".
  */
-function contribution_decide(Viewer $v, string $id, string $status, ?string $reason = null): array
+function contribution_decide(Viewer $v, string $id, string $status, ?string $reason = null, array $seeds = []): array
 {
     if (!$v->isAdmin) { access_log($v->userId, 'refused', 'contribution', $id); throw new ContribError('Reviewers only.', 403); }
     if (!in_array($status, ['approved', 'rejected'], true)) throw new ContribError('Decision must be approved or rejected.');
@@ -115,7 +116,7 @@ function contribution_decide(Viewer $v, string $id, string $status, ?string $rea
                 $subjectId = $applied['added'];
                 $report['applied'][] = $applied;
             } elseif ($action === 'edit') {
-                $report['applied'][] = contrib_edit_person($payload);
+                $report['applied'][] = contrib_edit_person($payload, $seeds);
                 $subjectId = (string)($payload['relatedTo'] ?? '') ?: null;
             } elseif ($action === 'add_place') {
                 $report['applied'][] = contrib_add_place($id, $payload);
@@ -242,11 +243,25 @@ function contrib_add_person(string $contribId, array $payload, string $action): 
             'visibility' => $row['visibility']];
 }
 
-function contrib_edit_person(array $payload): array
+function contrib_edit_person(array $payload, array $seeds = []): array
 {
     $pid = (string)($payload['relatedTo'] ?? '');
     if ($pid === '') throw new ContribError("This correction doesn't say which person it edits.");
+    // Most of the tree has NO row: it is data/lineage.js, a 519-person public
+    // file, merged with the 322 rows that arrived through the app. So a
+    // correction to an ancestor nobody has edited before has nothing to UPDATE,
+    // and refusing here made the review queue unusable for most of the family —
+    // "Unknown person for this correction" on the majority of corrections.
+    //
+    // The reviewer's browser has the merged tree, so it sends the target as the
+    // public seed has them and the row is created before the edit lands. The
+    // seed is public and person_materialise() asserts the privacy columns
+    // rather than trusting them, so this cannot publish anyone.
     $cur = q1('SELECT * FROM persons WHERE id = ?', [$pid]);
+    if (!$cur && isset($seeds[$pid]) && is_array($seeds[$pid])) {
+        person_materialise($pid, $seeds[$pid]);
+        $cur = q1('SELECT * FROM persons WHERE id = ?', [$pid]);
+    }
     if (!$cur) throw new ContribError('Unknown person for this correction: ' . $pid, 404);
 
     $has    = fn(string $k) => array_key_exists($k, $payload);
@@ -301,7 +316,7 @@ function contrib_edit_person(array $payload): array
 
     $moved = null;
     if (!empty($payload['moveTo'])) {
-        $moved = contrib_apply_move($pid, (string)($payload['moveRel'] ?? 'child'), (string)$payload['moveTo']);
+        $moved = contrib_apply_move($pid, (string)($payload['moveRel'] ?? 'child'), (string)$payload['moveTo'], $seeds);
     }
     return array_filter([
         'edited'  => $pid,
@@ -390,8 +405,16 @@ function contrib_descendants(string $id): array
  * Refuses to move someone under their own descendant: that detaches the whole
  * branch from the tree and there is no undo a relative could reach for.
  */
-function contrib_apply_move(string $pid, string $rel, string $targetId): array
+function contrib_apply_move(string $pid, string $rel, string $targetId, array $seeds = []): array
 {
+    // Same as the correction path: the person being moved, or the person they
+    // are being moved under, may exist only in the public seed.
+    foreach ([$pid, $targetId] as $need) {
+        if (!q1('SELECT id FROM persons WHERE id = ?', [$need])
+            && isset($seeds[$need]) && is_array($seeds[$need])) {
+            person_materialise($need, $seeds[$need]);
+        }
+    }
     $p = q1('SELECT id, gen, father_id FROM persons WHERE id = ?', [$pid]);
     $t = q1('SELECT id, gen, father_id FROM persons WHERE id = ?', [$targetId]);
     if (!$p) throw new ContribError('Unknown person for this move: ' . $pid, 404);

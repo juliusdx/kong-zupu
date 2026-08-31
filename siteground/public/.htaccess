@@ -1,0 +1,37 @@
+# Caching policy for the zupu.
+#
+# THE PROBLEM THIS SOLVES. The page loads js/app.js by a plain path and the
+# server sent no Cache-Control at all, so a browser was free to decide for
+# itself how long to keep it — and did. A reviewer reported that "mark as
+# verified" did nothing; the button was fine, her browser was running a copy of
+# app.js from before that capability existed, and a click fell through to a
+# branch that silently does nothing. There is a proxy cache in front of this
+# site too (x-proxy-cache-info), so a stale index.html can be served even when
+# the file on disk is current.
+#
+# The shape of the fix is the ordinary one: the HTML is small and must always
+# be fresh, because it is what names the version of everything else;
+# deploy_frontend.sh stamps every local script and stylesheet with ?v=<deploy>,
+# so those URLs change whenever their contents do and can be cached hard.
+
+<IfModule mod_headers.c>
+  # The entry point. no-store rather than no-cache: it also asks the proxy in
+  # front not to hold a copy, which is what actually bit us.
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-store, must-revalidate"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+
+  # Versioned assets. Safe to keep for a year precisely because the URL changes
+  # with every deploy — nothing here is ever served stale under its own name.
+  <FilesMatch "\.(js|css|webp|png|jpg|jpeg|gif|svg|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000"
+  </FilesMatch>
+
+  # The API and the two gates decide their own caching — photo.php in
+  # particular distinguishes a public photo from a member's, and must never
+  # have that overridden into something a shared cache would keep.
+  <FilesMatch "\.php$">
+    Header unset Cache-Control
+  </FilesMatch>
+</IfModule>

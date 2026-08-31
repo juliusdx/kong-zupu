@@ -46,6 +46,29 @@ sed -i.bak 's/BACKEND: "supabase"/BACKEND: "php"/' "$STAGE/index.html"
 rm -f "$STAGE/index.html.bak"
 grep -q 'BACKEND: "php"' "$STAGE/index.html" || { echo "refusing: rewrite failed" >&2; exit 1; }
 
+# STAMP EVERY LOCAL SCRIPT AND STYLESHEET WITH THIS DEPLOY'S VERSION.
+#
+# The tags are plain paths — js/app.js — and the server sends last-modified and
+# an etag but no Cache-Control, so a browser is free to apply heuristic caching
+# and serve yesterday's JavaScript for days without asking. That is not a
+# theoretical risk: a reviewer reported that "mark as verified" did nothing,
+# and the button was fine — her browser was running a copy of app.js from
+# before that capability existed, so the click fell through to a branch that
+# silently does nothing. Every deploy after this one busts the cache by
+# changing the URL, which is the only mechanism that does not depend on the
+# browser choosing to revalidate.
+#
+# data/*.js is stamped too: lineage.js changes with every transcription batch,
+# and a stale copy of that is a family tree missing its newest relatives.
+VERSION="$(date -u +%Y%m%d%H%M%S)"
+perl -pi -e '
+    s{(<script src="(?:js|data)/[^"]+?)(\?v=[^"]*)?"}{$1?v='"$VERSION"'"}g;
+    s{(<link[^>]*href="css/[^"]+?)(\?v=[^"]*)?"}{$1?v='"$VERSION"'"}g;
+' "$STAGE/index.html"
+STAMPED=$(grep -c "?v=$VERSION" "$STAGE/index.html" || true)
+[ "$STAMPED" -gt 0 ] || { echo "refusing: nothing was version-stamped" >&2; exit 1; }
+echo "stamped $STAMPED local asset(s) with ?v=$VERSION"
+
 # --delete would take api/, auth/ and photo.php with it: those are the backend,
 # living in the same directory. Deliberately additive.
 rsync -a --itemize-changes \

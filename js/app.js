@@ -565,9 +565,20 @@
         : needsSigning
           ? `<div class="row"><span class="k">photo</span><span><img class="cc-photo" data-privpath="${esc(privPathOf(p.photo))}" alt=""></span></div>`
           : `<div class="row"><span class="k">photo</span><span class="muted">(photo not available on this backend)</span></div>`;
+    // Simplified characters in a submitted name. Advisory: the reviewer is told
+    // what the traditional form would be and decides. Never auto-applied — a
+    // living relative in Malaysia may write their own name in simplified, and
+    // the characters we cannot judge (里, 黄, 凌 …) are excluded server-side
+    // rather than guessed at. See lib/script_map.php.
+    const sw = c.scriptWarning;
+    const scriptHtml = !sw ? "" : `<div class="cc-script at-warn">
+        <div>${I18N.t("r_script_warn")}<b>${esc(sw.suggested)}</b></div>
+        <div class="muted">${sw.chars.map(x => esc(x.from) + " → " + esc(x.to)).join(" · ")}</div>
+        <div class="muted">${I18N.t("r_script_note")}</div>
+      </div>`;
     return `<div class="contrib-card">
       <div class="cc-head">#${esc(c.id.slice(0, 8))} · ${new Date(c.created_at).toLocaleString()}</div>
-      ${changesHtml}${rows}${photoHtml}
+      ${scriptHtml}${changesHtml}${rows}${photoHtml}
       <div class="cc-reason"><textarea id="cc-reason-${c.id}" placeholder="${I18N.t("r_reason_ph")}"></textarea></div>
       <div class="cc-actions">
         <button class="primary" data-approve="${c.id}">${I18N.t("r_approve")}</button>

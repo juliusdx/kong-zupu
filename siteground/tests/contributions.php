@@ -19,6 +19,7 @@ $GLOBALS['ZUPU_CONFIG'] = [
     'mail'             => ['from' => 't@test.local', 'from_name' => 'test'],
 ];
 require_once __DIR__ . '/../lib/contributions.php';
+require_once __DIR__ . '/../lib/script_map.php';
 db()->exec(file_get_contents(__DIR__ . '/../sql/schema.sqlite.sql'));
 
 $ins = function (string $t, array $row) {
@@ -313,6 +314,38 @@ contribution_decide($admin, $cidS3, 'approved', null, ['seed_living' => ['name'=
 $lr = personRow('seed_living');
 check('a correction may still mark somebody living', (int)$lr['living'], 1);
 check('  …which moves them behind the member gate', $lr['visibility'], 'member');
+
+// ---------------------------------------------------------------------------
+section('flagging simplified characters for the reviewer');
+
+// The archive follows the book, which is traditional. This is advisory only:
+// it must never convert anything, and must never suggest a form it cannot
+// stand behind.
+$w = script_check('起潜');
+check('a simplified name is flagged',        $w !== null, true);
+check('  …with the traditional suggestion',  $w['suggested'], '起潛');
+check('  …naming the character',             $w['chars'][0]['from'] . $w['chars'][0]['to'], '潜潛');
+check('a name already traditional is not flagged', script_check('起潛'), null);
+check('an empty name is not flagged',        script_check(''), null);
+check('a null name is not flagged',          script_check(null), null);
+check('several characters are all reported', count(script_check('学维')['chars']), 2);
+check('  …and the whole name is suggested',  script_check('学维')['suggested'], '學維');
+check('a mixed name only converts what needs it', script_check('張葉贵')['suggested'], '張葉貴');
+
+// THE CASE THAT MADE THIS A FLAG AND NOT A CONVERTER. Every OpenCC profile
+// rewrites 江萬里 to 江萬裏 — 里 is a valid traditional character AND the
+// simplification of 裏, and nothing in a name says which is meant.
+check('江萬里 is NOT flagged — 里 is valid traditional', script_check('江萬里'), null);
+check('黄氏 is NOT flagged — the archive uses 黄 throughout', script_check('黄氏'), null);
+check('凌氏 is NOT flagged — 凌 is a standing surname', script_check('凌氏'), null);
+check('the ambiguous list is not empty', count(SCRIPT_AMBIGUOUS) > 100, true);
+check('and none of it leaked into the map',
+      count(array_intersect(SCRIPT_AMBIGUOUS, array_keys(SCRIPT_S2T))), 0);
+
+// It is a report, not an edit.
+$before = personRow('a03')['name'];
+script_check('荣川');
+check('checking changes nothing in the database', personRow('a03')['name'], $before);
 
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);

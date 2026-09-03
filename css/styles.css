@@ -692,3 +692,10 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .at-warn-inline{color:var(--seal);font-weight:600}
 .sr-py{opacity:.85}
 .sr-py mark{background:rgba(176,136,51,.28)}
+
+/* A submitted name carrying simplified characters. Advisory — the reviewer
+   decides; see lib/script_map.php for why it is never applied automatically. */
+.cc-script { margin: .5rem 0 .7rem; padding: .55rem .8rem; background: #fdf6e3;
+             border-left: 3px solid #c47a2c; font-size: .92rem; border-radius: .2rem; }
+.cc-script b { font-size: 1.05rem; }
+.cc-script .muted { margin-top: .2rem; font-size: .85rem; }

@@ -110,6 +110,7 @@ window.Backend = (function () {
           reviewer_name: r.reviewedByName || null,
           target: r.target,
           renameWarning: r.renameWarning,
+          scriptWarning: r.scriptWarning,
           unprefilled: r.unprefilled
         }));
       }

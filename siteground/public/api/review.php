@@ -8,6 +8,9 @@
  * `seeds` maps a person id to that person as the PUBLIC data/lineage.js has
  * them, for targets with no database row yet. See contrib_edit_person().
  *
+ * A GET on a pending item also carries `scriptWarning` when the submitted name
+ * holds simplified characters — advisory only, never applied automatically.
+ *
  * A GET on a pending item carries `renameWarning` when approving it would
  * replace the target's name with an unrelated one. That is the shape of a
  * mistargeted submission — the form has one picker whose meaning changes with
@@ -18,6 +21,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../lib/contributions.php';
 require_once __DIR__ . '/../../lib/notify.php';
+require_once __DIR__ . '/../../lib/script_map.php';
 
 $v = viewer();
 if (!$v->isAdmin) { access_log($v->userId, 'refused', 'review', null); json_error('Reviewers only.', 403); }
@@ -64,6 +68,11 @@ if ($method === 'GET') {
             // A payload with no `changes` was never prefilled from the target,
             // which usually means the picker was pointing somewhere else.
             $item['unprefilled'] = ($payload['action'] ?? '') === 'edit' && empty($payload['changes']);
+            // The book is a traditional-character document. Relatives contribute
+            // from phones with simplified input, and nobody notices until a
+            // survey finds it much later — 31 names had drifted before anyone
+            // looked. Ask the question while a person is already deciding.
+            $item['scriptWarning'] = script_check($payload['name'] ?? null);
         }
         $out[] = $item;
     }

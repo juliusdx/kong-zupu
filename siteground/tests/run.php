@@ -38,6 +38,12 @@ $ins('persons', ['id'=>'anc1','name'=>'江八郎','gen'=>1,'visibility'=>'public
 $ins('persons', ['id'=>'mem1','name'=>'Living Relative','gen'=>26,'visibility'=>'member','living'=>1]);
 $ins('persons', ['id'=>'kid1','name'=>'A Child','gen'=>27,'visibility'=>'member','living'=>1,'is_minor'=>1]);
 $ins('persons', ['id'=>'arc1','name'=>'Archived Person','gen'=>26,'visibility'=>'public','archived'=>1]);
+// A deceased ancestor with dates and a biography on the PERSON row and NO
+// person_details row — which is how 40 birth years and 53 biographies are
+// actually stored, and which the API silently dropped for everyone.
+$ins('persons', ['id'=>'anc2','name'=>'江萬里','gen'=>2,'visibility'=>'public','living'=>0,
+                 'birth_year'=>'宋嘉定十一年','death_year'=>'德祐元年','lifespan'=>'享壽五十八',
+                 'religion'=>'儒','bio'=>'登宋咸淳進士，累官尚書。','birth_place'=>'p_ninghua']);
 $ins('person_details', ['person_id'=>'mem1','birth_year'=>'1980','bio'=>'private detail']);
 $ins('contacts', ['person_id'=>'mem1','phone'=>'+60 12 000 0000']);
 $ins('places', ['id'=>'pl1','type'=>'grave','name'=>'邻浪笄子坑蛇地','visibility'=>'public']);
@@ -76,7 +82,7 @@ $visible = fn(array $rows) => array_map(fn($r) => $r['id'],
 $tomb = fn(array $rows) => array_values(array_filter($rows, fn($r) => !empty($r['archived'])));
 
 echo "\nPEOPLE\n";
-check('anon sees the ancestor AND the living adult', $visible(repo_persons($anon)),   ['anc1','mem1']);
+check('anon sees the ancestors AND the living adult', $visible(repo_persons($anon)),   ['anc1','anc2','mem1']);
 check('anon still never sees the minor',          in_array('kid1', $ids(repo_persons($anon)), true), false);
 
 // The living adult reaches a signed-out visitor by NAME and TREE POSITION only.
@@ -88,7 +94,7 @@ check('anon gets their tree position',            $anonMem['gen'],             2
 foreach (['birth_year','bio','birth_place','residence_place','burial_place','lat','lng','relation'] as $blocked) {
     check("anon gets no {$blocked} for a living adult", $anonMem[$blocked] ?? null, null);
 }
-check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','mem1']);
+check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','anc2','mem1']);
 check('member never sees the minor',              in_array('kid1', $ids(repo_persons($member)), true), false);
 check('approved member still never sees a minor', in_array('kid1', $ids(repo_persons($approved)), true), false);
 check('admin sees the minor',                     in_array('kid1', $ids(repo_persons($admin)), true), true);
@@ -146,7 +152,7 @@ echo "\nDEPLOY-DAY SWITCH\n";
 $GLOBALS['ZUPU_CONFIG']['enforce_approval'] = false;
 check('permissive: unapproved member gets detail', $memRow(repo_persons($member))['birth_year'] ?? null, '1980');
 check('permissive still hides minors from members', in_array('kid1', $ids(repo_persons($member)), true), false);
-check('permissive does not widen what anon sees',  $visible(repo_persons($anon)), ['anc1','mem1']);
+check('permissive does not widen what anon sees',  $visible(repo_persons($anon)), ['anc1','anc2','mem1']);
 check('permissive still hides minors from anon',  in_array('kid1', $ids(repo_persons($anon)), true), false);
 check('the grace was logged',
     (int)q1("SELECT COUNT(*) c FROM access_log WHERE verdict = 'would_refuse'")['c'] > 0, true);
@@ -197,6 +203,40 @@ check('a signed-in member does get that member-tier one',
 // person who does not exist: tier and approval still decide.
 check('an unapproved photo is still admin-only, subject or no subject',
       in_array('44444444-4444-4444-4444-444444444444', $seedIds, true), false);
+
+// ---------------------------------------------------------------------------
+echo "\nA DECEASED ANCESTOR'S DATES REACH THOSE WHO MAY SEE THEM\n";
+
+// THE BUG THIS EXISTS FOR. These five columns were absent from the select, so
+// the data was invisible to EVERYONE including admins — while every privacy
+// check still passed, because "nobody sees detail" satisfies "a stranger sees
+// no detail". Assert the PERMISSION, not only the refusal.
+$anc = fn(array $rows) => array_values(array_filter($rows, fn($r) => ($r['id'] ?? '') === 'anc2'))[0] ?? null;
+
+$a = $anc(repo_persons($admin));
+check('an admin gets the ancestor row',        $a !== null, true);
+check('  …with the birth year',                $a['birth_year'] ?? null, '宋嘉定十一年');
+check('  …the death year',                     $a['death_year'] ?? null, '德祐元年');
+check('  …the lifespan',                       $a['lifespan'] ?? null, '享壽五十八');
+check('  …the religion',                       $a['religion'] ?? null, '儒');
+check('  …and the biography',                  $a['bio'] ?? null, '登宋咸淳進士，累官尚書。');
+check('  …and the birthplace',                 $a['birth_place'] ?? null, 'p_ninghua');
+
+$m = $anc(repo_persons($member));
+check('an approved member sees them too',      $m['birth_year'] ?? null, '宋嘉定十一年');
+
+// A deceased ancestor is public record — data/lineage.js publishes exactly
+// these fields to the world — so a signed-out visitor sees them as well.
+$n = $anc(repo_persons($anon));
+check('a signed-out visitor sees them as well', $n['birth_year'] ?? null, '宋嘉定十一年');
+check('  …and the biography',                   $n['bio'] ?? null, '登宋咸淳進士，累官尚書。');
+
+// The LIVING are the opposite case and must not have moved.
+$lv = array_values(array_filter(repo_persons($anon), fn($r) => ($r['id'] ?? '') === 'mem1'))[0] ?? null;
+check('a LIVING person still yields no birth year to anon', $lv['birth_year'] ?? null, null);
+check('  …no bio either',                                   $lv['bio'] ?? null, null);
+check('a minor is still absent entirely',
+      in_array('kid1', array_map(fn($r) => $r['id'], repo_persons($anon)), true), false);
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 @unlink($dbFile);

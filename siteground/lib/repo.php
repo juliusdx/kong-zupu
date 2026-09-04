@@ -8,16 +8,34 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 /**
- * Columns safe for anyone who may see the row at all. No birth year, no bio.
+ * Columns safe for anyone who may see the row at all.
+ *
+ * A DECEASED ancestor's dates and biography are part of the public record —
+ * data/lineage.js publishes exactly those fields to the world — so they are
+ * selected here. A LIVING person's are not: theirs live in person_details and
+ * are a second decision, made below, for approved members and admins only.
+ * The CASE spells that out in the query rather than leaving it to be inferred.
+ *
+ * This is the bug that hid behind a passing privacy check. These five columns
+ * were simply absent from the select, so 40 ancestors' birth years and 53
+ * biographies typed into the app were invisible to EVERYONE, admins included —
+ * and "a signed-out visitor sees no detail" stayed true throughout, because
+ * nobody saw any detail. Verifying the refusal is not the same as verifying
+ * the permission.
  *
  * `archived` is in here because the client needs it, not as decoration: the
  * tree is this table merged onto a 519-person public seed, and a live row that
  * says archived is what removes its seed twin — see dropRow() in js/app.js.
  * Without the column every row arrives looking un-archived and the twin stays.
  */
-const PERSON_BASIC = 'id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
+const PERSON_BASIC = "id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
                       gender, father_id, spouse_of, relation, living, confidence, visibility,
-                      birth_place, residence_place, burial_place, lat, lng, archived';
+                      birth_place, residence_place, burial_place, lat, lng, archived,
+                      CASE WHEN living = 1 THEN NULL ELSE birth_year END AS birth_year,
+                      CASE WHEN living = 1 THEN NULL ELSE death_year END AS death_year,
+                      CASE WHEN living = 1 THEN NULL ELSE lifespan   END AS lifespan,
+                      CASE WHEN living = 1 THEN NULL ELSE religion   END AS religion,
+                      CASE WHEN living = 1 THEN NULL ELSE bio        END AS bio";
 
 /**
  * What a SIGNED-OUT visitor may see of a living adult: their name and where they
@@ -28,7 +46,9 @@ const PERSON_BASIC = 'id, gen, name, pinyin, ritual_name, formal_name, hao, milk
 const PERSON_SEARCH = "id, gen, name, pinyin, ritual_name, formal_name, hao, milk_name, aka,
                        gender, father_id, spouse_of, NULL AS relation, living, confidence, visibility,
                        NULL AS birth_place, NULL AS residence_place, NULL AS burial_place,
-                       NULL AS lat, NULL AS lng, 0 AS archived";
+                       NULL AS lat, NULL AS lng, 0 AS archived,
+                       NULL AS birth_year, NULL AS death_year, NULL AS lifespan,
+                       NULL AS religion, NULL AS bio";
 
 function repo_persons(Viewer $v): array
 {

@@ -129,6 +129,19 @@ check('another member refused',                   repo_contact($member, 'mem1'),
 check('the person themselves allowed',            repo_contact($approved, 'mem1')['phone'] ?? null, '+60 12 000 0000');
 check('admin allowed',                            repo_contact($admin, 'mem1')['phone'] ?? null, '+60 12 000 0000');
 
+// THE SET, not just the single lookup. repo_contact() was correct and fully
+// tested, and nothing outside these tests ever called it — the tree endpoint
+// returned no contacts at all, so the family directory was missing from the
+// site while this section stayed green. Assert what a VIEWER RECEIVES.
+$contactIds = fn(array $rows) => array_map(fn($r) => $r['person_id'], $rows);
+check('an admin receives every contact',      count(repo_contacts($admin)), 1);
+check('  …and it is the right person',        $contactIds(repo_contacts($admin)), ['mem1']);
+check('the person themselves receives theirs', $contactIds(repo_contacts($approved)), ['mem1']);
+check('another member receives none',          repo_contacts($member), []);
+check('a signed-out visitor receives none',    repo_contacts($anon), []);
+check('  …and the phone number is really in there',
+      repo_contacts($admin)[0]['phone'] ?? null, '+60 12 000 0000');
+
 echo "\nPHOTOS — the leak that started this\n";
 $photo = fn(string $id) => q1(
     'SELECT m.id, m.path, m.visibility, m.approved, COALESCE(p.is_minor,0) AS subject_is_minor

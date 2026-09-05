@@ -946,8 +946,12 @@
       // rows the viewer may see (admins, or the linked member's own), so anon gets nothing.
       try {
         LINEAGE.persons.forEach(p => { delete p.contact; });
-        if (!sb) throw new Error("not ported");   // PHP: contacts ride along in tree.php
-        const { data: ct } = await sb.from("contacts").select("*");
+        // On PHP they DO ride along in tree.php now — the server filters the set
+        // through the same rule the single-person read uses, so what arrives is
+        // already only what this viewer may see. This branch used to throw
+        // "not ported" and the catch below swallowed it, so the directory was
+        // silently absent for everyone.
+        const ct = Backend.isPhp() ? (tree.contacts || []) : (await sb.from("contacts").select("*")).data;
         (ct || []).forEach(c => {
           const p = LINEAGE.persons.find(x => x.id === c.person_id);
           if (p) p.contact = { phone: c.phone, wechat: c.wechat, email: c.email, address: c.address };

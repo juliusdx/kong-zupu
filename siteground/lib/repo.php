@@ -158,6 +158,30 @@ function repo_media(Viewer $v): array
     return q($sql . ' ORDER BY m.created_at')->fetchAll();
 }
 
+/**
+ * Every contact the viewer may see — self, and everything for an admin.
+ *
+ * repo_contact() below answers for ONE person and was the only accessor, which
+ * meant nothing could ask for the set: the tree endpoint never returned
+ * contacts at all, and the front-end's comment claiming they "ride along in
+ * tree.php" described something that was never built. The family directory was
+ * simply absent from the site while its tests passed, because the tests called
+ * the function directly and nothing else ever did.
+ *
+ * The rule is not restated here — each row is put through the same
+ * Visibility::maySeeContact() the single-person path uses, so there is one
+ * definition of who may see a phone number and no second copy to drift.
+ */
+function repo_contacts(Viewer $v): array
+{
+    if (!$v->isSignedIn()) return [];          // nothing to ask for, nothing to log
+    $out = [];
+    foreach (q('SELECT person_id, email, phone, wechat, address FROM contacts')->fetchAll() as $c) {
+        if (Visibility::maySeeContact($v, (string)$c['person_id'])) $out[] = $c;
+    }
+    return $out;
+}
+
 function repo_contact(Viewer $v, string $personId): ?array
 {
     if (!Visibility::maySeeContact($v, $personId)) {

@@ -2,7 +2,7 @@
 /**
  * The whole tree, filtered to what the caller may see.
  *
- * Replaces the front-end's three Supabase reads (persons, places, media) with
+ * Replaces the front-end's Supabase reads (persons, places, media, contacts) with
  * one request. The shape matches what js/app.js already expects after camel(),
  * so the client change is the fetch, not the rendering.
  */
@@ -19,4 +19,5 @@ json_out([
     'persons' => repo_persons($v),
     'places'  => repo_places($v),
     'media'   => repo_media($v),
+    'contacts'=> repo_contacts($v),
 ]);

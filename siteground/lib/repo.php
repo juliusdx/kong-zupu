@@ -105,18 +105,39 @@ function repo_persons(Viewer $v): array
     }
     if (!$mayDetail) return $rows;
 
+    $keys = ['birth_year','death_year','lifespan','religion','bio'];
+
+    // A living person's detail can sit in EITHER place. person_details is the
+    // curated store the seed put living members' data into; but a relative
+    // added through the contribution form lands with a birth year on the
+    // person row and no person_details row at all — 36 birth years and 10
+    // biographies were stored that way and reached nobody, admins included,
+    // because PERSON_BASIC nulls those columns for the living and only
+    // person_details was ever consulted to put them back. Gordon 修锋, born
+    // 1975 on his row, was the report that found it.
+    //
+    // So for a viewer who may see detail, the row's own values come first and
+    // person_details wins over them where both exist.
+    $own = [];
+    foreach (q('SELECT id, birth_year, death_year, lifespan, religion, bio FROM persons WHERE living = 1')->fetchAll() as $o) {
+        $own[$o['id']] = $o;
+    }
     $detail = [];
     foreach (q('SELECT person_id, birth_year, death_year, lifespan, religion, bio FROM person_details')->fetchAll() as $d) {
         $detail[$d['person_id']] = $d;
     }
     foreach ($rows as &$r) {
-        // A deceased ancestor's dates are part of the public record and live on
-        // the person row; person_details holds the LIVING members' detail.
+        if (!empty($r['archived']) && !isset($r['name'])) continue;   // a tombstone carries nothing
+        $o = $own[$r['id']] ?? null;
+        if ($o) foreach ($keys as $k) {
+            if ($o[$k] !== null && $o[$k] !== '') $r[$k] = $o[$k];
+        }
         $d = $detail[$r['id']] ?? null;
-        if ($d) foreach (['birth_year','death_year','lifespan','religion','bio'] as $k) {
+        if ($d) foreach ($keys as $k) {
             if ($d[$k] !== null && $d[$k] !== '') $r[$k] = $d[$k];
         }
     }
+    unset($r);
     return $rows;
 }
 

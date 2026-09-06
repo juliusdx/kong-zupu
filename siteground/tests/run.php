@@ -45,6 +45,10 @@ $ins('persons', ['id'=>'anc2','name'=>'江萬里','gen'=>2,'visibility'=>'public
                  'birth_year'=>'宋嘉定十一年','death_year'=>'德祐元年','lifespan'=>'享壽五十八',
                  'religion'=>'儒','bio'=>'登宋咸淳進士，累官尚書。','birth_place'=>'p_ninghua']);
 $ins('person_details', ['person_id'=>'mem1','birth_year'=>'1980','bio'=>'private detail']);
+// Gordon's shape: living, birth year on the ROW, no person_details row. This is
+// how the contribution form stores a relative, and it reached nobody.
+$ins('persons', ['id'=>'mem2','name'=>'修锋','gen'=>26,'father_id'=>'k_daxin',
+                 'living'=>1,'visibility'=>'member','birth_year'=>'1975','bio'=>'row-only bio']);
 $ins('contacts', ['person_id'=>'mem1','phone'=>'+60 12 000 0000']);
 $ins('places', ['id'=>'pl1','type'=>'grave','name'=>'邻浪笄子坑蛇地','visibility'=>'public']);
 $ins('media', ['id'=>'11111111-1111-1111-1111-111111111111','person_id'=>'anc1','path'=>'a/pub.jpg','visibility'=>'public','approved'=>1]);
@@ -82,7 +86,7 @@ $visible = fn(array $rows) => array_map(fn($r) => $r['id'],
 $tomb = fn(array $rows) => array_values(array_filter($rows, fn($r) => !empty($r['archived'])));
 
 echo "\nPEOPLE\n";
-check('anon sees the ancestors AND the living adult', $visible(repo_persons($anon)),   ['anc1','anc2','mem1']);
+check('anon sees the ancestors AND the living adult', $visible(repo_persons($anon)),   ['anc1','anc2','mem1','mem2']);
 check('anon still never sees the minor',          in_array('kid1', $ids(repo_persons($anon)), true), false);
 
 // The living adult reaches a signed-out visitor by NAME and TREE POSITION only.
@@ -94,7 +98,7 @@ check('anon gets their tree position',            $anonMem['gen'],             2
 foreach (['birth_year','bio','birth_place','residence_place','burial_place','lat','lng','relation'] as $blocked) {
     check("anon gets no {$blocked} for a living adult", $anonMem[$blocked] ?? null, null);
 }
-check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','anc2','mem1']);
+check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','anc2','mem1','mem2']);
 check('member never sees the minor',              in_array('kid1', $ids(repo_persons($member)), true), false);
 check('approved member still never sees a minor', in_array('kid1', $ids(repo_persons($approved)), true), false);
 check('admin sees the minor',                     in_array('kid1', $ids(repo_persons($admin)), true), true);
@@ -165,7 +169,7 @@ echo "\nDEPLOY-DAY SWITCH\n";
 $GLOBALS['ZUPU_CONFIG']['enforce_approval'] = false;
 check('permissive: unapproved member gets detail', $memRow(repo_persons($member))['birth_year'] ?? null, '1980');
 check('permissive still hides minors from members', in_array('kid1', $ids(repo_persons($member)), true), false);
-check('permissive does not widen what anon sees',  $visible(repo_persons($anon)), ['anc1','anc2','mem1']);
+check('permissive does not widen what anon sees',  $visible(repo_persons($anon)), ['anc1','anc2','mem1','mem2']);
 check('permissive still hides minors from anon',  in_array('kid1', $ids(repo_persons($anon)), true), false);
 check('the grace was logged',
     (int)q1("SELECT COUNT(*) c FROM access_log WHERE verdict = 'would_refuse'")['c'] > 0, true);
@@ -250,6 +254,18 @@ check('a LIVING person still yields no birth year to anon', $lv['birth_year'] ??
 check('  …no bio either',                                   $lv['bio'] ?? null, null);
 check('a minor is still absent entirely',
       in_array('kid1', array_map(fn($r) => $r['id'], repo_persons($anon)), true), false);
+
+echo "\nA LIVING PERSON'S DETAIL ON THE ROW ITSELF (GORDON'S SHAPE)\n";
+$g = fn(array $rows) => array_values(array_filter($rows, fn($r) => ($r['id'] ?? '') === 'mem2'))[0] ?? null;
+check('an admin gets the row-only birth year',     $g(repo_persons($admin))['birth_year'] ?? null, '1975');
+check('  …and the row-only bio',                   $g(repo_persons($admin))['bio'] ?? null, 'row-only bio');
+check('an approved member gets it too',            $g(repo_persons($approved))['birth_year'] ?? null, '1975');
+check('an UNAPPROVED member does not',             $g(repo_persons($member))['birth_year'] ?? null, null);
+check('a stranger sees the person but no detail',  $g(repo_persons($anon)) !== null, true);
+check('  …no birth year',                          $g(repo_persons($anon))['birth_year'] ?? null, null);
+check('  …no bio',                                 $g(repo_persons($anon))['bio'] ?? null, null);
+check('person_details still overrides the row',
+      (array_values(array_filter(repo_persons($admin), fn($r)=>($r['id']??'')==='mem1'))[0]['bio'] ?? null), 'private detail');
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 @unlink($dbFile);

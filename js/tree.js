@@ -125,20 +125,50 @@
     return (rel && rel.length < 14) ? rel : "";
   }
 
+  // Where a person hangs in the tree. Normally their father — but a child whose
+  // father MARRIED IN belongs under his blood partner, the Kong daughter.
+  //
+  // Without this they vanish: a married-in spouse is not a blood member, so the
+  // subtree beneath him was built and then never reached, because nothing in
+  // the hierarchy pointed at him. That is fine while no daughter's line is
+  // recorded, and wrong the moment one is — the 2026 chart of 俊恭's branch
+  // follows five daughters into the 周, 沈, 何, 廖 and Bantoi families.
+  function treeParent(p) {
+    if (!p.father) return null;
+    let par = byId[p.father];
+    if (par && par.spouseOf) par = byId[par.spouseOf];   // through the married-in partner
+    return (par && !par.spouseOf) ? par : null;
+  }
+
   function buildHierarchy() {
     let members = bloodMembers();
+    const parentOf = {};
+    members.forEach(p => { const par = treeParent(p); if (par) parentOf[p.id] = par.id; });
+
     if (!opts.daughters) {
-      // hide blood daughters (and any descendants — none here)
-      members = members.filter(p => p.gender !== "f");
+      // Hide blood daughters AND everyone descending through one — otherwise
+      // turning daughters off would strand their children as fresh roots and
+      // the tree would sprout orphan branches.
+      const keep = new Set(members.filter(p => p.gender !== "f").map(p => p.id));
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const p of members) {
+          const par = parentOf[p.id];
+          if (keep.has(p.id) && par && !keep.has(par)) { keep.delete(p.id); changed = true; }
+        }
+      }
+      members = members.filter(p => keep.has(p.id));
     }
+
+    const inTree = new Set(members.map(p => p.id));
     const childrenOf = {};
     members.forEach(p => {
-      if (p.father && byId[p.father] && !p.spouseOf) {
-        (childrenOf[p.father] = childrenOf[p.father] || []).push(p);
-      }
+      const par = parentOf[p.id];
+      if (par && inTree.has(par)) (childrenOf[par] = childrenOf[par] || []).push(p);
     });
     members.forEach(p => p.__kids = (childrenOf[p.id] || []).sort((a,b)=>a.gen-b.gen));
-    const roots = members.filter(p => !p.father || !byId[p.father]);
+    const roots = members.filter(p => !parentOf[p.id] || !inTree.has(parentOf[p.id]));
     const virtual = { id: "__root__", name: "江氏", gen: 20, __kids: roots, __virtual: true };
     return d3.hierarchy(virtual, d => (collapsed.has(d.id) ? null : d.__kids));
   }

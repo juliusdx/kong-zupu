@@ -197,6 +197,33 @@
       if (pendingBanner) pendingBanner.hidden = !(st.live && st.user && !st.approved);
     };
 
+    // The account menu. Opening it is safe and tells you where you stand;
+    // signing out is a named item inside it, next to what it will cost you.
+    const pop = $("#auth-pop");
+    const closePop = () => {
+      if (!pop) return;
+      pop.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    };
+    const togglePop = () => {
+      if (!pop) return;
+      const open = pop.hidden;
+      pop.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    if (pop) {
+      // Signing out is the one destructive thing here, so it is the one thing
+      // you must aim at deliberately. No confirm(): a dialog is what the last
+      // person tapped straight through — twice — because it appeared in front
+      // of an action she had not meant to start. The warning under the button
+      // arrives BEFORE the tap instead.
+      $("#auth-signout").onclick = () => { closePop(); Auth.signOut(); };
+      document.addEventListener("click", e => {
+        if (!pop.hidden && !e.target.closest(".auth-menu")) closePop();
+      });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") closePop(); });
+    }
+
     Auth.onChange(st => {
       showPending(st);
       if (!st.live) {
@@ -208,13 +235,28 @@
       if (st.user) {
         const label = (st.profile && st.profile.full_name) || st.user.email;
         btn.removeAttribute("data-i18n");
-        btn.textContent = (st.isAdmin ? "★ " : "") + label;
-        btn.onclick = () => { if (confirm(I18N.t("auth_signout_confirm"))) Auth.signOut(); };
+        // The caret says "this opens something". Without it the button reads as
+        // a label you may as well press to see what happens — which is how a
+        // relative signed herself out twice in one morning.
+        btn.textContent = (st.isAdmin ? "★ " : "") + label + " ▾";
+        btn.onclick = () => togglePop();
+        $("#auth-pop-email").textContent = st.user.email;
+        // The KEY goes on the element, not just the translated text: the
+        // language toggle re-renders [data-i18n] nodes and knows nothing about
+        // anything written straight into textContent, so a line set that way
+        // stays in whichever language it was born in. Same pattern the sign-in
+        // label uses below.
+        const s = $("#auth-pop-state");
+        const key = st.approved ? "auth_state_ok" : "auth_state_pending";
+        s.setAttribute("data-i18n", key);
+        s.textContent = I18N.t(key);
+        s.classList.toggle("waiting", !st.approved);
         closeModal();
       } else {
         btn.setAttribute("data-i18n", "auth_signin");
         btn.textContent = I18N.t("auth_signin");
         btn.onclick = openModal;
+        closePop();
       }
       $("#tab-review").style.display = st.isAdmin ? "" : "none";
       $("#tab-members").style.display = st.isAdmin ? "" : "none";

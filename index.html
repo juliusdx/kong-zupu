@@ -47,7 +47,23 @@
       <span id="visit-count" class="visit-count" hidden></span>
       <button id="help-intro" class="auth-status" title="說明 · Guide" aria-label="Guide">?</button>
       <button id="lang-toggle" class="auth-status" title="中文 / English">中文</button>
-      <button id="auth-status" class="auth-status" data-i18n="auth_signin">Sign in</button>
+      <!-- Signed in, this button opens a menu rather than signing you out.
+           It used to BE the sign-out control, labelled with your own email, so
+           tapping the only account-looking thing in the header put a "Sign
+           out?" dialog in front of you — and a relative tapped through it
+           twice in one morning, seven seconds after signing in. Showing what
+           signing out costs, before the tap, is the guard that a confirm
+           dialog was not. -->
+      <div class="auth-menu">
+        <button id="auth-status" class="auth-status" data-i18n="auth_signin"
+                aria-haspopup="menu" aria-expanded="false">Sign in</button>
+        <div id="auth-pop" class="auth-pop" role="menu" aria-labelledby="auth-status" hidden>
+          <p class="auth-pop-who" id="auth-pop-email"></p>
+          <p class="auth-pop-state" id="auth-pop-state"></p>
+          <button id="auth-signout" class="auth-pop-out" role="menuitem" data-i18n="auth_signout">Sign out</button>
+          <p class="auth-pop-note" data-i18n="auth_signout_note">To come back you will need a new sign-in link emailed to you.</p>
+        </div>
+      </div>
     </div>
   </div>
 </header>

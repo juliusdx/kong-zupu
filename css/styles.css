@@ -718,3 +718,24 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
 .pending-banner strong{font-size:.92rem;color:var(--gold)}
 .pending-banner span{color:var(--ink-soft)}
 @media(max-width:640px){.pending-banner{margin:.4rem .5rem 0;font-size:.8rem}}
+
+/* The account menu.
+   Opening it is safe: it says who you are and whether you have been approved.
+   Signing out is one named item inside, under a line saying what it costs —
+   the guard sits BEFORE the tap, because the confirm() dialog that used to sit
+   after it was tapped straight through twice in one morning. */
+.auth-menu{position:relative;display:inline-block}
+.auth-pop{position:absolute;right:0;top:calc(100% + .35rem);z-index:60;width:15rem;
+  padding:.7rem .8rem;border:1px solid var(--line);border-radius:8px;
+  background:var(--paper);box-shadow:var(--shadow);text-align:left}
+/* Same trap as .pending-banner: an author `display` beats the UA [hidden] rule. */
+.auth-pop[hidden]{display:none}
+.auth-pop-who{margin:0;font-size:.78rem;color:var(--ink);word-break:break-all}
+.auth-pop-state{margin:.3rem 0 .6rem;font-size:.74rem;color:#2a6035;line-height:1.35}
+.auth-pop-state.waiting{color:var(--low)}
+.auth-pop-out{width:100%;font-family:var(--font);font-size:.8rem;cursor:pointer;
+  padding:.35rem .6rem;border:1px solid var(--line);border-radius:6px;
+  background:rgba(255,255,255,.6);color:var(--ink)}
+.auth-pop-out:hover{border-color:var(--seal);color:var(--seal)}
+.auth-pop-note{margin:.45rem 0 0;font-size:.68rem;color:var(--ink-soft);line-height:1.35}
+@media(max-width:640px){.auth-pop{width:13.5rem}}

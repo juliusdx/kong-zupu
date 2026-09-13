@@ -186,7 +186,19 @@
     // link, it was just stale, and silence would read as the link being broken.
     if (Auth.notice() === "expired") { openModal(); $("#signin-msg").textContent = I18N.t("s_expired"); }
 
+    // Signed in but not yet approved is the one auth state the site never
+    // showed. The API hands such a viewer the same tree it hands a stranger —
+    // same people, same 78 birth years, no living relative's detail — so the
+    // page looks identical to being signed out, and the relatives who hit it
+    // read that as the site being broken rather than as a queue they were in.
+    // Nothing here changes what they may see; it says why.
+    const pendingBanner = $("#pending-banner");
+    const showPending = st => {
+      if (pendingBanner) pendingBanner.hidden = !(st.live && st.user && !st.approved);
+    };
+
     Auth.onChange(st => {
+      showPending(st);
       if (!st.live) {
         btn.textContent = I18N.t("auth_guest");
         btn.removeAttribute("data-i18n");

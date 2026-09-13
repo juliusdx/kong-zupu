@@ -68,9 +68,15 @@ function member_set_approved(Viewer $v, string $id, bool $approve): array
         throw new MemberError('Remove their reviewer rights first — an admin is always an approved member.', 409);
     }
 
+    // Whether this was a real transition, not just a repeated click. The caller
+    // emails the member on approval, and "approve" on somebody already approved
+    // must not mail them a second time — an admin re-reads this roster often,
+    // and a duplicate "you're approved!" reads as the site having lost track.
+    $was = (bool)$u['approved'];
+
     q('UPDATE users SET approved = ? WHERE id = ?', [$approve ? 1 : 0, $id]);
     access_log($v->userId, $approve ? 'member_approved' : 'member_unapproved', 'member', $id);
-    return ['ok' => true, 'id' => $id, 'approved' => $approve];
+    return ['ok' => true, 'id' => $id, 'approved' => $approve, 'changed' => $was !== $approve];
 }
 
 /** Grant or remove reviewer rights. */

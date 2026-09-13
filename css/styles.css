@@ -699,3 +699,22 @@ h1,h2,h3{font-family:var(--font-cn);font-weight:600;margin:0}
              border-left: 3px solid #c47a2c; font-size: .92rem; border-radius: .2rem; }
 .cc-script b { font-size: 1.05rem; }
 .cc-script .muted { margin-top: .2rem; font-size: .85rem; }
+
+/* The "waiting for approval" banner.
+   Advisory, not an error: a pending account is the system working as designed,
+   so this wears the parchment and gold of the rest of the chrome rather than
+   the vermilion seal reserved for faults. Two lines — what is happening, and
+   that the person need do nothing — because everyone who reached this state
+   read the empty tree as a broken site and left. */
+.pending-banner{display:flex;flex-direction:column;gap:.25rem;margin:.5rem .75rem 0;
+  padding:.65rem .9rem;border:1px solid var(--line);border-left:4px solid var(--gold);
+  border-radius:6px;background:var(--paper-2);color:var(--ink);
+  font-size:.86rem;line-height:1.45}
+/* `display:flex` above would otherwise beat the browser's own [hidden] rule —
+   author styles outrank the UA stylesheet — so the banner stayed on screen for
+   an approved admin while the DOM property read hidden === true. The element
+   is toggled by .hidden in app.js, so this line is what makes that work. */
+.pending-banner[hidden]{display:none}
+.pending-banner strong{font-size:.92rem;color:var(--gold)}
+.pending-banner span{color:var(--ink-soft)}
+@media(max-width:640px){.pending-banner{margin:.4rem .5rem 0;font-size:.8rem}}

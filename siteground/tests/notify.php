@@ -143,6 +143,46 @@ check('a crafted field label cannot open a tag',
 $m = notify_contributor_build($c, 'rejected', '<script>alert(2)</script>');
 check('nor can the rejection reason', str_contains($m['html'], '<script>'), false);
 
+/* ---- The approval note ---------------------------------------------------
+ * The message a relative gets when their account is finally let through. It
+ * exists because signed-in-but-pending returns a payload identical to signed
+ * out, so the people who hit that state left believing the site was broken —
+ * two of them were approved days after the only visit they ever made. The
+ * banner speaks to whoever is still on the page; this reaches whoever gave up.
+ */
+section('account approved');
+
+$m = notify_member_approved_build('u2');
+check('a member with an address gets a note', $m !== null, true);
+check('  …addressed to them',                 $m['to'] ?? null, 'cousin@test.local');
+check('  …in both languages',
+      str_contains($m['html'], '通過審核') && str_contains($m['html'], 'approved'), true);
+// The whole point of writing at all: they must come BACK and sign in again.
+check('  …tells them to sign in again',       str_contains($m['html'], 'sign in once more'), true);
+check('  …and says the empty tree was not a fault',
+      str_contains($m['html'], 'not a fault with the site'), true);
+check('  …and links to the site',             str_contains($m['html'], 'https://zupu.test'), true);
+
+$m = notify_member_approved_build('u1');
+check('a name is used when we have one', str_contains($m['html'], 'Julius Kong'), true);
+
+// u2 has an empty full_name — the greeting must degrade, not print "Dear ,".
+$m = notify_member_approved_build('u2');
+check('a nameless member is greeted properly', str_contains($m['html'], 'Dear Family member'), true);
+check('  …and in Chinese too',                 str_contains($m['html'], '家人 您好'), true);
+
+check('an unknown user is nobody to write to', notify_member_approved_build('nope'), null);
+
+q("INSERT INTO users (id,email,full_name,is_admin,approved) VALUES ('u3','not-an-address',' ',0,1)");
+check('an unusable address is nobody to write to, not a failure',
+      notify_member_approved_build('u3'), null);
+
+// Same escaping discipline as the contributor note: a name is user-supplied.
+q("UPDATE users SET full_name = '<img src=x onerror=alert(1)>' WHERE id = 'u2'");
+$m = notify_member_approved_build('u2');
+check('a crafted display name cannot open a tag', str_contains($m['html'], '<img src=x'), false);
+check('  …and survives as visible text',        str_contains($m['html'], '&lt;img'), true);
+
 echo "\n{$pass} passed, {$fail} failed\n";
 @unlink($dbFile);
 exit($fail ? 1 : 0);

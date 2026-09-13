@@ -55,6 +55,14 @@
 <main id="main">
   <!-- TREE ------------------------------------------------------- -->
   <section id="view-tree" class="view active">
+    <!-- Shown only while signed in AND not yet approved. Without it that state
+         is invisible: the API returns a signed-in-but-pending viewer exactly
+         the same tree it returns a stranger, so the site simply looks broken.
+         Three relatives concluded precisely that and stopped coming back. -->
+    <div id="pending-banner" class="pending-banner" hidden>
+      <strong data-i18n="pend_title">Your account is waiting for a family reviewer</strong>
+      <span data-i18n="pend_body">You are signed in. Photos, birth years and life stories of living relatives stay hidden until a reviewer approves you — we'll email you as soon as that happens. Nothing is broken, and there is nothing more you need to do.</span>
+    </div>
     <div class="tree-toolbar">
       <button class="tb-options-btn" data-options="tree" aria-expanded="false">⚙ <span data-i18n="tt_options">Options</span></button>
       <div class="tb-options">

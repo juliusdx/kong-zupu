@@ -181,3 +181,73 @@ function notify_contributor_build(string $contribId, string $status, ?string $re
 
     return ['to' => $to['email'], 'subject' => $subject, 'html' => $html];
 }
+
+/**
+ * Tell a relative their account has been approved.
+ *
+ * This exists because of a silent failure, not a feature request. Being signed
+ * in but unapproved returns a payload IDENTICAL to being signed out — the same
+ * 374 people, the same 78 birth years, the same 78 biographies — and nothing in
+ * the UI ever said why. Three relatives signed up, looked at a bare tree,
+ * concluded the site was broken and never came back; two of them were approved
+ * hours or days after the only visit they ever made. The banner added alongside
+ * this tells someone who is ON the site that they are waiting. This tells
+ * someone who has already given up that the wait is over.
+ *
+ * Approval only. There is deliberately no note for un-approval: the flag gets
+ * cleared to correct a mistake, and mailing a relative to say access has been
+ * taken away turns an administrative tidy-up into a family incident.
+ *
+ * Returns null when there is no usable address, which is not a failure — the
+ * same contract as notify_contributor_build().
+ */
+function notify_member_approved_build(string $userId): ?array
+{
+    $u = q1('SELECT email, full_name FROM users WHERE id = ?', [$userId]);
+    if (!$u) return null;
+
+    $email = trim((string)($u['email'] ?? ''));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return null;
+
+    $e      = fn($s) => htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8');
+    $full   = trim((string)($u['full_name'] ?? ''));
+    $nameZh = $full !== '' ? $e($full) : '家人';
+    $nameEn = $full !== '' ? $e($full) : 'Family member';
+    $site   = (string)(config()['site_url'] ?? '');
+
+    // The sign-in reminder is not boilerplate. A relative who gave up days ago
+    // is the one being written to, and the session they abandoned may well have
+    // lapsed or been signed out of — so the message has to say "sign in again",
+    // not "go and look", or it sends them back to the same bare tree.
+    $link = $site !== ''
+        ? '<p style="margin:1.1rem 0"><a href="' . $e($site) . '" style="background:#9e2b25;color:#fff;'
+          . 'text-decoration:none;padding:.55rem 1.1rem;border-radius:5px;display:inline-block">'
+          . '開啟族譜 · Open the zupu</a></p>'
+        : '';
+
+    $subject = '您已可查看完整族譜 · Your family tree access is ready — 江氏族譜';
+
+    $zh = "<p>{$nameZh} 您好：</p>"
+        . '<p>您的江氏族譜帳號已<strong style="color:#2a6035">通過審核</strong>。'
+        . '現在您可以看到在世親人的<strong>相片、生年與生平</strong>，這些內容在審核前是隱藏的。</p>'
+        . '<p style="font-size:.92rem;color:#6b5c45">如果您之前登入後覺得族譜「看起來是空的」，'
+        . '那正是尚未通過審核的緣故 —— 並非網站故障。<strong>請重新登入一次</strong>，即可看到完整內容。</p>';
+
+    $en = "<p>Dear {$nameEn},</p>"
+        . '<p>Your Kong Family Zupu account has been <strong style="color:#2a6035">approved</strong>. '
+        . 'You can now see living relatives&rsquo; <strong>photos, birth years and life stories</strong>, '
+        . 'which were hidden before.</p>'
+        . '<p style="font-size:.92rem;color:#6b5c45">If you signed in earlier and the tree looked empty, '
+        . 'that was the approval step, not a fault with the site. '
+        . '<strong>Please sign in once more</strong> to see everything.</p>';
+
+    $html = '<div style="font-family:Georgia,\'Songti SC\',\'STSong\',serif;max-width:520px;color:#2b2117">'
+          . $zh
+          . '<hr style="border:none;border-top:1px solid #e3d9c2;margin:1.4rem 0">'
+          . $en
+          . $link
+          . '<p style="font-size:.8rem;color:#9a8a6e;margin-top:2rem;border-top:1px solid #e3d9c2;'
+          . 'padding-top:.8rem">江氏族譜 · Kong Family Zupu</p></div>';
+
+    return ['to' => $email, 'subject' => $subject, 'html' => $html];
+}

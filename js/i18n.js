@@ -45,6 +45,8 @@
       search_mandarin: "Mandarin:",
       auth_signin: "Sign in", auth_guest: "Guest",
       auth_signout_confirm: "Sign out?", lang_switch: "中文",
+      pend_title: "Your account is waiting for a family reviewer",
+      pend_body: "You are signed in. Photos, birth years and life stories of living relatives stay hidden until a reviewer approves you — we'll email you as soon as that happens. Nothing is broken, and there is nothing more you need to do.",
 
       tt_daughters: "Show daughters & married-in", tt_romanization: "Romanization",
       tt_photos: "Photos",
@@ -304,6 +306,8 @@
       search_mandarin: "普通話：",
       auth_signin: "登入", auth_guest: "訪客",
       auth_signout_confirm: "登出？", lang_switch: "EN",
+      pend_title: "您的帳號正在等待家族審核",
+      pend_body: "您已成功登入。在世親人的相片、生年與生平，須待審核通過後才會顯示；一經通過，我們會以電郵通知您。網站運作正常，您無須再做任何事。",
 
       tt_daughters: "顯示女兒及外姓配偶", tt_romanization: "羅馬拼音",
       tt_photos: "相片",

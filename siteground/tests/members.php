@@ -69,6 +69,20 @@ check('a member cannot approve themselves',
 check('  …and the row did not move',    $flag('u-new', 'approved'), 0);
 check('an unknown member is a 404',     refused(fn() => member_set_approved($keeper, 'nobody', true))['status'] ?? null, 404);
 
+// `changed` is what stops the approval email going out twice. An admin re-reads
+// this roster often and clicking Approve on somebody already approved must be a
+// no-op, not a second "you're approved!" landing in a relative's inbox.
+echo "\nONLY A REAL TRANSITION COUNTS AS A CHANGE\n";
+check('approving an unapproved member is a change',
+      member_set_approved($keeper, 'u-new', true)['changed'], true);
+check('approving them again is NOT a change',
+      member_set_approved($keeper, 'u-new', true)['changed'], false);
+check('  …and they are still approved',  $flag('u-new', 'approved'), 1);
+check('withdrawing is a change',
+      member_set_approved($keeper, 'u-new', false)['changed'], true);
+check('withdrawing again is NOT a change',
+      member_set_approved($keeper, 'u-new', false)['changed'], false);
+
 echo "\nAN ADMIN IS ALWAYS AN APPROVED MEMBER\n";
 $r = refused(fn() => member_set_approved($keeper, 'u-keeper', false));
 check('un-approving an admin is refused', $r['status'] ?? null, 409);

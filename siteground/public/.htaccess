@@ -1,10 +1,36 @@
-# Caching policy for the zupu.
+# Canonical host and caching policy for the zupu.
+
+# ──────────────────────────────────────────────────────────────────────────
+# ONE HOST, ONE COOKIE JAR.
+#
+# www.zupu.accme.my served the byte-identical app on a DIFFERENT cookie
+# origin. The session cookie is host-only, so a sign-in on one host left the
+# other signed out, and clicking the emailed link again could never fix it —
+# the link lands on the apex, the bookmark returns to www, and the site says
+# "signed out" forever with nothing visibly wrong. Reproduced with a real
+# session cookie: www answered signedIn:false.
+#
+# Nobody had reached it yet (0 of 3,020 requests over ten days), which is the
+# cheapest possible moment to close a door like this.
+#
+# The condition can only match a host beginning "www.", so the apex redirects
+# to itself under no circumstances. %{REQUEST_URI} carries the path and
+# mod_rewrite re-appends the query string, so deep links survive.
+# ──────────────────────────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# ──────────────────────────────────────────────────────────────────────────
+# CACHING.
 #
 # THE PROBLEM THIS SOLVES. The page loads js/app.js by a plain path and the
 # server sent no Cache-Control at all, so a browser was free to decide for
 # itself how long to keep it — and did. A reviewer reported that "mark as
-# verified" did nothing; the button was fine, her browser was running a copy of
-# app.js from before that capability existed, and a click fell through to a
+# verified" did nothing; the button was fine, her browser was running a copy
+# of app.js from before that capability existed, and a click fell through to a
 # branch that silently does nothing. There is a proxy cache in front of this
 # site too (x-proxy-cache-info), so a stale index.html can be served even when
 # the file on disk is current.
@@ -13,7 +39,7 @@
 # be fresh, because it is what names the version of everything else;
 # deploy_frontend.sh stamps every local script and stylesheet with ?v=<deploy>,
 # so those URLs change whenever their contents do and can be cached hard.
-
+# ──────────────────────────────────────────────────────────────────────────
 <IfModule mod_headers.c>
   # The entry point. no-store rather than no-cache: it also asks the proxy in
   # front not to hold a copy, which is what actually bit us.
@@ -28,10 +54,20 @@
     Header set Cache-Control "public, max-age=31536000"
   </FilesMatch>
 
-  # The API and the two gates decide their own caching — photo.php in
-  # particular distinguishes a public photo from a member's, and must never
-  # have that overridden into something a shared cache would keep.
-  <FilesMatch "\.php$">
-    Header unset Cache-Control
-  </FilesMatch>
+  # NOTHING FOR .php, DELIBERATELY.
+  #
+  # This used to be `<FilesMatch "\.php$"> Header unset Cache-Control`,
+  # explained as letting photo.php decide its own caching. It did the exact
+  # opposite: `unset` strips the header PHP just sent, so json_out()'s
+  # `private, no-store` and photo.php's `private, no-store` for a MEMBER's
+  # photo both left this server with no cache directive at all — the one
+  # distinction the rule existed to protect was the one it destroyed. Every
+  # response was then at the mercy of whatever a shared cache chose to infer.
+  #
+  # It was never needed either: the asset rule above matches on extension, and
+  # a .php file has never matched it. Removing the block is the whole fix.
+  #
+  # So: photo.php sends `public, max-age=3600` or `private, no-store`
+  # depending on the tier, doc.php and every JSON endpoint send
+  # `private, no-store`, and all of them now arrive intact.
 </IfModule>

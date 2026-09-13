@@ -45,6 +45,14 @@ $ins('persons', ['id'=>'anc2','name'=>'江萬里','gen'=>2,'visibility'=>'public
                  'birth_year'=>'宋嘉定十一年','death_year'=>'德祐元年','lifespan'=>'享壽五十八',
                  'religion'=>'儒','bio'=>'登宋咸淳進士，累官尚書。','birth_place'=>'p_ninghua']);
 $ins('person_details', ['person_id'=>'mem1','birth_year'=>'1980','bio'=>'private detail']);
+// A CHILD carrying detail in BOTH stores — a birth year on their own row AND a
+// person_details row. This is the shape that defeats a redaction done only in
+// the SELECT: the merge at the end of repo_persons() would write both back over
+// the NULLs. kid1 above has neither, so it could never have caught it.
+$ins('persons', ['id'=>'kid2','name'=>'Second Child','gen'=>27,'visibility'=>'member','living'=>1,
+                 'is_minor'=>1,'father_id'=>'mem1','birth_year'=>'2015','bio'=>'row bio for a child',
+                 'birth_place'=>'p_ninghua','milk_name'=>'細佬']);
+$ins('person_details', ['person_id'=>'kid2','birth_year'=>'2015','bio'=>'detail bio for a child']);
 // Gordon's shape: living, birth year on the ROW, no person_details row. This is
 // how the contribution form stores a relative, and it reached nobody.
 $ins('persons', ['id'=>'mem2','name'=>'修锋','gen'=>26,'father_id'=>'k_daxin',
@@ -100,8 +108,47 @@ foreach (['birth_year','bio','birth_place','residence_place','burial_place','lat
 }
 check('member also sees the living relative',     $visible(repo_persons($member)),   ['anc1','anc2','mem1','mem2']);
 check('member never sees the minor',              in_array('kid1', $ids(repo_persons($member)), true), false);
-check('approved member still never sees a minor', in_array('kid1', $ids(repo_persons($approved)), true), false);
+// The family's decision, 2026-09-13: an approved member sees a child's NAME and
+// where they sit, so the line does not simply end at the last adult. Everything
+// that makes a child locatable or knowable stays admin-only. A stranger and an
+// unapproved account still see no child at all.
+check('approved member now sees the child exists', in_array('kid1', $ids(repo_persons($approved)), true), true);
 check('admin sees the minor',                     in_array('kid1', $ids(repo_persons($admin)), true), true);
+
+echo "\nA CHILD IS FINDABLE, NOT KNOWABLE\n";
+$kidRow = function (Viewer $v, string $id) {
+    foreach (repo_persons($v) as $r) if (($r['id'] ?? null) === $id && isset($r['name'])) return $r;
+    return null;
+};
+$k = $kidRow($approved, 'kid2');
+check('an approved member gets the child row',   $k !== null, true);
+check('  …with their name',                      $k['name'] ?? null, 'Second Child');
+check('  …and their place in the tree',          $k['father_id'] ?? null, 'mem1');
+// The five below are the whole point. kid2 carries a birth year and a bio in
+// BOTH stores, so each of these fails the moment the merge stops skipping them.
+check('  …but NO birth year',                    $k['birth_year'] ?? null, null);
+check('  …no biography',                         $k['bio'] ?? null, null);
+check('  …no birthplace',                        $k['birth_place'] ?? null, null);
+check('  …no milk name',                         $k['milk_name'] ?? null, null);
+check('  …no coordinates',                       $k['lat'] ?? null, null);
+
+$ka = $kidRow($admin, 'kid2');
+check('an admin still gets the child in full',   $ka['birth_year'] ?? null, '2015');
+check('  …person_details still wins for them',   $ka['bio'] ?? null, 'detail bio for a child');
+
+check('a stranger sees no child at all',         $kidRow($anon, 'kid2'), null);
+check('an UNAPPROVED member sees no child',      $kidRow($member, 'kid2'), null);
+
+// Being visible on the tree must not have opened any other door.
+$kidPhoto = q1('SELECT m.id, m.path, m.visibility, m.approved, COALESCE(p.is_minor,0) AS subject_is_minor
+                  FROM media m LEFT JOIN persons p ON p.id = m.person_id WHERE m.id = ?',
+               ['33333333-3333-3333-3333-333333333333']);
+check("a child's photo is still refused an approved member",
+      Visibility::maySeePhoto($approved, $kidPhoto), false);
+check("a child's photo is still absent from their media list",
+      in_array('33333333-3333-3333-3333-333333333333', array_column(repo_media($approved), 'id'), true), false);
+check("a child's contact still needs an admin",
+      Visibility::maySeeContact($approved, 'kid2'), false);
 check('anon learns nothing about an archived person', in_array('arc1', $visible(repo_persons($anon)), true), false);
 check('admin sees the archived person',           in_array('arc1', $ids(repo_persons($admin)), true), true);
 

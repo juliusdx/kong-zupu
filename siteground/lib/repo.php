@@ -50,6 +50,36 @@ const PERSON_SEARCH = "id, gen, name, pinyin, ritual_name, formal_name, hao, mil
                        NULL AS birth_year, NULL AS death_year, NULL AS lifespan,
                        NULL AS religion, NULL AS bio";
 
+/**
+ * A CHILD, to an APPROVED member: their name, and where they sit. Nothing else.
+ *
+ * Minors used to be absent from every non-admin's tree entirely, which is the
+ * safest thing a zupu can do and also stops it being a zupu — the line simply
+ * ended at the last adult, and a relative looking for her grandchildren found
+ * a blank. Fourteen children were invisible to the whole family but one
+ * reviewer, seven of them added from a family chart days earlier.
+ *
+ * So the family chose the same shape it already chose for living adults seen
+ * by a stranger — findable, not knowable — but granted to a far smaller group:
+ * approved members only, never a stranger and never an unapproved account.
+ *
+ * Everything that makes a child locatable or knowable is NULL here: dates,
+ * places, coordinates, biography, and every alternate name. Their photos are
+ * refused separately by repo_media() and again by photo.php, and their contacts
+ * need admin. The redaction is written as explicit NULLs rather than by leaving
+ * columns out, so the row keeps the same shape as PERSON_BASIC and what is
+ * withheld is legible in the query instead of inferred from its absence.
+ */
+const PERSON_MINOR = "id, gen, name, pinyin,
+                      NULL AS ritual_name, NULL AS formal_name, NULL AS hao,
+                      NULL AS milk_name, NULL AS aka,
+                      gender, father_id, spouse_of, NULL AS relation, living,
+                      confidence, visibility,
+                      NULL AS birth_place, NULL AS residence_place, NULL AS burial_place,
+                      NULL AS lat, NULL AS lng, 0 AS archived,
+                      NULL AS birth_year, NULL AS death_year, NULL AS lifespan,
+                      NULL AS religion, NULL AS bio";
+
 function repo_persons(Viewer $v): array
 {
     [$gate] = Visibility::rowGate($v, 'p');
@@ -69,6 +99,44 @@ function repo_persons(Viewer $v): array
               WHERE visibility = 'member' AND living = 1
                 AND is_minor = 0 AND archived = 0"
         )->fetchAll());
+        usort($rows, fn($a, $b) => [$a['gen'], $a['name']] <=> [$b['gen'], $b['name']]);
+    }
+
+    // Detail is a second decision, not part of the row gate: a signed-in member
+    // sees WHO their relatives are; an APPROVED member sees their details.
+    //
+    // TWO answers, deliberately, and the difference is the point. $isApproved
+    // is the real one. $mayDetail can additionally be true for somebody who is
+    // merely signed in, when enforce_approval is off — a deploy-day grace so
+    // the cutover did not lock the family out of their own records overnight.
+    //
+    // That grace covers ordinary detail and MUST NOT reach the children. A
+    // permissive switch is exactly the sort of thing left on by accident, and
+    // "anyone who happened to be signed in that week" is not who the family
+    // agreed could see their minors. The suite asserts this directly.
+    $enforce    = (bool)(config()['enforce_approval'] ?? true);
+    $isApproved = Visibility::maySeeDetail($v);
+    $mayDetail  = $isApproved;
+    if (!$mayDetail && !$enforce && $v->isSignedIn()) {
+        access_log($v->userId, 'would_refuse', 'person_details', 'unapproved member');
+        $mayDetail = true;
+    }
+
+    // The children. An admin already has them in full through the row gate;
+    // this is the approved member's redacted view — see PERSON_MINOR.
+    //
+    // Their ids are remembered because the detail merge at the bottom of this
+    // function would otherwise hand back exactly what the SELECT just withheld:
+    // a minor with a person_details row, or a birth year on their own row,
+    // would have it written straight over the NULL. The redaction is only as
+    // good as the code that runs after it.
+    $minorIds = [];
+    if ($isApproved && !$v->isAdmin) {
+        $kids = q("SELECT " . PERSON_MINOR . " FROM persons
+                    WHERE is_minor = 1 AND archived = 0
+                      AND visibility IN ('public','member')")->fetchAll();
+        foreach ($kids as $k) $minorIds[$k['id']] = true;
+        $rows = array_merge($rows, $kids);
         usort($rows, fn($a, $b) => [$a['gen'], $a['name']] <=> [$b['gen'], $b['name']]);
     }
 
@@ -94,15 +162,6 @@ function repo_persons(Viewer $v): array
         )->fetchAll());
     }
 
-    // Detail is a second decision, not part of the row gate: a signed-in member
-    // sees WHO their relatives are; an APPROVED member sees their details.
-    $enforce = (bool)(config()['enforce_approval'] ?? true);
-    $mayDetail = Visibility::maySeeDetail($v);
-    if (!$mayDetail && !$enforce && $v->isSignedIn()) {
-        // Deploy-day grace: log what would have been refused, then allow it.
-        access_log($v->userId, 'would_refuse', 'person_details', 'unapproved member');
-        $mayDetail = true;
-    }
     if (!$mayDetail) return $rows;
 
     $keys = ['birth_year','death_year','lifespan','religion','bio'];
@@ -128,6 +187,7 @@ function repo_persons(Viewer $v): array
     }
     foreach ($rows as &$r) {
         if (!empty($r['archived']) && !isset($r['name'])) continue;   // a tombstone carries nothing
+        if (isset($minorIds[$r['id']])) continue;   // a child: name and position, and it stays that way
         $o = $own[$r['id']] ?? null;
         if ($o) foreach ($keys as $k) {
             if ($o[$k] !== null && $o[$k] !== '') $r[$k] = $o[$k];

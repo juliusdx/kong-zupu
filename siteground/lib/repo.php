@@ -63,12 +63,19 @@ const PERSON_SEARCH = "id, gen, name, pinyin, ritual_name, formal_name, hao, mil
  * by a stranger — findable, not knowable — but granted to a far smaller group:
  * approved members only, never a stranger and never an unapproved account.
  *
- * Everything that makes a child locatable or knowable is NULL here: dates,
- * places, coordinates, biography, and every alternate name. Their photos are
- * refused separately by repo_media() and again by photo.php, and their contacts
- * need admin. The redaction is written as explicit NULLs rather than by leaving
- * columns out, so the row keeps the same shape as PERSON_BASIC and what is
- * withheld is legible in the query instead of inferred from its absence.
+ * The birth YEAR is included; the BIRTHDAY is not, and those are the same
+ * column. The contribution form's field is labelled "Birth date" and relatives
+ * fill it in as one — 37 of the 203 birth years in this table are full dates
+ * like 1949-06-05 — so the raw value is reduced by birth_year_only() before it
+ * leaves this function. Selecting the column here is therefore only half the
+ * rule; see the merge at the bottom for the other half.
+ *
+ * Everything else that makes a child locatable or knowable is NULL: places,
+ * coordinates, biography, death date, and every alternate name. Their photos
+ * are refused separately by repo_media() and again by photo.php, and their
+ * contacts need admin. The redaction is written as explicit NULLs rather than
+ * by leaving columns out, so the row keeps the same shape as PERSON_BASIC and
+ * what is withheld is legible in the query instead of inferred from its absence.
  */
 const PERSON_MINOR = "id, gen, name, pinyin,
                       NULL AS ritual_name, NULL AS formal_name, NULL AS hao,
@@ -77,8 +84,30 @@ const PERSON_MINOR = "id, gen, name, pinyin,
                       confidence, visibility,
                       NULL AS birth_place, NULL AS residence_place, NULL AS burial_place,
                       NULL AS lat, NULL AS lng, 0 AS archived,
-                      NULL AS birth_year, NULL AS death_year, NULL AS lifespan,
+                      birth_year, NULL AS death_year, NULL AS lifespan,
                       NULL AS religion, NULL AS bio";
+
+/**
+ * The YEAR out of a birth field, and nothing finer.
+ *
+ * `birth_year` is one free-text column holding whatever a relative typed into a
+ * box labelled "Birth date": bare years (2015), ISO dates (1949-06-05), and
+ * Chinese era dates (光緒十六年庚寅十二月初九日) all live in it together. For a
+ * CHILD the family agreed the year may be seen and the birthday may not, so the
+ * value has to be reduced rather than trusted to already be a year — it happens
+ * to be one for all fourteen children today, and stops being one the first time
+ * somebody edits a child through the form.
+ *
+ * Returns the first four-digit run, or null. Null when no year can be found is
+ * the deliberate direction: an era date yields nothing rather than a guess.
+ */
+function birth_year_only(?string $raw): ?string
+{
+    if ($raw === null) return null;
+    $raw = trim($raw);
+    if ($raw === '') return null;
+    return preg_match('/\d{4}/', $raw, $m) ? $m[0] : null;
+}
 
 function repo_persons(Viewer $v): array
 {
@@ -135,7 +164,11 @@ function repo_persons(Viewer $v): array
         $kids = q("SELECT " . PERSON_MINOR . " FROM persons
                     WHERE is_minor = 1 AND archived = 0
                       AND visibility IN ('public','member')")->fetchAll();
-        foreach ($kids as $k) $minorIds[$k['id']] = true;
+        foreach ($kids as &$k) {
+            $minorIds[$k['id']] = true;
+            $k['birth_year'] = birth_year_only($k['birth_year']);   // the year, never the birthday
+        }
+        unset($k);
         $rows = array_merge($rows, $kids);
         usort($rows, fn($a, $b) => [$a['gen'], $a['name']] <=> [$b['gen'], $b['name']]);
     }
@@ -187,7 +220,18 @@ function repo_persons(Viewer $v): array
     }
     foreach ($rows as &$r) {
         if (!empty($r['archived']) && !isset($r['name'])) continue;   // a tombstone carries nothing
-        if (isset($minorIds[$r['id']])) continue;   // a child: name and position, and it stays that way
+        // A child. person_details still wins over the row, as it does for
+        // everyone — but only ever as a YEAR, and nothing else is merged back.
+        // Three of the fourteen have a person_details row, so this is not a
+        // hypothetical path: skipping it outright would show a stale year, and
+        // merging it unreduced would hand out a birthday.
+        if (isset($minorIds[$r['id']])) {
+            $d = $detail[$r['id']] ?? null;
+            if ($d !== null && $d['birth_year'] !== null && $d['birth_year'] !== '') {
+                $r['birth_year'] = birth_year_only($d['birth_year']);
+            }
+            continue;
+        }
         $o = $own[$r['id']] ?? null;
         if ($o) foreach ($keys as $k) {
             if ($o[$k] !== null && $o[$k] !== '') $r[$k] = $o[$k];

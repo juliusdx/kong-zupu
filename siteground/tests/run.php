@@ -49,10 +49,17 @@ $ins('person_details', ['person_id'=>'mem1','birth_year'=>'1980','bio'=>'private
 // person_details row. This is the shape that defeats a redaction done only in
 // the SELECT: the merge at the end of repo_persons() would write both back over
 // the NULLs. kid1 above has neither, so it could never have caught it.
+// Both stores hold a FULL DATE, and they disagree — the only fixture that can
+// tell a working redaction from none at all. A bare year here would pass even
+// if birth_year_only() were deleted, and 37 of the 203 birth years in the live
+// table really are ISO dates, because the form field is labelled "Birth date".
 $ins('persons', ['id'=>'kid2','name'=>'Second Child','gen'=>27,'visibility'=>'member','living'=>1,
-                 'is_minor'=>1,'father_id'=>'mem1','birth_year'=>'2015','bio'=>'row bio for a child',
+                 'is_minor'=>1,'father_id'=>'mem1','birth_year'=>'2015-03-14','bio'=>'row bio for a child',
                  'birth_place'=>'p_ninghua','milk_name'=>'細佬']);
-$ins('person_details', ['person_id'=>'kid2','birth_year'=>'2015','bio'=>'detail bio for a child']);
+$ins('person_details', ['person_id'=>'kid2','birth_year'=>'2016-07-02','bio'=>'detail bio for a child']);
+// A child with no recorded birth at all — five of the fourteen are like this.
+$ins('persons', ['id'=>'kid3','name'=>'Third Child','gen'=>27,'visibility'=>'member','living'=>1,
+                 'is_minor'=>1,'father_id'=>'mem1']);
 // Gordon's shape: living, birth year on the ROW, no person_details row. This is
 // how the contribution form stores a relative, and it reached nobody.
 $ins('persons', ['id'=>'mem2','name'=>'修锋','gen'=>26,'father_id'=>'k_daxin',
@@ -126,18 +133,36 @@ check('  …with their name',                      $k['name'] ?? null, 'Second C
 check('  …and their place in the tree',          $k['father_id'] ?? null, 'mem1');
 // The five below are the whole point. kid2 carries a birth year and a bio in
 // BOTH stores, so each of these fails the moment the merge stops skipping them.
-check('  …but NO birth year',                    $k['birth_year'] ?? null, null);
+// The family's revision: the YEAR may be seen, the BIRTHDAY may not. Both
+// stores hold a full date here and they disagree, so this proves the reduction
+// AND that person_details still wins.
+check('  …the birth YEAR, reduced from a full date', $k['birth_year'] ?? null, '2016');
+check('  …never the birthday itself',            str_contains((string)($k['birth_year'] ?? ''), '07'), false);
 check('  …no biography',                         $k['bio'] ?? null, null);
 check('  …no birthplace',                        $k['birth_place'] ?? null, null);
 check('  …no milk name',                         $k['milk_name'] ?? null, null);
 check('  …no coordinates',                       $k['lat'] ?? null, null);
 
 $ka = $kidRow($admin, 'kid2');
-check('an admin still gets the child in full',   $ka['birth_year'] ?? null, '2015');
+check('an admin still gets the child in full',   $ka['birth_year'] ?? null, '2016-07-02');
 check('  …person_details still wins for them',   $ka['bio'] ?? null, 'detail bio for a child');
 
 check('a stranger sees no child at all',         $kidRow($anon, 'kid2'), null);
 check('an UNAPPROVED member sees no child',      $kidRow($member, 'kid2'), null);
+
+// The row value is reduced too, not only the person_details one — kid1 and
+// kid3 have no person_details row, so they exercise the other half.
+$k3 = $kidRow($approved, 'kid3');
+check('a child with no recorded birth yields null', $k3['birth_year'] ?? null, null);
+check('an era date yields nothing rather than a guess',
+      birth_year_only('光緒十六年庚寅十二月初九日'), null);
+check('a bare year passes through',   birth_year_only('2015'), '2015');
+check('an ISO date is cut to a year', birth_year_only('1949-06-05'), '1949');
+check('a day-first date still gives the year', birth_year_only('05-06-1949'), '1949');
+check('empty is null, not an empty string',    birth_year_only(''), null);
+
+// The admin path must be untouched by any of this.
+check('an admin still sees the full birth DATE', $ka['birth_year'] ?? null, '2016-07-02');
 
 // Being visible on the tree must not have opened any other door.
 $kidPhoto = q1('SELECT m.id, m.path, m.visibility, m.approved, COALESCE(p.is_minor,0) AS subject_is_minor
